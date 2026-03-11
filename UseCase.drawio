@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="MHhxsnbR9KZODQGMe67n" name="Page-1">
-        <mxGraphModel dx="802" dy="371" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1700" background="none" math="0" shadow="0">
+        <mxGraphModel dx="1186" dy="585" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1700" background="none" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -224,6 +224,24 @@
                 </mxCell>
                 <mxCell id="82" value="Chấm điểm rủi ro" style="ellipse;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="495" y="210" width="90" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="87" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="84" target="86">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="89" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="84" target="88">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="84" value="" style="shape=actor;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="1380" width="40" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="85" value="System job" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="20" y="1450" width="80" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="86" value="Chạy đối soát cuối ngày&amp;nbsp;" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="230" y="1310" width="120" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="88" value="Chạy luồng ETL" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="220" y="1480" width="120" height="80" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
