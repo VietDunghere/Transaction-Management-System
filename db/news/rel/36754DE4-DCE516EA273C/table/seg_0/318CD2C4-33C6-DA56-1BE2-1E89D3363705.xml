@@ -1,0 +1,184 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="318CD2C4-33C6-DA56-1BE2-1E89D3363705" schemaObject="B414A351-6A40-B369-A546-C2DC45259C3C" name="customers">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>customers</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="customer_id" id="37EBB222-F16C-9217-45D9-9E7AF67ED153">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>customers</sourceObjSchema>
+<sourceObjName>customer_id</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<commentInRDBMS><![CDATA[UUID]]></commentInRDBMS>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>36 BYTE</dataTypeSize>
+<ownDataTypeParameters>36 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="customer_code" id="977C43CC-1223-585E-86C2-74F8C36B4707">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>customers</sourceObjSchema>
+<sourceObjName>customer_code</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>50 BYTE</dataTypeSize>
+<ownDataTypeParameters>50 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="kyc_status" id="E5089975-BD26-1D76-39C5-D97E33D83EE4">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>customers</sourceObjSchema>
+<sourceObjName>kyc_status</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>20 BYTE</dataTypeSize>
+<ownDataTypeParameters>20 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="full_name" id="E6D9A1FF-FC90-A611-81F1-2EA2C0DC1F22">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>customers</sourceObjSchema>
+<sourceObjName>full_name</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>150 BYTE</dataTypeSize>
+<ownDataTypeParameters>150 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="identity_card" id="851A0D29-AEAD-B923-C370-EA222142AD43">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>customers</sourceObjSchema>
+<sourceObjName>identity_card</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>50 BYTE</dataTypeSize>
+<ownDataTypeParameters>50 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="address" id="AA5451A0-3140-F8A0-1B25-618C4ABBD9B2">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>customers</sourceObjSchema>
+<sourceObjName>address</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>255 BYTE</dataTypeSize>
+<ownDataTypeParameters>255 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="income_level" id="BDC7B8FB-8117-1A07-2743-B4FEF6E522D3">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>customers</sourceObjSchema>
+<sourceObjName>income_level</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>50 BYTE</dataTypeSize>
+<ownDataTypeParameters>50 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="created_at" id="1ECF42C8-C177-1FE5-63E4-CA06764C7DA6">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>customers</sourceObjSchema>
+<sourceObjName>created_at</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT015</logicalDatatype>
+<dataTypePrecision>6</dataTypePrecision>
+<ownDataTypeParameters>,6,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="89F78B6E-3B89-7F3C-CBA4-4DAD1C49E3CD" schemaObject="B414A351-6A40-B369-A546-C2DC45259C3C" name="customers_PK">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>SYS_C007811</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="37EBB222-F16C-9217-45D9-9E7AF67ED153"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="AB44FB90-19B1-88AB-0252-B6A314F0EC9A" schemaObject="B414A351-6A40-B369-A546-C2DC45259C3C" name="customers_customer_code_UN">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>SYS_C007812</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<indexState>Unique Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="977C43CC-1223-585E-86C2-74F8C36B4707"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="83498860-9058-5E9D-BEAF-B1D0CE79AD2F" schemaObject="B414A351-6A40-B369-A546-C2DC45259C3C" name="customers_identity_card_UN">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>SYS_C007813</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<indexState>Unique Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="851A0D29-AEAD-B923-C370-EA222142AD43"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

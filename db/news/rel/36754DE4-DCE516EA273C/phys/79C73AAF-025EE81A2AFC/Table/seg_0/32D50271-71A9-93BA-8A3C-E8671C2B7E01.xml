@@ -1,0 +1,63 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<TableProxyOraclev12c class="oracle.dbtools.crest.model.design.storage.oracle.v12c.TableProxyOraclev12c" name="channels" directorySegmentName="seg_0" id="32D50271-71A9-93BA-8A3C-E8671C2B7E01">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<schemaObject>B414A351-6A40-B369-A546-C2DC45259C3C</schemaObject>
+<logging>YES</logging>
+<partitionedRowMovement>DISABLE</partitionedRowMovement>
+<segment>C8DC1EE1-CBB5-7445-AC62-C0FCBEC7E0EC</segment>
+<tableSpace>0E488AC7-A233-BF56-A4F1-CD7745B49C1E</tableSpace>
+<temporaryChanged>false</temporaryChanged>
+<accessDriverType>oracle_loader</accessDriverType>
+<rejectLimit></rejectLimit>
+<inMemory>NO</inMemory>
+<columnProxies itemClass="oracle.dbtools.crest.model.design.storage.oracle.v12c.ColumnProxyOraclev12c">
+<ColumnProxy name="channel_code" id="1B8EF045-313E-7044-AE9F-DF1FA0DDC0D7">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="channel_name" id="47B75F05-750D-B5E7-2B79-DBE89092DF8D">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="channel_id" id="86E99E79-7299-5AB8-B996-D4FD32311027">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<autoIncrementDDL>IDENTITY_CLAUSE</autoIncrementDDL>
+</ColumnProxy>
+</columnProxies>
+<primaryKeys>
+<PrimaryKey class="oracle.dbtools.crest.model.design.storage.oracle.v10g.PKProxyOraclev10g" name="channels_PK" id="5151FD16-0FC0-41BA-FCD7-6F6082278E6A">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<schemaObject>B414A351-6A40-B369-A546-C2DC45259C3C</schemaObject>
+<segment>036238C5-71C0-ED25-FDD9-868D7F6D1DEE</segment>
+<tableSpace>0E488AC7-A233-BF56-A4F1-CD7745B49C1E</tableSpace>
+<indexSegment>036238C5-71C0-ED25-FDD9-868D7F6D1DEE</indexSegment>
+<indexSort>SORTED</indexSort>
+<usingIndex>BY INDEX NAME</usingIndex>
+</PrimaryKey>
+</primaryKeys>
+<uniqueKeys>
+<UniqueKey class="oracle.dbtools.crest.model.design.storage.oracle.v10g.UniqueOraclev10g" name="channels_channel_code_UN" id="8462DB86-FD94-697A-06E7-FFE2BC32B648">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<schemaObject>B414A351-6A40-B369-A546-C2DC45259C3C</schemaObject>
+<segment>036238C5-71C0-ED25-FDD9-868D7F6D1DEE</segment>
+<tableSpace>0E488AC7-A233-BF56-A4F1-CD7745B49C1E</tableSpace>
+<indexSegment>036238C5-71C0-ED25-FDD9-868D7F6D1DEE</indexSegment>
+<indexSort>SORTED</indexSort>
+<usingIndex>BY INDEX NAME</usingIndex>
+</UniqueKey>
+</uniqueKeys>
+</TableProxyOraclev12c>

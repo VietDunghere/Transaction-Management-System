@@ -1,0 +1,89 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<TableProxyOraclev12c class="oracle.dbtools.crest.model.design.storage.oracle.v12c.TableProxyOraclev12c" name="txn_state" directorySegmentName="seg_0" id="3E63BB7F-B14A-C0A7-BECC-029D30F422C9">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<schemaObject>B414A351-6A40-B369-A546-C2DC45259C3C</schemaObject>
+<logging>YES</logging>
+<partitionedRowMovement>DISABLE</partitionedRowMovement>
+<segment>C8DC1EE1-CBB5-7445-AC62-C0FCBEC7E0EC</segment>
+<tableSpace>0E488AC7-A233-BF56-A4F1-CD7745B49C1E</tableSpace>
+<temporaryChanged>false</temporaryChanged>
+<accessDriverType>oracle_loader</accessDriverType>
+<rejectLimit></rejectLimit>
+<inMemory>NO</inMemory>
+<columnProxies itemClass="oracle.dbtools.crest.model.design.storage.oracle.v12c.ColumnProxyOraclev12c">
+<ColumnProxy name="last_error_code" id="09D6A3A4-119F-2AFE-E793-0D7DA71E69C3">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="version" id="26C53F29-0EC7-9ECD-D6B3-0549DC17455D">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<defaultValue>1</defaultValue>
+</ColumnProxy>
+<ColumnProxy name="retry_count" id="45070A9A-91E9-F251-9382-0AD8B434322E">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<defaultValue>0</defaultValue>
+</ColumnProxy>
+<ColumnProxy name="last_error_message" id="62FD396F-A720-64B3-5F13-6BF5DDE9F2BE">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="txn_id" id="65A83046-16C3-71CE-2BDA-275F2D98724B">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="last_update" id="7F64254B-BC5F-1F8C-247B-7F2CB7EFA006">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="status" id="E1E08AB9-A48A-AEF9-498D-226E3196881A">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="reason_code" id="F811B326-BBB7-F29E-E283-F87684DA1E3C">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+</columnProxies>
+<foreignKeys>
+<ForeignKey class="oracle.dbtools.crest.model.design.storage.oracle.v10g.FKProxyOraclev10g" name="SYS_C007961" id="B456F78D-B26B-409D-1112-82DADD494785">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<deferrable>YES</deferrable>
+</ForeignKey>
+</foreignKeys>
+<primaryKeys>
+<PrimaryKey class="oracle.dbtools.crest.model.design.storage.oracle.v10g.PKProxyOraclev10g" name="txn_state_PK" id="A2D29330-5AA1-6876-5FF2-E470574C3726">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<schemaObject>B414A351-6A40-B369-A546-C2DC45259C3C</schemaObject>
+<segment>036238C5-71C0-ED25-FDD9-868D7F6D1DEE</segment>
+<tableSpace>0E488AC7-A233-BF56-A4F1-CD7745B49C1E</tableSpace>
+<indexSegment>036238C5-71C0-ED25-FDD9-868D7F6D1DEE</indexSegment>
+<indexSort>SORTED</indexSort>
+<usingIndex>BY INDEX NAME</usingIndex>
+</PrimaryKey>
+</primaryKeys>
+</TableProxyOraclev12c>

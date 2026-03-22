@@ -1,0 +1,137 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="CE4D5FA4-9BB6-2F15-D3B8-DC3FE4F33629" schemaObject="B414A351-6A40-B369-A546-C2DC45259C3C" name="loan_risk_scores">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>loan_risk_scores</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="score_id" id="E161F2B7-19A8-7479-F97B-6FC468AD7BB7">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>loan_risk_scores</sourceObjSchema>
+<sourceObjName>score_id</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<commentInRDBMS><![CDATA[UUID]]></commentInRDBMS>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>36 BYTE</dataTypeSize>
+<ownDataTypeParameters>36 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="app_id" id="E189376E-C3D2-CF07-CFA9-C186A8144612">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>loan_risk_scores</sourceObjSchema>
+<sourceObjName>app_id</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>36 BYTE</dataTypeSize>
+<ownDataTypeParameters>36 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="B82B65EE-C7EA-A73E-7945-264C0853F4FA" referredColumn="7ABE6395-441C-72CF-0C68-98E6C59C712F"/>
+</associations>
+</Column>
+<Column name="pd_score" id="589469C0-DB8C-2883-0B5B-923CD5C0F006">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>loan_risk_scores</sourceObjSchema>
+<sourceObjName>pd_score</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<dataTypePrecision>6</dataTypePrecision>
+<dataTypeScale>4</dataTypeScale>
+<ownDataTypeParameters>,6,4</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="model_version" id="10BCCA3A-E290-11C2-ABB3-0B3FD73D7347">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>loan_risk_scores</sourceObjSchema>
+<sourceObjName>model_version</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>50 BYTE</dataTypeSize>
+<ownDataTypeParameters>50 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="score_time" id="D6B6540B-9ADA-A016-B9EA-3849D3C47304">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>loan_risk_scores</sourceObjSchema>
+<sourceObjName>score_time</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT015</logicalDatatype>
+<dataTypePrecision>6</dataTypePrecision>
+<ownDataTypeParameters>,6,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="reason_json" id="DEB8EB6E-5C14-9C25-0151-800DC61E06A7">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>loan_risk_scores</sourceObjSchema>
+<sourceObjName>reason_json</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>4000 BYTE</dataTypeSize>
+<ownDataTypeParameters>4000 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="1E6E0BA8-AE64-F020-5CB1-99137932B673" schemaObject="B414A351-6A40-B369-A546-C2DC45259C3C" name="loan_risk_scores_PK">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>SYS_C007932</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="E161F2B7-19A8-7479-F97B-6FC468AD7BB7"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="46A07AD0-8FE0-B468-F4F8-2E8426B42FAB" name="SYS_C007940">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="E189376E-C3D2-CF07-CFA9-C186A8144612"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

@@ -1,0 +1,19 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="51261DD2-BBF2-9D77-5C4B-0D07FAFFA77C" containerWithKeyObject="57249444-1E19-2451-4525-6C60A716F958" localFKIndex="D56F01A9-A2A6-8EE6-4A6D-556289DD6400" name="SYS_C007964">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>SYS_C007964</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<referredTableLongName>TRANSACTIONMANAGEMENT.reconciliation_jobs</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>E8DFB503-7FA4-CBA4-039D-DB05707FABC3</referredTableID>
+<keyObject>384BE200-AA03-59FF-B875-6AA2ADBAF64C</keyObject>
+<referredKeyID>384BE200-AA03-59FF-B875-6AA2ADBAF64C</referredKeyID>
+<mandatory>true</mandatory>
+<refColNames>job_id</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>

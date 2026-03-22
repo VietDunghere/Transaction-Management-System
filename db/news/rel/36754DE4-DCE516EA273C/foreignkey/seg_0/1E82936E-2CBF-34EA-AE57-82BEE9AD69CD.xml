@@ -1,0 +1,19 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="1E82936E-2CBF-34EA-AE57-82BEE9AD69CD" containerWithKeyObject="4BA3A6D6-69DA-F833-A518-59EFE314D4EB" localFKIndex="F3652C38-BE8D-8A85-5888-CB8273036F76" name="SYS_C007949">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>SYS_C007949</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<referredTableLongName>TRANSACTIONMANAGEMENT.roles</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>C1CD12D2-EE27-23E4-9D9A-FA54EB82B39F</referredTableID>
+<keyObject>884525EF-5DC3-6667-A050-9BD9B2AC888E</keyObject>
+<referredKeyID>884525EF-5DC3-6667-A050-9BD9B2AC888E</referredKeyID>
+<mandatory>true</mandatory>
+<refColNames>role_id</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>

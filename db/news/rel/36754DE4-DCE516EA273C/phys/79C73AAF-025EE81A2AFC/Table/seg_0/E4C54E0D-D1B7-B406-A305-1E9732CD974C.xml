@@ -1,0 +1,81 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<TableProxyOraclev12c class="oracle.dbtools.crest.model.design.storage.oracle.v12c.TableProxyOraclev12c" name="dim_customer" directorySegmentName="seg_0" id="E4C54E0D-D1B7-B406-A305-1E9732CD974C">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<schemaObject>B414A351-6A40-B369-A546-C2DC45259C3C</schemaObject>
+<logging>YES</logging>
+<partitionedRowMovement>DISABLE</partitionedRowMovement>
+<segment>C8DC1EE1-CBB5-7445-AC62-C0FCBEC7E0EC</segment>
+<tableSpace>0E488AC7-A233-BF56-A4F1-CD7745B49C1E</tableSpace>
+<temporaryChanged>false</temporaryChanged>
+<accessDriverType>oracle_loader</accessDriverType>
+<rejectLimit></rejectLimit>
+<inMemory>NO</inMemory>
+<columnProxies itemClass="oracle.dbtools.crest.model.design.storage.oracle.v12c.ColumnProxyOraclev12c">
+<ColumnProxy name="segment" id="0B91CE7C-7F46-5C4E-A0A8-71EB2C250237">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="customer_id" id="661E5673-927A-7BA1-C83F-275F378D8A16">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="risk_level" id="70AEDD9A-F236-6A50-1D42-7741DCF57E5C">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="country" id="72C50E92-EFD7-EF30-4266-F341A6C3AAF3">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+<ColumnProxy name="customer_key" id="E28F3D70-3995-4926-A5D6-B40DBDB3C6FB">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<autoIncrementDDL>IDENTITY_CLAUSE</autoIncrementDDL>
+</ColumnProxy>
+<ColumnProxy name="city" id="FAF3BC72-2339-8E22-54F8-345FA93CE7D4">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+</ColumnProxy>
+</columnProxies>
+<primaryKeys>
+<PrimaryKey class="oracle.dbtools.crest.model.design.storage.oracle.v10g.PKProxyOraclev10g" name="dim_customer_PK" id="47AAF90B-2FF5-5800-98EE-E99A8FF7F63D">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<schemaObject>B414A351-6A40-B369-A546-C2DC45259C3C</schemaObject>
+<segment>036238C5-71C0-ED25-FDD9-868D7F6D1DEE</segment>
+<tableSpace>0E488AC7-A233-BF56-A4F1-CD7745B49C1E</tableSpace>
+<indexSegment>036238C5-71C0-ED25-FDD9-868D7F6D1DEE</indexSegment>
+<indexSort>SORTED</indexSort>
+<usingIndex>BY INDEX NAME</usingIndex>
+</PrimaryKey>
+</primaryKeys>
+<uniqueKeys>
+<UniqueKey class="oracle.dbtools.crest.model.design.storage.oracle.v10g.UniqueOraclev10g" name="dim_customer_customer_id_UN" id="A5763E75-B932-D72A-B034-3E3AFBF79C5F">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<schemaObject>B414A351-6A40-B369-A546-C2DC45259C3C</schemaObject>
+<segment>036238C5-71C0-ED25-FDD9-868D7F6D1DEE</segment>
+<tableSpace>0E488AC7-A233-BF56-A4F1-CD7745B49C1E</tableSpace>
+<indexSegment>036238C5-71C0-ED25-FDD9-868D7F6D1DEE</indexSegment>
+<indexSort>SORTED</indexSort>
+<usingIndex>BY INDEX NAME</usingIndex>
+</UniqueKey>
+</uniqueKeys>
+</TableProxyOraclev12c>

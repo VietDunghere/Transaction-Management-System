@@ -1,0 +1,102 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="4BA3A6D6-69DA-F833-A518-59EFE314D4EB" schemaObject="B414A351-6A40-B369-A546-C2DC45259C3C" name="user_roles">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>user_roles</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="user_id" id="D1385815-086A-FD2B-0F9F-1F15EB48C657">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>user_roles</sourceObjSchema>
+<sourceObjName>user_id</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>36 BYTE</dataTypeSize>
+<ownDataTypeParameters>36 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="6314942A-832A-C209-5328-81EA40E0EC62" referredColumn="2D6934CF-1D7B-CE21-70CD-A1C9BDF0FAA8"/>
+</associations>
+</Column>
+<Column name="role_id" id="EF7E025D-94B5-9753-2013-D2FE2707E895">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>user_roles</sourceObjSchema>
+<sourceObjName>role_id</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="1E82936E-2CBF-34EA-AE57-82BEE9AD69CD" referredColumn="5766D631-4894-4D3E-2C5D-FAA10D320F08"/>
+</associations>
+</Column>
+<Column name="assigned_at" id="55857323-072A-52E9-0863-DDF761CCC3CB">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>user_roles</sourceObjSchema>
+<sourceObjName>assigned_at</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT015</logicalDatatype>
+<dataTypePrecision>6</dataTypePrecision>
+<ownDataTypeParameters>,6,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="133CEED5-3709-63D7-09B4-3607D563F1D1" schemaObject="B414A351-6A40-B369-A546-C2DC45259C3C" name="user_roles_PK">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>SYS_C007809</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="D1385815-086A-FD2B-0F9F-1F15EB48C657"/>
+<colUsage columnID="EF7E025D-94B5-9753-2013-D2FE2707E895"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="127FBD45-C598-ED5E-9E75-7ECFF9D10F0B" name="SYS_C007948">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="D1385815-086A-FD2B-0F9F-1F15EB48C657"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="F3652C38-BE8D-8A85-5888-CB8273036F76" name="SYS_C007949">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="EF7E025D-94B5-9753-2013-D2FE2707E895"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

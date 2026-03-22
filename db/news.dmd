@@ -1,0 +1,8 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<OSDM_Design class="oracle.dbtools.crest.model.design.Design" name="news" id="2EB90AC3-52E1-8C6E-9EB8-BB95A01B8A6D" version="3.5">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:24:43 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<capitalNames>false</capitalNames>
+<designId>2EB90AC3-52E1-8C6E-9EB8-BB95A01B8A6D</designId>
+</OSDM_Design>

@@ -1,0 +1,150 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="E140B3CE-D771-31B3-6FC1-0EFB532B4612" schemaObject="B414A351-6A40-B369-A546-C2DC45259C3C" name="review_case_actions">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>review_case_actions</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="action_id" id="B608C697-F8AC-8599-4025-40E9990C4273">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>review_case_actions</sourceObjSchema>
+<sourceObjName>action_id</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<commentInRDBMS><![CDATA[UUID]]></commentInRDBMS>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>36 BYTE</dataTypeSize>
+<ownDataTypeParameters>36 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="case_id" id="26C353FC-213A-2C89-BB6F-C8C570B63868">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>review_case_actions</sourceObjSchema>
+<sourceObjName>case_id</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>36 BYTE</dataTypeSize>
+<ownDataTypeParameters>36 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="8284E3D2-F184-B259-5AB2-79CD62D326A0" referredColumn="D0864A73-E311-5EE4-102D-B2EE81C084B3"/>
+</associations>
+</Column>
+<Column name="action_type" id="99D40D6D-AD6A-297E-A2D6-895FD20DD610">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>review_case_actions</sourceObjSchema>
+<sourceObjName>action_type</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<commentInRDBMS><![CDATA[ASSIGN|COMMENT|APPROVE|REJECT|REOPEN]]></commentInRDBMS>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>30 BYTE</dataTypeSize>
+<ownDataTypeParameters>30 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="actor_user_id" id="F741886B-1A9E-1D4C-5E5D-069BF87CB63B">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>review_case_actions</sourceObjSchema>
+<sourceObjName>actor_user_id</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>36 BYTE</dataTypeSize>
+<ownDataTypeParameters>36 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="7974CE1E-459F-AE49-9F13-FC8E3CF27E91" referredColumn="2D6934CF-1D7B-CE21-70CD-A1C9BDF0FAA8"/>
+</associations>
+</Column>
+<Column name="action_note" id="1569F49B-C53A-4F0E-64E7-0220A94703DB">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>review_case_actions</sourceObjSchema>
+<sourceObjName>action_note</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>500 BYTE</dataTypeSize>
+<ownDataTypeParameters>500 BYTE,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="created_at" id="FCE343D7-7516-49C6-83BE-CF01D802EFD6">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>review_case_actions</sourceObjSchema>
+<sourceObjName>created_at</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:29 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<nameHasQuotes>true</nameHasQuotes>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT015</logicalDatatype>
+<dataTypePrecision>6</dataTypePrecision>
+<ownDataTypeParameters>,6,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="EF988BA1-B2A3-0DC9-F723-2A2E2AE86C9D" schemaObject="B414A351-6A40-B369-A546-C2DC45259C3C" name="review_case_actions_PK">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>SYS_C007851</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="B608C697-F8AC-8599-4025-40E9990C4273"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="00A9D0F5-9B89-38BB-DA57-3EE4EB0BF927" name="SYS_C007957">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="26C353FC-213A-2C89-BB6F-C8C570B63868"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="568E327A-7A80-F956-4109-0208C8BE0995" name="SYS_C007958">
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="F741886B-1A9E-1D4C-5E5D-069BF87CB63B"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

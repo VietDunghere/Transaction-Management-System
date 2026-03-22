@@ -1,0 +1,19 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="E127BEE4-7F4A-BE65-B6D6-5D37850871F2" containerWithKeyObject="6A714486-DF85-D123-DB1A-EC9456E29CAA" localFKIndex="0834CE0A-72DE-9786-117B-992FFA167113" name="SYS_C007960">
+<sourceConnName>TransactionManagement</sourceConnName>
+<sourceObjSchema>TRANSACTIONMANAGEMENT</sourceObjSchema>
+<sourceObjName>SYS_C007960</sourceObjName>
+<createdBy>VIET DUNG</createdBy>
+<createdTime>2026-03-22 04:36:30 UTC</createdTime>
+<ownerDesignName>news</ownerDesignName>
+<referredTableLongName>TRANSACTIONMANAGEMENT.transactions_live</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>B476E024-484C-49C9-4A0C-553C1B9342F0</referredTableID>
+<keyObject>DAC21C30-65B4-3EDD-1373-AFFDAB601C34</keyObject>
+<referredKeyID>DAC21C30-65B4-3EDD-1373-AFFDAB601C34</referredKeyID>
+<mandatory>false</mandatory>
+<refColNames>txn_id</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>
