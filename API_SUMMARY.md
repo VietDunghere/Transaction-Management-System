@@ -52,10 +52,9 @@
 | 21 | `GET` | `/dashboard/fraud-chart` | Query: `period`, `from_date`, `to_date` | Tỷ lệ Fraud/Legit (count + amount), breakdown theo kỳ | Xem biểu đồ Fraud vs Legit từ Warehouse (OLAP) _(MANAGER, ADMIN)_ |
 | 22 | `GET` | `/reports/transactions` | Query: `period` (`daily`/`weekly`/`monthly`/`quarterly`), `from_date`, `to_date` | Báo cáo theo kỳ: count, amount, tỷ lệ APPROVED/REJECTED/MANUAL_REVIEW | Xem báo cáo giao dịch theo thời gian _(MANAGER, ADMIN)_ |
 | 23 | `GET` | `/reports/transactions/export` | Query: `format`, `period`, `from_date`, `to_date` | File download (CSV/PDF) | Xuất báo cáo giao dịch ra file _(MANAGER, ADMIN)_ |
-| 24 | `POST` | `/loan/submit` | `applicant_id`, `loan_amount`, `tenure_months`, `annual_income`, `credit_score`, `employment_type`, `loan_purpose` | `loan_id`, `pd_score`, `risk_grade`, `status` | Gửi đơn vay demo, nhận PD Score từ ML model _(OPERATOR)_ |
-| 25 | `GET` | `/datalake/structure` | _(không có)_ | Danh sách thư mục theo ngày, số file, kích thước | Xem cấu trúc Data Lake _(ADMIN)_ |
-| 26 | `GET` | `/etl/logs` | Query: `page`, `limit`, `status`, `from_date` | Danh sách ETL jobs (rows extracted/loaded, lỗi nếu có) | Xem log ETL pipeline _(ADMIN)_ |
-| 27 | `POST` | `/etl/trigger` | `date`, `mode` (`FULL`/`INCREMENTAL`) | `job_id`, `status: RUNNING` | Trigger thủ công ETL Pipeline (Extract → Transform → Load) _(ADMIN)_ |
+| 24 | `GET` | `/datalake/structure` | _(không có)_ | Danh sách thư mục theo ngày, số file, kích thước | Xem cấu trúc Data Lake _(ADMIN)_ |
+| 25 | `GET` | `/etl/logs` | Query: `page`, `limit`, `status`, `from_date` | Danh sách ETL jobs (rows extracted/loaded, lỗi nếu có) | Xem log ETL pipeline _(ADMIN)_ |
+| 26 | `POST` | `/etl/trigger` | `date`, `mode` (`FULL`/`INCREMENTAL`) | `job_id`, `status: RUNNING` | Trigger thủ công ETL Pipeline (Extract → Transform → Load) _(ADMIN)_ |
 
 ---
 
@@ -63,10 +62,10 @@
 
 | # | Phương thức | URL | Input | Output | Tác dụng |
 |---|---|---|---|---|---|
-| 28 | `GET` | `/transaction/{txn_id}/states` | `txn_id` trên URL | `current_status`, `current_version`, `history[]` (status + version + actor) | Xem lịch sử trạng thái & version Optimistic Locking của giao dịch _(OPERATOR, ADMIN)_ |
-| 29 | `POST` | `/reconciliation/run` | `date` | `job_id`, `status: RUNNING` | Trigger đối soát: so khớp COUNT(*) và SUM(amount) giữa OLTP, Data Lake, Warehouse _(ADMIN)_ |
-| 30 | `GET` | `/reconciliation/jobs` | Query: `page`, `limit`, `status` (`MATCH`/`MISMATCH`/`RUNNING`), `from_date` | Danh sách reconciliation jobs với kết quả tóm tắt | Xem danh sách kết quả đối soát theo ngày _(ADMIN, MANAGER)_ |
-| 31 | `GET` | `/reconciliation/jobs/{job_id}` | `job_id` trên URL | Chi tiết 3 nguồn (OLTP/Lake/Warehouse), danh sách `discrepancies[]` | Xem chi tiết báo cáo chênh lệch khi MISMATCH _(ADMIN, MANAGER)_ |
+| 27 | `GET` | `/transaction/{txn_id}/states` | `txn_id` trên URL | `current_status`, `current_version`, `history[]` (status + version + actor) | Xem lịch sử trạng thái & version Optimistic Locking của giao dịch _(OPERATOR, ADMIN)_ |
+| 28 | `POST` | `/reconciliation/run` | `date` | `job_id`, `status: RUNNING` | Trigger đối soát: so khớp COUNT(*) và SUM(amount) giữa OLTP, Data Lake, Warehouse _(ADMIN)_ |
+| 29 | `GET` | `/reconciliation/jobs` | Query: `page`, `limit`, `status` (`MATCH`/`MISMATCH`/`RUNNING`), `from_date` | Danh sách reconciliation jobs với kết quả tóm tắt | Xem danh sách kết quả đối soát theo ngày _(ADMIN, MANAGER)_ |
+| 30 | `GET` | `/reconciliation/jobs/{job_id}` | `job_id` trên URL | Chi tiết 3 nguồn (OLTP/Lake/Warehouse), danh sách `discrepancies[]` | Xem chi tiết báo cáo chênh lệch khi MISMATCH _(ADMIN, MANAGER)_ |
 
 ---
 
@@ -77,6 +76,6 @@
 | Xác thực & Phân quyền | 7 |
 | Quản lý Giao dịch | 4 |
 | Case Management & Audit | 8 |
-| Data Engineering & Báo cáo | 8 |
+| Data Engineering & Báo cáo | 7 |
 | Idempotency, State & Reconciliation | 4 |
-| **Tổng** | **31** |
+| **Tổng** | **30** |
