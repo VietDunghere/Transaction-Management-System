@@ -1,298 +1,354 @@
-# Transaction Management System (TMS)
+# Transaction Management System
 
-## 🎯 Dự án này làm gì?
+## Executive Summary
 
-**Transaction Management System** là một nền tảng xử lý và quản lý giao dịch tài chính cho các ngân hàng, fintech, hoặc tổ chức tín dụng. Nó tự động phát hiện gian lận, quản lý luồng duyệt, và đảm bảo tính toàn vẹn dữ liệu qua ETL pipeline.
-
-### Vấn đề nó giải quyết
-
-Mỗi ngày, ngân hàng xử lý **hàng triệu giao dịch**. Nhưng không phải tất cả đều sạch:
-
-- 🚨 **Gian lận** — Ai gửi từ IP lạ? Card bị clone? Số tiền bất thường?
-- 🔍 **Duyệt chậm** — Reviewer nhân viên phải xem từng giao dịch bằng tay → tắc nghẽn, chậm chạp
-- 📊 **Kiểm soát kém** — Không biết ai duyệt cái gì, lúc nào, lý do gì → không compliance được
-- 💾 **Dữ liệu rối** — Data ở nhiều chỗ (OLTP DB, raw logs, warehouse) → khó so khớp, dễ mất dữ liệu
-- 📈 **Báo cáo thủ công** — Quản lý phải chờ dev tạo báo cáo, chậm khi cần insight nhanh
-
-### Giải pháp
-
-TMS **tự động hóa toàn bộ flow** này:
-
-1. **Tiếp nhận giao dịch** — OPERATOR gửi giao dịch via API
-2. **Kiểm tra tự động** — Hệ thống AI chấm điểm rủi ro (fraud score)
-3. **Phân luồng thông minh:**
-   - ✅ Score thấp → **Approve tự động** (không cần duyệt)
-   - ⚠️ Score trung bình → **Tạo case, gửi REVIEWER duyệt**
-   - ❌ Score cao → **Reject tự động**
-4. **Duyệt có quy trình** — REVIEWER nhận case → xem xét → approve/reject (với ghi chú lý do)
-5. **Kiểm soát đầy đủ** — Mọi hành động đều được **ghi audit log** — ai duyệt, lúc nào, lý do gì
-6. **Đảm bảo dữ liệu** — ETL tự động extract từ raw logs → transform → load vào warehouse để phân tích
-7. **Kiểm tra tính nhất quán** — Cuối ngày tự động **so khớp** dữ liệu giữa OLTP, Data Lake, Warehouse
+Transaction Management System (TMS) is an enterprise-grade platform designed to automate transaction processing, fraud detection, and compliance management for financial institutions. The system processes incoming transactions through an intelligent routing mechanism, leveraging AI-based fraud scoring to minimize manual review overhead while maintaining comprehensive audit trails for regulatory compliance.
 
 ---
 
-## 👥 Ai dùng nó?
+## Problem Statement
 
-### 1. **OPERATOR** — Nhân viên vận hành
-   - Gửi giao dịch/đơn vay demo vào hệ thống
-   - Xem kết quả xử lý (approved/rejected/manual review)
-   - Không cần biết backend hoạt động thế nào, chỉ gửi → xem kết quả
+Financial institutions face critical challenges in transaction processing:
 
-### 2. **REVIEWER** — Nhân viên duyệt
-   - Nhìn danh sách case cần duyệt (giao dịch bị flag = "cần xem xét")
-   - Nhận case, xem chi tiết (amount, fraud score, metadata)
-   - Quyết định: approve hay reject, bắt buộc ghi lý do
-   - Hành động được ghi lại → có trách nhiệm
+1. Fraud Detection Inefficiency - Manual inspection of transactions is time-consuming and error-prone. Fraudulent transactions often go undetected, resulting in significant financial losses.
 
-### 3. **MANAGER** — Quản lý
-   - Xem dashboard tổng quan: bao nhiêu giao dịch, fraud rate bao nhiêu, case nào đang chờ
-   - Xem biểu đồ fraud vs legitimate giao dịch theo ngày/tuần
-   - Truy vết giao dịch: "Giao dịch này đã được duyệt bởi ai, khi nào, vì sao?"
-   - Export báo cáo cho compliance/audit
+2. Processing Bottlenecks - Without intelligent routing, all transactions requiring human review create operational backlogs, delaying transaction settlement.
 
-### 4. **ADMIN** — Quản trị hệ thống
-   - Quản lý user (tạo, disable tài khoản)
-   - Trigger ETL pipeline thủ công nếu cần
-   - Chạy đối soát (reconciliation) để kiểm tra dữ liệu đúng không
-   - Xem log chi tiết nếu có vấn đề
+3. Compliance Gaps - Lack of comprehensive audit trails makes it difficult to demonstrate compliance with regulatory requirements and creates accountability issues.
+
+4. Data Inconsistency - Transaction data exists across multiple systems (OLTP database, raw logs, analytical warehouse) with no automated reconciliation mechanism.
+
+5. Manual Reporting - Business intelligence and reporting require manual intervention, preventing real-time insights into transaction patterns and fraud trends.
 
 ---
 
-## 🔑 Các tính năng chính
+## Solution Overview
 
-### 1️⃣ Xác thực & Phân quyền (Authentication & RBAC)
-- Đăng nhập JWT token
-- 4 roles khác nhau (OPERATOR, REVIEWER, MANAGER, ADMIN)
-- Mỗi role chỉ xem/làm những gì được phép
+TMS addresses these challenges through an integrated platform providing:
 
-### 2️⃣ Fraud Detection (Phát hiện gian lận)
-- AI chấm điểm rủi ro (fraud_score: 0.0 → 1.0)
-- Tự động phân luồng:
-  - Score ≤ 0.3 → APPROVED
-  - 0.3 < Score ≤ 0.7 → MANUAL_REVIEW (cần Reviewer duyệt)
-  - Score > 0.7 → REJECTED
-- Có thể cấu hình rule-based hoặc ML-based
+1. Automated Transaction Routing - Transactions are automatically classified based on fraud risk scoring, eliminating unnecessary manual review.
 
-### 3️⃣ Case Management (Quản lý case duyệt)
-- Tự động tạo case khi giao dịch cần manual review
-- Reviewer assign case cho mình
-- Duyệt (approve) hay từ chối (reject) với bắt buộc ghi lý do
-- Trạng thái case được track: OPEN → ASSIGNED → APPROVED/REJECTED
+2. Intelligent Fraud Detection - AI-driven scoring system evaluates transaction risk factors and routes accordingly.
 
-### 4️⃣ Idempotency (Tránh xử lý lặp lại)
-- Client retry giao dịch bị lỗi → hệ thống nhận ra nó lặp
-- Trả lại kết quả cũ, không xử lý lại
-- Tránh double-charge, double-debit
+3. Managed Review Workflow - Cases requiring human review are systematically assigned and processed with mandatory documentation.
 
-### 5️⃣ Audit Log & Traceability (Ghi vết mọi hành động)
-- Mọi thay đổi đều được ghi: ai làm, khi nào, giao dịch nào, thay đổi từ gì sang gì
-- Truy vết toàn bộ lịch sử giao dịch (timeline từ tạo → duyệt → kết quả)
-- Xuất báo cáo audit ra file (CSV, PDF) cho compliance
+4. Complete Audit Trail - All actions are logged with actor, timestamp, and rationale for compliance and forensic analysis.
 
-### 6️⃣ Dashboard & Reports (Tổng quan & báo cáo)
-- Dashboard tổng quan: số giao dịch, fraud rate, case pending
-- Biểu đồ fraud vs legitimate theo ngày/tuần/tháng
-- Báo cáo chi tiết: số lượng, tổng tiền, tỷ lệ approved/rejected/manual
-- Export file cho phân tích thêm
+5. Automated Data Engineering - ETL pipeline extracts, transforms, and loads transaction data into analytical warehouse for reporting.
 
-### 7️⃣ ETL Pipeline (Xử lý dữ liệu lớn)
-- Extract: đọc raw logs từ Data Lake (file CSV theo ngày)
-- Transform: làm sạch dữ liệu, bổ sung (GeoIP enrichment, dedup)
-- Load: đưa vào Warehouse (OLAP) để phân tích
-- Ghi log ETL job (thành công/lỗi, bao nhiêu row xử lý)
-
-### 8️⃣ Reconciliation (Kiểm tra tính nhất quán)
-- So khớp dữ liệu giữa 3 nguồn:
-  - OLTP DB (database chính)
-  - Data Lake (raw logs)
-  - Warehouse (OLAP)
-- Kiểm tra: COUNT(*) và SUM(amount) có khớp không
-- Nếu lệch → tạo báo cáo chi tiết chênh lệch
-
-### 9️⃣ Loan Approval Simulator (Mô phỏng cho vay)
-- Nhập thông tin applicant (income, credit score, job type, v.v)
-- Hệ thống ML tính PD score (Probability of Default)
-- Phân loại rủi ro: LOW, MEDIUM, HIGH
+6. Data Integrity Verification - Automated reconciliation process ensures consistency across OLTP, Data Lake, and Warehouse systems.
 
 ---
 
-## 🏗️ Kiến trúc tổng thể
+## System Actors and Use Cases
+
+### User Roles
+
+**OPERATOR (Transaction Submitter)**
+- Submits transactions and loan applications to the system
+- Views transaction processing results
+- Provides input data for fraud scoring evaluation
+
+**REVIEWER (Case Decision Maker)**
+- Reviews transactions flagged for manual inspection
+- Makes approval or rejection decisions
+- Documents rationale for each decision
+- Bears accountability for review decisions
+
+**MANAGER (Operations Supervisor)**
+- Monitors dashboard metrics and KPIs
+- Analyzes fraud patterns and trends through reporting
+- Reviews audit trails for quality assurance
+- Generates compliance reports and exports
+
+**ADMIN (System Administrator)**
+- Manages user accounts and access controls
+- Executes ETL pipeline jobs
+- Initiates and monitors reconciliation processes
+- Troubleshoots system issues
+
+---
+
+## Core Functionality
+
+### 1. Authentication and Access Control
+
+The system implements role-based access control (RBAC) through JWT-based authentication. Each user role has specific permissions restricting access to relevant features and data. Token-based authorization ensures stateless API design while maintaining security.
+
+### 2. Fraud Detection and Routing
+
+Incoming transactions undergo automated analysis through a fraud scoring engine. The engine evaluates multiple risk factors and assigns a normalized score between 0.0 and 1.0. Based on the score:
+
+- Score less than 0.30: Transaction automatically approved
+- Score between 0.30 and 0.70: Transaction routed to manual review (case created)
+- Score greater than 0.70: Transaction automatically rejected
+- High-value transactions (above configured threshold) override to manual review
+
+### 3. Case Management and Review Workflow
+
+Transactions requiring manual review are converted to cases. Reviewers can:
+- View assigned cases with transaction details and fraud scoring rationale
+- Assign cases to themselves for review
+- Document approval or rejection decisions with mandatory notes
+- Track case status through completion
+
+### 4. Idempotency and Duplicate Prevention
+
+The system maintains an idempotency key for each transaction to prevent duplicate processing. If a transaction is submitted multiple times (due to network failures or retries), the system returns the cached result rather than processing again.
+
+### 5. Audit Logging and Traceability
+
+Comprehensive logging captures all system actions:
+- Transaction creation and status changes
+- Case assignment, review, and decision
+- Fraud scoring rationale
+- User actions with timestamps
+- Approval/rejection rationale
+
+Audit logs can be queried, exported, and traced by transaction for complete forensic analysis.
+
+### 6. Dashboard and Reporting
+
+The system provides real-time visibility through:
+- Summary dashboard showing transaction volume, fraud rate, and pending cases
+- Fraud distribution charts comparing fraudulent vs legitimate transactions
+- Period-based reporting (daily, weekly, monthly) with transaction counts and amounts
+- Status breakdown (approved, rejected, manual review) with percentages
+- Exportable reports in CSV and PDF formats
+
+### 7. ETL Pipeline
+
+Automated data engineering pipeline processes raw transaction logs:
+- Extract: Reads raw transaction logs from Data Lake storage
+- Transform: Applies data quality checks, deduplication, and enrichment (GeoIP mapping)
+- Load: Inserts processed data into analytical warehouse with appropriate dimensional tables
+- Monitoring: Records pipeline execution status, record counts, and error details
+
+### 8. Reconciliation Process
+
+Automated daily reconciliation verifies data integrity across systems:
+- Compares transaction counts between OLTP database, Data Lake, and Warehouse
+- Validates aggregate amounts across systems
+- Reports matching status (MATCH or MISMATCH)
+- Details discrepancies when inconsistencies detected
+- Enables root cause analysis and data correction
+
+### 9. Loan Decision Support
+
+The system includes a loan approval simulator that:
+- Analyzes loan applicant characteristics
+- Calculates Probability of Default (PD) score
+- Classifies risk level (LOW, MEDIUM, HIGH)
+- Supports what-if analysis for credit decision modeling
+
+---
+
+## System Architecture
+
+The system follows a layered architecture pattern:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    CLIENT (Web/Mobile)                  │
-│  OPERATOR / REVIEWER / MANAGER / ADMIN                  │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│              FastAPI Backend (TMS)                       │
-│  - Routes (API endpoints)                               │
-│  - Services (Business logic)                            │
-│  - Repositories (Database access)                       │
-│  - Models (ORM)                                         │
-│  - Fraud Scoring Engine                                 │
-│  - Audit Logger                                         │
-│  - ETL Orchestrator                                     │
-└─────────────────────────────────────────────────────────┘
-                    ↓         ↓          ↓
-          ┌─────────┴────┬────┴───┬─────┘
-          ↓              ↓        ↓
-    ┌──────────┐  ┌──────────┐  ┌─────────┐
-    │ OLTP DB  │  │Data Lake │  │Warehouse│
-    │(Oracle)  │  │(Raw CSV) │  │ (OLAP)  │
-    └──────────┘  └──────────┘  └─────────┘
-          ↑         (Extract)      (Load)
-          │            ↑ ↓           ↓
-          └────────────ETL────────Transform─────┘
-
-          ┌──────────────────────────────┐
-          │  Reconciliation Job (Daily)  │
-          │  (So khớp 3 nguồn dữ liệu)  │
-          └──────────────────────────────┘
+Presentation Layer
+  Client Applications (Operator Portal, Reviewer Dashboard, Admin Console)
+        |
+API Layer
+  RESTful HTTP API with JWT authentication
+        |
+Service Layer
+  Business Logic (Fraud Scoring, Case Management, Audit Logging)
+        |
+Repository Layer
+  Data Access Abstraction
+        |
+Data Layer
+  OLTP Database (Oracle)
+  Data Lake (Raw Logs)
+  Analytical Warehouse (OLAP)
+        |
+Background Jobs
+  ETL Pipeline, Reconciliation Process
 ```
 
----
+### Technology Stack
 
-## 📊 Ví dụ flow thực tế
-
-### Scenario: OPERATOR gửi giao dịch
-
-```
-10:00:00 — OPERATOR submit transaction
-  {
-    "card_number": "4111111111111111",
-    "amount": 350,000,000 VND,
-    "merchant_id": "AEON_MALL_001",
-    "txn_time": "2026-04-07T10:00:00Z"
-  }
-
-10:00:01 — Backend xử lý:
-  ✓ Validate: card có format đúng? amount > 0? merchant tồn tại?
-  ✓ Check idempotency: giao dịch này đã xử lý chưa?
-  ✓ AI fraud scoring:
-     - Giờ giao dịch: 10:00 (bình thường)
-     - Amount: 350M (cao, nhưng có quy mô)
-     - Card history: OK, không bất thường trước đó
-     → fraud_score = 0.45 (trung bình)
-
-  Phân luồng: 0.45 → MANUAL_REVIEW (cần Reviewer duyệt)
-
-  ✓ Tạo case mới
-  ✓ Ghi audit log: "TXN-001 created, AI scored 0.45 → MANUAL_REVIEW"
-
-10:00:02 — Trả response về OPERATOR:
-  {
-    "txn_id": "550e8400-e29b-41d4-a716-446655440000",
-    "status": "MANUAL_REVIEW",
-    "fraud_score": 0.45,
-    "reason_code": "MANUAL_REQUIRED",
-    "processed_at": "2026-04-07T10:00:01Z"
-  }
-
-10:05:00 — REVIEWER A log in, thấy danh sách case chờ duyệt
-           → Assign case TXN-001 cho mình
-
-10:10:00 — REVIEWER A xem chi tiết case:
-           - Amount: 350M (hợp lý cho AEON MALL)
-           - Card history: OK
-           - Fraud score: 0.45 (không quá cao)
-           → Quyết định: APPROVE
-
-           Ghi chú bắt buộc: "Lịch sử card tốt, amount hợp lý,
-                             merchant tin cậy → approved"
-
-           ✓ Ghi audit log: "CASE-001 approved by reviewer_a at 10:10:00
-                              reason: Lịch sử card tốt, amount hợp lý..."
-
-10:10:01 — Transaction status tự động cập nhật:
-           MANUAL_REVIEW → APPROVED
-
-10:11:00 — MANAGER xem dashboard:
-           - Tổng hôm nay: 2,500 transactions
-           - Fraud rate: 8.2%
-           - Cases pending: 23 (đang chờ Reviewer)
-           - Trend: fraud rate tăng nhẹ so với hôm qua
-
-22:00:00 — ETL job chạy tự động (cuối ngày):
-           ✓ Extract: đọc tất cả raw logs hôm nay từ /datalake/2026-04-07/
-           ✓ Transform: dedup, clean, enrich GeoIP
-           ✓ Load: insert vào FACT_TRANSACTIONS + DIM tables
-           ✓ Ghi ETL log: "Job completed: 2,500 rows loaded, 2 errors"
-
-23:00:00 — Reconciliation job chạy:
-           ✓ OLTP count: 2,500 ✓ Lake count: 2,500 ✓ Warehouse: 2,500
-           ✓ OLTP sum: 5.8B VND ✓ Lake: 5.8B VND ✓ Warehouse: 5.8B VND
-           → Status: MATCH (tất cả đều khớp)
-
-Sáng hôm sau — MANAGER xem báo cáo cuối ngày:
-              - Tổng doanh số: 5.8B VND
-              - Số giao dịch: 2,500
-              - Fraud rate: 8.2% (210 giao dịch)
-              - Reconciliation: ✓ MATCH (dữ liệu toàn vẹn)
-              → Export báo cáo PDF gửi compliance
-```
+- Backend Framework: FastAPI (Python)
+- Database: Oracle (primary), PostgreSQL (development)
+- Caching/Session Management: Redis
+- Message Queue: [To be specified]
+- Deployment: Docker, Kubernetes-ready
 
 ---
 
-## 🎓 Tại sao dự án này quan trọng?
+## Operational Flow
 
-### Cho Business:
-- ⚡ **Nhanh** — AI tự động approve/reject 90% giao dịch, không cần Reviewer → xử lý nhanh hơn
-- 🛡️ **An toàn** — Phát hiện gian lận sớm, giảm loss
-- 📊 **Minh bạch** — Audit log đầy đủ, có trách nhiệm → compliance dễ
-- 💾 **Đáng tin** — Reconciliation đảm bảo dữ liệu không bị mất/sai
+### Transaction Processing Flow
 
-### Cho Dev (người học):
-- 🏗️ **Kiến trúc clean** — FastAPI MVC, tách layers rõ ràng
-- 🔐 **Security chuẩn** — JWT, role-based access, SQL injection prevention
-- 📈 **Scale được** — ETL pipeline, Warehouse, async jobs
-- 🧪 **Best practices** — Idempotency, optimistic locking, audit trail
-- 📚 **Full cycle** — Từ API design → code → test → deploy
+1. OPERATOR submits transaction via API with card details, amount, merchant ID, timestamp, and metadata
+2. System validates input data against business rules
+3. System checks idempotency key to prevent duplicate processing
+4. Fraud scoring engine evaluates transaction risk factors
+5. System routes transaction based on score:
+   - Automatic approval (low risk)
+   - Case creation for manual review (medium risk)
+   - Automatic rejection (high risk)
+6. System logs all actions with timestamps and actors
+7. Case assignment notifies REVIEWER if manual review required
+8. REVIEWER reviews case details and makes decision
+9. REVIEWER documents decision rationale
+10. Transaction status is updated and audit log entry recorded
+11. Result is returned to originating system
 
----
+### End-of-Day Processes
 
-## 📖 Documentation
-
-- **[API_DESIGN.md](./API_DESIGN.md)** — Spec chi tiết 31 endpoints
-- **[API_SUMMARY.md](./API_SUMMARY.md)** — Quick reference bảng tóm tắt
-- **[API_AUDIT.md](./API_AUDIT.md)** — 20 issues tìm được + cách fix
-- **[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)** — Cấu trúc folder, từng layer làm gì
-- **[USECASE.md](./USECASE.md)** — Use case diagram, actor behavior
-- **[db/](./db/)** — ER diagram (Oracle Data Modeler)
-
----
-
-## 🚀 Bắt đầu
-
-```bash
-# 1. Clone repo
-git clone https://github.com/VietDunghere/Transaction-Management-System.git
-
-# 2. Setup environment
-cp .env.example .env
-nano .env  # Edit database credentials
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Run database migrations
-alembic upgrade head
-
-# 5. Start server
-uvicorn main:app --reload
-
-# 6. Open Swagger docs
-# http://localhost:8000/docs
-```
+1. ETL job extracts raw transaction logs from Data Lake
+2. Data transformation applies quality checks and enrichment
+3. Processed data is loaded into analytical warehouse
+4. ETL execution status is logged
+5. Reconciliation process verifies data consistency
+6. Discrepancies are reported for investigation
+7. Reports are generated for stakeholder review
 
 ---
 
-## 📞 Questions?
+## Data Consistency Model
 
-- 📖 Tài liệu đầy đủ: xem mục [Documentation](#-documentation)
-- 🐛 Found a bug? [GitHub Issues](https://github.com/VietDunghere/Transaction-Management-System/issues)
-- 💬 Questions? [GitHub Discussions](https://github.com/VietDunghere/Transaction-Management-System/discussions)
+The system maintains data consistency through:
+
+1. Transactional Integrity - Database transactions ensure atomic updates
+2. Optimistic Locking - Version fields prevent concurrent modification conflicts
+3. Audit Trail - All changes are logged for forensic analysis
+4. Reconciliation - Daily verification ensures consistency across systems
+5. State Management - State transition validation prevents invalid status changes
 
 ---
 
-**Tóm tắt:** TMS là một hệ thống **production-ready** xử lý giao dịch tài chính, tự động phát hiện gian lận, quản lý duyệt, và đảm bảo tính toàn vẹn dữ liệu. Nó kết hợp **frontend API design**, **backend architecture tốt**, và **data engineering pattern** — là một ví dụ hoàn chỉnh cho việc xây dựng hệ thống tài chính thực tế.
+## Security and Compliance
+
+The system implements security controls including:
+
+1. Authentication - JWT-based stateless authentication
+2. Authorization - Role-based access control with permission enforcement
+3. Data Protection - Masked card data in transit and at rest
+4. Audit Logging - Complete action logging with actor identification
+5. Idempotency - Prevention of duplicate transaction processing
+6. Compliance Export - Audit log and report export for regulatory submission
+
+---
+
+## Performance Characteristics
+
+The system is designed to handle:
+
+- High transaction volume (millions daily)
+- Real-time fraud scoring
+- Scalable data processing through batch ETL
+- Distributed processing capability
+- Multiple concurrent users with role-based isolation
+
+---
+
+## Implementation Status
+
+Current implementation includes:
+
+- API design specification (31 endpoints)
+- Project structure scaffolding (FastAPI MVC pattern)
+- Documentation framework
+- Identified issues and recommended fixes (API_AUDIT.md)
+
+---
+
+## Known Issues and Recommendations
+
+A comprehensive audit has identified 20 issues across three severity levels:
+
+**Critical Issues (5)**
+- Data isolation: OPERATOR visibility not restricted by user
+- Optimistic locking: Version field missing from update requests
+- Endpoint redundancy: Duplicate transaction status update paths
+- State machine: No validation of invalid state transitions
+- Authorization: Admin self-disable not prevented
+
+**High-Priority Issues (7)**
+- Idempotency: Hash field specification incomplete
+- Card masking: Responsibility unclear (client vs server)
+- HTTP methods: Incorrect verb usage in multiple endpoints
+- Race conditions: Case assignment lacks concurrency control
+- Reconciliation: Missing FAILED status for job failures
+- Parameter conflicts: Relative vs absolute date range selection
+- Health check: Missing endpoint for service monitoring
+
+**Medium-Priority Issues (8)**
+- Missing endpoints: GET for users, loans, ETL jobs
+- Naming inconsistency: Across timestamps, endpoints, and fields
+- Dashboard granularity: Trend data granularity unclear
+- Pagination: Data Lake structure endpoint lacks pagination
+- Documentation: Version prefix missing from base URL
+
+Detailed analysis with remediation steps is provided in API_AUDIT.md.
+
+---
+
+## Next Steps
+
+1. Review and prioritize identified issues
+2. Implement critical issue fixes before development
+3. Refine API design based on audit recommendations
+4. Establish development standards and code review process
+5. Implement unit and integration tests
+6. Deploy to staging environment
+7. Conduct security assessment
+8. Perform load testing
+9. Deploy to production
+
+---
+
+## Documentation References
+
+- API_DESIGN.md: Complete API specification (31 endpoints)
+- API_SUMMARY.md: Quick reference endpoint summary
+- API_AUDIT.md: Issue analysis with remediation steps
+- PROJECT_STRUCTURE.md: Architectural layers and responsibility mapping
+- USECASE.md: Detailed use case descriptions and actor interactions
+- db/: Entity-relationship diagram and database schema
+
+---
+
+## Contact and Support
+
+For technical questions, bug reports, or feature requests:
+
+- GitHub Issues: [Project Issues](https://github.com/VietDunghere/Transaction-Management-System/issues)
+- GitHub Discussions: [Project Discussions](https://github.com/VietDunghere/Transaction-Management-System/discussions)
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | 2026-04-07 | Initial project setup with API design and structure scaffolding |
+
+---
+
+## Appendix: System Requirements
+
+**Functional Requirements**
+- Process transactions with fraud scoring in real-time
+- Support concurrent case reviews without data corruption
+- Maintain complete audit trail of all transactions
+- Provide daily reconciliation across multiple systems
+- Export reports in standard formats (CSV, PDF)
+
+**Non-Functional Requirements**
+- Support millions of transactions daily
+- API response time under 500ms (p95)
+- 99.9% availability during business hours
+- Data retention per regulatory requirements
+- Scalable to multiple deployment zones
+
+---
+
+Document Version: 1.0
+Last Updated: 2026-04-07
+Status: Active
