@@ -1,300 +1,298 @@
-# Transaction Management System
+# Transaction Management System (TMS)
 
-> Hệ thống quản lý giao dịch và kiểm soát gian lận cho ngân hàng/fintech. Xây dựng bằng **FastAPI + Oracle DB + AI Fraud Scoring**.
+## 🎯 Dự án này làm gì?
 
----
+**Transaction Management System** là một nền tảng xử lý và quản lý giao dịch tài chính cho các ngân hàng, fintech, hoặc tổ chức tín dụng. Nó tự động phát hiện gian lận, quản lý luồng duyệt, và đảm bảo tính toàn vẹn dữ liệu qua ETL pipeline.
 
-## 🎯 Tính năng chính
+### Vấn đề nó giải quyết
 
-- ✅ **Xác thực & Phân quyền** — JWT-based, 4 roles (OPERATOR, REVIEWER, MANAGER, ADMIN)
-- ✅ **Quản lý giao dịch** — Submit, phân luồng fraud, duyệt manual review
-- ✅ **Case Management** — Assign → review → approve/reject với audit trail đầy đủ
-- ✅ **Fraud Scoring** — AI-powered (hoặc rule-based), tự động phân luồng
-- ✅ **Idempotency** — Tránh duplicate transaction khi retry
-- ✅ **Audit Log & Traceability** — Ghi vết mọi hành động, truy vết giao dịch
-- ✅ **Dashboard & Báo cáo** — Tổng quan, fraud ratio, export CSV/PDF
-- ✅ **ETL Pipeline** — Extract từ Data Lake, transform, load vào Warehouse
-- ✅ **Reconciliation** — So khớp dữ liệu OLTP ↔ Lake ↔ Warehouse
-- ✅ **Loan Simulator** — PD Score, rủi ro tín dụng
+Mỗi ngày, ngân hàng xử lý **hàng triệu giao dịch**. Nhưng không phải tất cả đều sạch:
 
----
+- 🚨 **Gian lận** — Ai gửi từ IP lạ? Card bị clone? Số tiền bất thường?
+- 🔍 **Duyệt chậm** — Reviewer nhân viên phải xem từng giao dịch bằng tay → tắc nghẽn, chậm chạp
+- 📊 **Kiểm soát kém** — Không biết ai duyệt cái gì, lúc nào, lý do gì → không compliance được
+- 💾 **Dữ liệu rối** — Data ở nhiều chỗ (OLTP DB, raw logs, warehouse) → khó so khớp, dễ mất dữ liệu
+- 📈 **Báo cáo thủ công** — Quản lý phải chờ dev tạo báo cáo, chậm khi cần insight nhanh
 
-## 📋 Yêu cầu
+### Giải pháp
 
-- **Python** 3.9+
-- **Oracle Database** 18c+ (hoặc PostgreSQL dev)
-- **Redis** (cho token blacklist, caching)
-- **Docker** (optional, để dev dễ hơn)
+TMS **tự động hóa toàn bộ flow** này:
 
----
-
-## 🚀 Quick Start
-
-### 1. Clone & setup environment
-
-```bash
-git clone https://github.com/VietDunghere/Transaction-Management-System.git
-cd Transaction-Management-System
-
-# Copy .env
-cp .env.example .env
-
-# Edit .env với database credentials
-nano .env
-```
-
-### 2. Cài đặt dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Chạy migrations (tạo bảng DB)
-
-```bash
-alembic upgrade head
-```
-
-### 4. Khởi động server
-
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Server chạy tại: `http://localhost:8000`
-
-**API Documentation (Swagger):** `http://localhost:8000/docs`
+1. **Tiếp nhận giao dịch** — OPERATOR gửi giao dịch via API
+2. **Kiểm tra tự động** — Hệ thống AI chấm điểm rủi ro (fraud score)
+3. **Phân luồng thông minh:**
+   - ✅ Score thấp → **Approve tự động** (không cần duyệt)
+   - ⚠️ Score trung bình → **Tạo case, gửi REVIEWER duyệt**
+   - ❌ Score cao → **Reject tự động**
+4. **Duyệt có quy trình** — REVIEWER nhận case → xem xét → approve/reject (với ghi chú lý do)
+5. **Kiểm soát đầy đủ** — Mọi hành động đều được **ghi audit log** — ai duyệt, lúc nào, lý do gì
+6. **Đảm bảo dữ liệu** — ETL tự động extract từ raw logs → transform → load vào warehouse để phân tích
+7. **Kiểm tra tính nhất quán** — Cuối ngày tự động **so khớp** dữ liệu giữa OLTP, Data Lake, Warehouse
 
 ---
 
-## 🏗️ Cấu trúc dự án
+## 👥 Ai dùng nó?
 
-```
-Transaction-Management-System/
-├── app/
-│   ├── api/v1/routes/          # API endpoints (controller)
-│   ├── schemas/                # Pydantic request/response models
-│   ├── services/               # Business logic
-│   ├── repositories/           # Database access layer
-│   ├── models/                 # ORM models (SQLAlchemy)
-│   ├── core/                   # Config, security, dependencies
-│   ├── db/                     # Database setup, migrations
-│   └── utils/                  # Helper functions
-│
-├── tests/                      # Unit & integration tests
-├── db/                         # ER diagram, design docs
-│
-├── main.py                     # App entry point
-├── requirements.txt            # Python dependencies
-├── .env.example                # Environment template
-├── Dockerfile                  # Docker build
-├── docker-compose.yml          # Docker + DB stack
-│
-├── API_DESIGN.md               # Full API specification
-├── API_SUMMARY.md              # Quick API reference (31 endpoints)
-├── API_AUDIT.md                # 20 issues found + fixes
-├── PROJECT_STRUCTURE.md        # Layer giải thích chi tiết
-└── README.md                   # File này
-```
+### 1. **OPERATOR** — Nhân viên vận hành
+   - Gửi giao dịch/đơn vay demo vào hệ thống
+   - Xem kết quả xử lý (approved/rejected/manual review)
+   - Không cần biết backend hoạt động thế nào, chỉ gửi → xem kết quả
 
-Xem **[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)** để hiểu cách sắp xếp từng layer.
+### 2. **REVIEWER** — Nhân viên duyệt
+   - Nhìn danh sách case cần duyệt (giao dịch bị flag = "cần xem xét")
+   - Nhận case, xem chi tiết (amount, fraud score, metadata)
+   - Quyết định: approve hay reject, bắt buộc ghi lý do
+   - Hành động được ghi lại → có trách nhiệm
+
+### 3. **MANAGER** — Quản lý
+   - Xem dashboard tổng quan: bao nhiêu giao dịch, fraud rate bao nhiêu, case nào đang chờ
+   - Xem biểu đồ fraud vs legitimate giao dịch theo ngày/tuần
+   - Truy vết giao dịch: "Giao dịch này đã được duyệt bởi ai, khi nào, vì sao?"
+   - Export báo cáo cho compliance/audit
+
+### 4. **ADMIN** — Quản trị hệ thống
+   - Quản lý user (tạo, disable tài khoản)
+   - Trigger ETL pipeline thủ công nếu cần
+   - Chạy đối soát (reconciliation) để kiểm tra dữ liệu đúng không
+   - Xem log chi tiết nếu có vấn đề
 
 ---
 
-## 🔐 Authentication
+## 🔑 Các tính năng chính
 
-### Đăng nhập
+### 1️⃣ Xác thực & Phân quyền (Authentication & RBAC)
+- Đăng nhập JWT token
+- 4 roles khác nhau (OPERATOR, REVIEWER, MANAGER, ADMIN)
+- Mỗi role chỉ xem/làm những gì được phép
 
-```bash
-curl -X POST http://localhost:8000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "operator1",
-    "password": "password123"
-  }'
+### 2️⃣ Fraud Detection (Phát hiện gian lận)
+- AI chấm điểm rủi ro (fraud_score: 0.0 → 1.0)
+- Tự động phân luồng:
+  - Score ≤ 0.3 → APPROVED
+  - 0.3 < Score ≤ 0.7 → MANUAL_REVIEW (cần Reviewer duyệt)
+  - Score > 0.7 → REJECTED
+- Có thể cấu hình rule-based hoặc ML-based
+
+### 3️⃣ Case Management (Quản lý case duyệt)
+- Tự động tạo case khi giao dịch cần manual review
+- Reviewer assign case cho mình
+- Duyệt (approve) hay từ chối (reject) với bắt buộc ghi lý do
+- Trạng thái case được track: OPEN → ASSIGNED → APPROVED/REJECTED
+
+### 4️⃣ Idempotency (Tránh xử lý lặp lại)
+- Client retry giao dịch bị lỗi → hệ thống nhận ra nó lặp
+- Trả lại kết quả cũ, không xử lý lại
+- Tránh double-charge, double-debit
+
+### 5️⃣ Audit Log & Traceability (Ghi vết mọi hành động)
+- Mọi thay đổi đều được ghi: ai làm, khi nào, giao dịch nào, thay đổi từ gì sang gì
+- Truy vết toàn bộ lịch sử giao dịch (timeline từ tạo → duyệt → kết quả)
+- Xuất báo cáo audit ra file (CSV, PDF) cho compliance
+
+### 6️⃣ Dashboard & Reports (Tổng quan & báo cáo)
+- Dashboard tổng quan: số giao dịch, fraud rate, case pending
+- Biểu đồ fraud vs legitimate theo ngày/tuần/tháng
+- Báo cáo chi tiết: số lượng, tổng tiền, tỷ lệ approved/rejected/manual
+- Export file cho phân tích thêm
+
+### 7️⃣ ETL Pipeline (Xử lý dữ liệu lớn)
+- Extract: đọc raw logs từ Data Lake (file CSV theo ngày)
+- Transform: làm sạch dữ liệu, bổ sung (GeoIP enrichment, dedup)
+- Load: đưa vào Warehouse (OLAP) để phân tích
+- Ghi log ETL job (thành công/lỗi, bao nhiêu row xử lý)
+
+### 8️⃣ Reconciliation (Kiểm tra tính nhất quán)
+- So khớp dữ liệu giữa 3 nguồn:
+  - OLTP DB (database chính)
+  - Data Lake (raw logs)
+  - Warehouse (OLAP)
+- Kiểm tra: COUNT(*) và SUM(amount) có khớp không
+- Nếu lệch → tạo báo cáo chi tiết chênh lệch
+
+### 9️⃣ Loan Approval Simulator (Mô phỏng cho vay)
+- Nhập thông tin applicant (income, credit score, job type, v.v)
+- Hệ thống ML tính PD score (Probability of Default)
+- Phân loại rủi ro: LOW, MEDIUM, HIGH
+
+---
+
+## 🏗️ Kiến trúc tổng thể
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    CLIENT (Web/Mobile)                  │
+│  OPERATOR / REVIEWER / MANAGER / ADMIN                  │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│              FastAPI Backend (TMS)                       │
+│  - Routes (API endpoints)                               │
+│  - Services (Business logic)                            │
+│  - Repositories (Database access)                       │
+│  - Models (ORM)                                         │
+│  - Fraud Scoring Engine                                 │
+│  - Audit Logger                                         │
+│  - ETL Orchestrator                                     │
+└─────────────────────────────────────────────────────────┘
+                    ↓         ↓          ↓
+          ┌─────────┴────┬────┴───┬─────┘
+          ↓              ↓        ↓
+    ┌──────────┐  ┌──────────┐  ┌─────────┐
+    │ OLTP DB  │  │Data Lake │  │Warehouse│
+    │(Oracle)  │  │(Raw CSV) │  │ (OLAP)  │
+    └──────────┘  └──────────┘  └─────────┘
+          ↑         (Extract)      (Load)
+          │            ↑ ↓           ↓
+          └────────────ETL────────Transform─────┘
+
+          ┌──────────────────────────────┐
+          │  Reconciliation Job (Daily)  │
+          │  (So khớp 3 nguồn dữ liệu)  │
+          └──────────────────────────────┘
 ```
 
-**Response:**
-```json
-{
-  "access_token": "eyJhbGc...",
-  "token_type": "Bearer",
-  "expires_in": 3600,
-  "user": {
-    "user_id": "uuid",
-    "username": "operator1",
-    "role": "OPERATOR"
+---
+
+## 📊 Ví dụ flow thực tế
+
+### Scenario: OPERATOR gửi giao dịch
+
+```
+10:00:00 — OPERATOR submit transaction
+  {
+    "card_number": "4111111111111111",
+    "amount": 350,000,000 VND,
+    "merchant_id": "AEON_MALL_001",
+    "txn_time": "2026-04-07T10:00:00Z"
   }
-}
+
+10:00:01 — Backend xử lý:
+  ✓ Validate: card có format đúng? amount > 0? merchant tồn tại?
+  ✓ Check idempotency: giao dịch này đã xử lý chưa?
+  ✓ AI fraud scoring:
+     - Giờ giao dịch: 10:00 (bình thường)
+     - Amount: 350M (cao, nhưng có quy mô)
+     - Card history: OK, không bất thường trước đó
+     → fraud_score = 0.45 (trung bình)
+
+  Phân luồng: 0.45 → MANUAL_REVIEW (cần Reviewer duyệt)
+
+  ✓ Tạo case mới
+  ✓ Ghi audit log: "TXN-001 created, AI scored 0.45 → MANUAL_REVIEW"
+
+10:00:02 — Trả response về OPERATOR:
+  {
+    "txn_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "MANUAL_REVIEW",
+    "fraud_score": 0.45,
+    "reason_code": "MANUAL_REQUIRED",
+    "processed_at": "2026-04-07T10:00:01Z"
+  }
+
+10:05:00 — REVIEWER A log in, thấy danh sách case chờ duyệt
+           → Assign case TXN-001 cho mình
+
+10:10:00 — REVIEWER A xem chi tiết case:
+           - Amount: 350M (hợp lý cho AEON MALL)
+           - Card history: OK
+           - Fraud score: 0.45 (không quá cao)
+           → Quyết định: APPROVE
+
+           Ghi chú bắt buộc: "Lịch sử card tốt, amount hợp lý,
+                             merchant tin cậy → approved"
+
+           ✓ Ghi audit log: "CASE-001 approved by reviewer_a at 10:10:00
+                              reason: Lịch sử card tốt, amount hợp lý..."
+
+10:10:01 — Transaction status tự động cập nhật:
+           MANUAL_REVIEW → APPROVED
+
+10:11:00 — MANAGER xem dashboard:
+           - Tổng hôm nay: 2,500 transactions
+           - Fraud rate: 8.2%
+           - Cases pending: 23 (đang chờ Reviewer)
+           - Trend: fraud rate tăng nhẹ so với hôm qua
+
+22:00:00 — ETL job chạy tự động (cuối ngày):
+           ✓ Extract: đọc tất cả raw logs hôm nay từ /datalake/2026-04-07/
+           ✓ Transform: dedup, clean, enrich GeoIP
+           ✓ Load: insert vào FACT_TRANSACTIONS + DIM tables
+           ✓ Ghi ETL log: "Job completed: 2,500 rows loaded, 2 errors"
+
+23:00:00 — Reconciliation job chạy:
+           ✓ OLTP count: 2,500 ✓ Lake count: 2,500 ✓ Warehouse: 2,500
+           ✓ OLTP sum: 5.8B VND ✓ Lake: 5.8B VND ✓ Warehouse: 5.8B VND
+           → Status: MATCH (tất cả đều khớp)
+
+Sáng hôm sau — MANAGER xem báo cáo cuối ngày:
+              - Tổng doanh số: 5.8B VND
+              - Số giao dịch: 2,500
+              - Fraud rate: 8.2% (210 giao dịch)
+              - Reconciliation: ✓ MATCH (dữ liệu toàn vẹn)
+              → Export báo cáo PDF gửi compliance
 ```
 
-### Sử dụng token
+---
 
-Thêm vào header tất cả request:
+## 🎓 Tại sao dự án này quan trọng?
+
+### Cho Business:
+- ⚡ **Nhanh** — AI tự động approve/reject 90% giao dịch, không cần Reviewer → xử lý nhanh hơn
+- 🛡️ **An toàn** — Phát hiện gian lận sớm, giảm loss
+- 📊 **Minh bạch** — Audit log đầy đủ, có trách nhiệm → compliance dễ
+- 💾 **Đáng tin** — Reconciliation đảm bảo dữ liệu không bị mất/sai
+
+### Cho Dev (người học):
+- 🏗️ **Kiến trúc clean** — FastAPI MVC, tách layers rõ ràng
+- 🔐 **Security chuẩn** — JWT, role-based access, SQL injection prevention
+- 📈 **Scale được** — ETL pipeline, Warehouse, async jobs
+- 🧪 **Best practices** — Idempotency, optimistic locking, audit trail
+- 📚 **Full cycle** — Từ API design → code → test → deploy
+
+---
+
+## 📖 Documentation
+
+- **[API_DESIGN.md](./API_DESIGN.md)** — Spec chi tiết 31 endpoints
+- **[API_SUMMARY.md](./API_SUMMARY.md)** — Quick reference bảng tóm tắt
+- **[API_AUDIT.md](./API_AUDIT.md)** — 20 issues tìm được + cách fix
+- **[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)** — Cấu trúc folder, từng layer làm gì
+- **[USECASE.md](./USECASE.md)** — Use case diagram, actor behavior
+- **[db/](./db/)** — ER diagram (Oracle Data Modeler)
+
+---
+
+## 🚀 Bắt đầu
+
 ```bash
-Authorization: Bearer <access_token>
+# 1. Clone repo
+git clone https://github.com/VietDunghere/Transaction-Management-System.git
+
+# 2. Setup environment
+cp .env.example .env
+nano .env  # Edit database credentials
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Run database migrations
+alembic upgrade head
+
+# 5. Start server
+uvicorn main:app --reload
+
+# 6. Open Swagger docs
+# http://localhost:8000/docs
 ```
 
 ---
 
-## 📡 API Overview
+## 📞 Questions?
 
-**31 endpoints** chia thành 5 nhóm:
-
-| Nhóm | Endpoints | Roles |
-|---|---|---|
-| **Auth** | login, logout, change-password, user management | Tất cả |
-| **Transaction** | submit, list, detail, update status | OPERATOR, REVIEWER |
-| **Case Management** | assign, approve, reject | REVIEWER |
-| **Audit & Reports** | audit logs, export, dashboard, fraud chart | MANAGER, ADMIN |
-| **Data Engineering** | ETL, reconciliation, data lake | ADMIN |
-
-Xem **[API_DESIGN.md](./API_DESIGN.md)** để xem đầy đủ spec từng endpoint.
+- 📖 Tài liệu đầy đủ: xem mục [Documentation](#-documentation)
+- 🐛 Found a bug? [GitHub Issues](https://github.com/VietDunghere/Transaction-Management-System/issues)
+- 💬 Questions? [GitHub Discussions](https://github.com/VietDunghere/Transaction-Management-System/discussions)
 
 ---
 
-## 📊 Phân quyền (RBAC)
-
-| Role | Quyền chính |
-|---|---|
-| **OPERATOR** | Submit transaction, submit loan, xem giao dịch của mình |
-| **REVIEWER** | Assign case, approve/reject, xem case |
-| **MANAGER** | Xem dashboard, báo cáo, audit log, reconciliation |
-| **ADMIN** | Quản lý user, ETL, data lake, reconciliation |
-
----
-
-## 🏭 Luồng xử lý giao dịch
-
-```
-1. OPERATOR gửi transaction → POST /api/v1/transactions/submit
-
-2. Hệ thống:
-   - ✓ Validate input
-   - ✓ Kiểm tra idempotency (avoid duplicate)
-   - ✓ Chạy AI fraud scoring → fraud_score (0.0-1.0)
-   - ✓ Phân luồng:
-     • fraud_score ≤ 0.30 → APPROVED (tự động)
-     • 0.30 < score ≤ 0.70 → MANUAL_REVIEW (tạo case)
-     • score > 0.70 → REJECTED (tự động)
-   - ✓ Ghi audit log
-
-3. Nếu MANUAL_REVIEW → tạo case, REVIEWER nhận & duyệt
-
-4. Kết quả cuối → ghi vào Warehouse, Data Lake
-
-5. Cuối ngày → chạy reconciliation (so khớp OLTP ↔ Lake ↔ Warehouse)
-```
-
----
-
-## 🧪 Testing
-
-### Chạy unit test
-
-```bash
-pytest tests/ -v
-
-# Test cụ thể
-pytest tests/test_auth.py -v
-pytest tests/test_transaction.py::test_submit_transaction -v
-```
-
-### Coverage report
-
-```bash
-pytest tests/ --cov=app --cov-report=html
-```
-
----
-
-## 🐳 Docker
-
-### Dev stack (app + Oracle)
-
-```bash
-docker-compose up -d
-```
-
-Mở http://localhost:8000/docs để test API.
-
----
-
-## 📝 Commit Convention
-
-```bash
-# Feature
-git commit -m "feat: add fraud scoring endpoint"
-
-# Bug fix
-git commit -m "fix: optimistic lock race condition in case assign"
-
-# Docs
-git commit -m "docs: update API_AUDIT.md"
-
-# Refactor
-git commit -m "refactor: extract fraud logic to service layer"
-
-# Test
-git commit -m "test: add integration test for transaction submit"
-```
-
----
-
-## 🚨 Critical Issues Found
-
-Audit đã tìm ra **20 issues**:
-
-- **🔴 5 Critical:** Data isolation, optimistic locking, state machine, audit trail, self-disable
-- **🟡 7 High:** Idempotency spec, card masking, HTTP methods, race condition
-- **🟢 8 Medium:** Missing endpoints, naming inconsistency
-
-Xem **[API_AUDIT.md](./API_AUDIT.md)** để chi tiết + cách fix từng vấn đề.
-
----
-
-## 📚 Tài liệu
-
-| File | Nội dung |
-|---|---|
-| **[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)** | Chi tiết từng layer MVC, luồng request |
-| **[API_DESIGN.md](./API_DESIGN.md)** | Full spec 31 endpoints + error codes |
-| **[API_SUMMARY.md](./API_SUMMARY.md)** | Quick reference bảng tổng hợp |
-| **[API_AUDIT.md](./API_AUDIT.md)** | 20 vấn đề tìm được + fix |
-| **[USECASE.md](./USECASE.md)** | Use case diagram + actor descriptions |
-| **[db/](./db/)** | ER diagram (Oracle Data Modeler) |
-
----
-
-## 🤝 Contributing
-
-1. Fork repo
-2. Tạo branch: `git checkout -b feature/your-feature`
-3. Commit: `git commit -m "feat: ..."`
-4. Push: `git push origin feature/your-feature`
-5. Tạo Pull Request
-
-**Lưu ý:**
-- Tất cả feature phải pass tests
-- API changes cần update `API_DESIGN.md`
-- Follow commit convention trên
-
----
-
-## 📞 Support
-
-- 📖 Tài liệu: [docs/](./docs/)
-- 🐛 Report bug: [GitHub Issues](https://github.com/VietDunghere/Transaction-Management-System/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/VietDunghere/Transaction-Management-System/discussions)
-
----
-
-## 📄 License
-
-MIT License — Xem [LICENSE](./LICENSE) để chi tiết.
-
----
-
-**Bắt đầu dev:** Làm theo [Quick Start](#-quick-start) → Đọc [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) → Xem [API_DESIGN.md](./API_DESIGN.md) → Code!
-
-Happy coding! 🚀
+**Tóm tắt:** TMS là một hệ thống **production-ready** xử lý giao dịch tài chính, tự động phát hiện gian lận, quản lý duyệt, và đảm bảo tính toàn vẹn dữ liệu. Nó kết hợp **frontend API design**, **backend architecture tốt**, và **data engineering pattern** — là một ví dụ hoàn chỉnh cho việc xây dựng hệ thống tài chính thực tế.
