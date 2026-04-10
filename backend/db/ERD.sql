@@ -11,7 +11,8 @@ CREATE TABLE "users" (
   "full_name" varchar(150),
   "email" varchar(150) UNIQUE,
   "is_active" number(1) DEFAULT 1 NOT NULL,
-  "created_at" timestamp NOT NULL
+  "created_at" timestamp NOT NULL,
+  "updated_at" timestamp                  -- Thêm: theo dõi lần cuối đổi role/password
 );
 
 CREATE TABLE "roles" (
@@ -60,13 +61,15 @@ CREATE TABLE "transactions_live" (
   "customer_id" varchar(36) NOT NULL,
   "merchant_id" varchar(36) NOT NULL,
   "channel_id" number NOT NULL,
+  "submitted_by" varchar(36) NOT NULL,    -- Thêm: user_id của OPERATOR gửi giao dịch (dùng filter phân quyền)
   "card_number_masked" varchar(30),
   "amount" decimal(18,2) NOT NULL,
   "currency_code" varchar(10) DEFAULT 'VND' NOT NULL,
   "txn_time" timestamp NOT NULL,
   "status" varchar(20) NOT NULL,
   "fraud_score" decimal(6,4),
-  "reason_code" varchar(50),
+  "reason_code" varchar(50),              -- Lý do từ AI Model (VD: HIGH_FRAUD_SCORE)
+  "override_reason" varchar(50),          -- Thêm: Lý do hệ thống ghi đè (VD: HIGH_VALUE)
   "source_ip" varchar(64),
   "created_at" timestamp NOT NULL,
   "updated_at" timestamp
@@ -98,7 +101,8 @@ CREATE TABLE "review_cases" (
   "case_status" varchar(20) NOT NULL,
   "assigned_to" varchar(36),
   "decision" varchar(20),
-  "decision_note" varchar(500),
+  "decision_note" varchar(2000),          -- Tăng: 500→2000 cho ghi chú nghiệp vụ dài
+  "version" number DEFAULT 1 NOT NULL,    -- Thêm: Optimistic Locking, tăng mỗi khi có thay đổi
   "created_at" timestamp NOT NULL,
   "decided_at" timestamp
 );
@@ -113,7 +117,7 @@ CREATE TABLE "review_case_actions" (
 );
 
 CREATE TABLE "txn_idempotency" (
-  "idem_key" varchar(100) PRIMARY KEY,
+  "idempotency_key" varchar(100) PRIMARY KEY, -- Đổi tên: idem_key→idempotency_key (nhất quán API)
   "txn_hash" varchar(128),
   "txn_id" varchar(36),
   "status" varchar(20) NOT NULL,
@@ -151,7 +155,8 @@ CREATE TABLE "reconciliation_jobs" (
   "actual_count" number,
   "expected_amount" decimal(18,2),
   "actual_amount" decimal(18,2),
-  "status" varchar(20) NOT NULL,
+  "status" varchar(20) NOT NULL,          -- PENDING|MATCHED|MISMATCH|FAILED
+  "error_message" varchar(1000),          -- Thêm: Lý do chi tiết khi status=FAILED
   "created_at" timestamp NOT NULL,
   "completed_at" timestamp
 );
@@ -256,7 +261,9 @@ CREATE TABLE "loan_applications" (
   "app_id" varchar(36) PRIMARY KEY,
   "customer_id" varchar(36) NOT NULL,
   "requested_amount" decimal(18,2) NOT NULL,
-  "status" varchar(20) NOT NULL,
+  "status" varchar(20) NOT NULL,          -- SUBMITTED|SCORING|APPROVED|REJECTED|MANUAL_REVIEW
+  "pd_score" decimal(6,4),               -- Thêm: Kết quả AI điểm rủi ro vỡ nợ (cache tránh join)
+  "risk_level" varchar(20),              -- Thêm: LOW|MEDIUM|HIGH (cache tránh join)
   "created_at" timestamp NOT NULL,
   "decided_at" timestamp
 );
@@ -292,6 +299,21 @@ CREATE TABLE "audit_logs" (
   "actor_name" varchar(150),
   "event_ts" timestamp NOT NULL,
   "detail_json" varchar(4000)
+);
+
+-- Bảng ETL Job Logs (Thêm mới: theo dõi toàn bộ pipeline Extract→Transform→Load)
+CREATE TABLE "etl_job_logs" (
+  "job_id" varchar(36) PRIMARY KEY,
+  "triggered_by" varchar(36),             -- user_id của ADMIN kích hoạt, NULL nếu chạy tự động
+  "mode" varchar(20) NOT NULL,            -- FULL|INCREMENTAL
+  "biz_date" date NOT NULL,               -- Ngày dữ liệu được xử lý
+  "status" varchar(20) NOT NULL,          -- RUNNING|SUCCESS|FAILED
+  "records_extracted" number DEFAULT 0,
+  "records_transformed" number DEFAULT 0,
+  "records_loaded" number DEFAULT 0,
+  "error_message" varchar(1000),          -- Chi tiết lỗi nếu FAILED
+  "started_at" timestamp NOT NULL,
+  "completed_at" timestamp
 );
 
 CREATE INDEX idx_transactions_status ON "transactions_live" ("status");
@@ -401,6 +423,12 @@ ALTER TABLE "review_case_actions" ADD FOREIGN KEY ("case_id") REFERENCES "review
 ALTER TABLE "review_case_actions" ADD FOREIGN KEY ("actor_user_id") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "audit_logs" ADD FOREIGN KEY ("actor_user_id") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
+
+-- FK mới: submitted_by trong transactions_live → users
+ALTER TABLE "transactions_live" ADD FOREIGN KEY ("submitted_by") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
+
+-- FK mới: triggered_by trong etl_job_logs → users
+ALTER TABLE "etl_job_logs" ADD FOREIGN KEY ("triggered_by") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "txn_idempotency" ADD FOREIGN KEY ("txn_id") REFERENCES "transactions_live" ("txn_id") DEFERRABLE INITIALLY IMMEDIATE;
 
