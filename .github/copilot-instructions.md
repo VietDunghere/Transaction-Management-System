@@ -11,6 +11,8 @@
 - **Data Engineering**: Python (ETL từ file CSV mô phỏng Data Lake vào Data Warehouse).
 
 # QUY TẮC KIẾN TRÚC & VIẾT CODE (ARCHITECTURAL RULES)
+## 0. Quy tắc đặc biệt
+- **Luôn đọc lại source code từ đầu 
 
 ## 1. Tầng Dữ liệu & Database (Oracle)
 - **Tuyệt đối không cập nhật trạng thái giao dịch tại Data Warehouse**. Mọi thao tác INSERT/UPDATE quyết định trạng thái (PENDING, APPROVED, REJECTED, MANUAL_REVIEW) chỉ diễn ra tại OLTP.
