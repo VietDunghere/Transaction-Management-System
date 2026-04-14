@@ -1,19 +1,42 @@
 # API Design – Transaction Management System
 
-> **Base URL:** `https://api.tms.local/api`  
-> **Auth:** JWT Bearer Token (trừ endpoint `/auth/login`)  
+> **Base URL:** `https://api.tms.local/api/v1`  
+> **Auth:** JWT Bearer Token (áp dụng trừ `/auth/login` và `/health`)  
 > **Content-Type:** `application/json`
 
 ---
 
 ## Mục lục
 
+0. [Tiện ích Hệ thống](#tiện-ích-hệ-thống)
 1. [UC02 – Xác thực & Phân quyền](#uc02--xác-thực--phân-quyền)
 2. [UC03 – Quản lý Giao dịch](#uc03--quản-lý-giao-dịch)
-3. [UC05 – Case Management & Audit](#uc05--case-management--audit)
-4. [UC06 – Data Engineering & Báo cáo](#uc06--data-engineering--báo-cáo)
-5. [UC07 – Idempotency, State & Reconciliation](#uc07--idempotency-state--reconciliation)
-6. [Quy ước chung](#quy-ước-chung)
+3. [UC04 – Quản lý Khoản vay](#uc04--quản-lý-khoản-vay)
+4. [UC05 – Case Management & Audit](#uc05--case-management--audit)
+5. [UC06 – Data Engineering & Báo cáo](#uc06--data-engineering--báo-cáo)
+6. [UC07 – Idempotency, State & Reconciliation](#uc07--idempotency-state--reconciliation)
+7. [Quy ước chung](#quy-ước-chung)
+
+---
+
+## Tiện ích Hệ thống
+
+### GET /health
+**HEALTH** – Kiểm tra trạng thái hệ thống.
+
+| | |
+|---|---|
+| **Auth** | Không yêu cầu |
+| **Roles** | Public |
+
+**Response 200**
+```json
+{
+  "status": "ok",
+  "version": "1.0.0",
+  "timestamp": "2026-04-14T08:00:00Z"
+}
+```
 
 ---
 
@@ -79,7 +102,27 @@
 
 ---
 
-### PUT /auth/change-password
+### GET /auth/me
+**UC-AUTH-ME** – Lấy thông tin user hiện tại.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | Tất cả |
+
+**Response 200**
+```json
+{
+  "user_id": "uuid",
+  "username": "duyhoang",
+  "role": "OPERATOR",
+  "is_active": true
+}
+```
+
+---
+
+### PATCH /auth/change-password
 **UC-AUTH-04** – Đổi mật khẩu cá nhân.
 
 | | |
@@ -180,7 +223,7 @@
 ---
 
 ### PATCH /users/{user_id}/disable
-**UC-AUTH-06** – Vô hiệu hóa tài khoản.
+**UC-AUTH-06** – Vô hiệu hóa tài khoản (Server kiểm tra `user_id != current_user_id` để tránh tự khóa).
 
 | | |
 |---|---|
@@ -190,6 +233,26 @@
 **Response 200**
 ```json
 { "user_id": "uuid", "is_active": false, "message": "Tài khoản đã bị vô hiệu hóa." }
+```
+
+**Response 403**
+```json
+{ "error": "SELF_DISABLE_FORBIDDEN", "message": "Không thể tự vô hiệu hóa tài khoản của chính mình." }
+```
+
+---
+
+### PATCH /users/{user_id}/enable
+**UC-AUTH-ENABLE** – Khôi phục khóa tài khoản đã bị disable.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ADMIN |
+
+**Response 200**
+```json
+{ "user_id": "uuid", "is_active": true, "message": "Tài khoản đã được mở khóa." }
 ```
 
 ---
@@ -214,10 +277,34 @@
 
 ---
 
+### GET /users/{user_id}
+**UC-AUTH-09** – Xem chi tiết 1 người dùng.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | MANAGER, ADMIN |
+
+**Response 200**
+```json
+{
+  "user_id": "uuid",
+  "username": "string",
+  "full_name": "string",
+  "email": "string",
+  "role": "REVIEWER",
+  "is_active": true,
+  "created_at": "ISO8601",
+  "updated_at": "ISO8601"
+}
+```
+
+---
+
 ## UC03 – Quản lý Giao dịch
 
-### POST /transaction/submit
-**UC-TXN-01** – Gửi giao dịch demo vào hệ thống.
+### POST /transactions/submit
+**UC-TXN-01** – Gửi giao dịch demo. (Client gửi card thật qua HTTPS, Backend tự masking trước khi lưu DB. `idempotency_key` được tính bằng hash của `card_number + amount + merchant_id` thay vì toàn bộ payload).
 
 | | |
 |---|---|
@@ -227,7 +314,7 @@
 **Request Body**
 ```json
 {
-  "card_number": "string (masked, e.g. 4111********1111)",
+  "card_number": "string (số thật chứa max digits, e.g. 4111111111111111)",
   "amount": 1500000,
   "merchant_id": "string",
   "txn_time": "ISO8601",
@@ -243,10 +330,10 @@
 ```json
 {
   "txn_id": "uuid",
-  "idem_key": "sha256_hash_string",
+  "idempotency_key": "string",
   "status": "APPROVED | REJECTED | MANUAL_REVIEW",
   "fraud_score": 0.25,
-  "reason_code": "LOW_RISK | HIGH_RISK | MANUAL_REQUIRED | HIGH_VALUE",
+  "override_reason": "LOW_RISK | HIGH_RISK | MANUAL_REQUIRED | HIGH_VALUE",
   "processed_at": "ISO8601"
 }
 ```
@@ -255,7 +342,7 @@
 ```json
 {
   "txn_id": "uuid",
-  "idem_key": "sha256_hash_string",
+  "idempotency_key": "string",
   "status": "APPROVED",
   "fraud_score": 0.25,
   "message": "Giao dịch đã được xử lý trước đó. Trả về kết quả cũ.",
@@ -275,7 +362,7 @@
 ```
 
 > *include* → UC-TXN-02 (Validate input)  
-> *include* → UC-TXN-03 (Kiểm tra Idempotency – SHA256 hash payload)  
+> *include* → UC-TXN-03 (Kiểm tra Idempotency – SHA256 hash của card_number+amount+merchant_id)  
 > *include* → UC-TXN-04 (AI Fraud Scoring)  
 > *include* → UC-TXN-05 (Phân luồng: score ≤0.3 → APPROVED, ≤0.7 → MANUAL_REVIEW, >0.7 → REJECTED)  
 > *extend* → UC-TXN-06 (Oracle Trigger: amount > 500,000,000 → MANUAL_REVIEW)  
@@ -283,8 +370,8 @@
 
 ---
 
-### GET /transaction
-**UC-TXN-07** – Xem danh sách giao dịch.
+### GET /transactions
+**UC-TXN-07** – Xem danh sách giao dịch. (Lọc `submitted_by` tự động cho OPERATOR)
 
 | | |
 |---|---|
@@ -327,7 +414,7 @@
 
 ---
 
-### GET /transaction/{txn_id}
+### GET /transactions/{txn_id}
 **UC-TXN-08** – Xem chi tiết một giao dịch.
 
 | | |
@@ -345,8 +432,8 @@
   "merchant_id": "string",
   "status": "MANUAL_REVIEW",
   "fraud_score": 0.55,
-  "reason_code": "MANUAL_REQUIRED",
-  "idem_key": "sha256_hash",
+  "override_reason": "MANUAL_REQUIRED",
+  "idempotency_key": "sha256_hash",
   "txn_time": "ISO8601",
   "processed_at": "ISO8601",
   "metadata": {
@@ -362,33 +449,94 @@
 
 ---
 
-### PATCH /transaction/{txn_id}/status
-**UC-TXN-10** – Cập nhật trạng thái giao dịch (sau khi Reviewer duyệt case).
+## UC04 – Quản lý Khoản vay
+
+### POST /loans/submit
+**UC-LOAN-01** – Gửi đơn vay demo tự động chấm điểm xếp hạng.
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | REVIEWER |
+| **Roles** | OPERATOR |
 
 **Request Body**
 ```json
 {
-  "status": "APPROVED | REJECTED",
-  "note": "string (lý do quyết định, bắt buộc)"
+  "customer_info": {
+    "age": 30,
+    "income": 20000000,
+    "credit_history_length": 5
+  },
+  "loan_amount": 50000000,
+  "term_months": 12
 }
 ```
+
+**Response 201**
+```json
+{
+  "loan_id": "uuid",
+  "idempotency_key": "string",
+  "status": "APPROVED | REJECTED | MANUAL_REVIEW",
+  "pd_score": 0.45,
+  "processed_at": "ISO8601"
+}
+```
+
+> *include* → UC-LOAN-03 (Validate input)  
+> *include* → UC-LOAN-02 (AI PD Scoring)  
+> *include* → UC-LOAN-04 (Phân luồng dựa trên `pd_score`)
+
+---
+
+### GET /loans
+**UC-LOAN-05** – Xem danh sách đơn vay (Lọc `submitted_by` tự động cho OPERATOR).
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | Tất cả roles |
 
 **Response 200**
 ```json
 {
-  "txn_id": "uuid",
-  "status": "APPROVED",
-  "updated_by": "uuid",
-  "updated_at": "ISO8601"
+  "total": 500,
+  "page": 1,
+  "limit": 20,
+  "data": [
+    {
+      "loan_id": "uuid",
+      "loan_amount": 50000000,
+      "status": "MANUAL_REVIEW",
+      "pd_score": 0.45,
+      "created_at": "ISO8601"
+    }
+  ]
 }
 ```
 
-> *include* → UC-TXN-11 (Ghi Audit Log)
+---
+
+### GET /loans/{loan_id}
+**UC-LOAN-06** – Xem chi tiết một đơn vay.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | Tất cả roles |
+
+**Response 200**
+```json
+{
+  "loan_id": "uuid",
+  "customer_info": {},
+  "loan_amount": 50000000,
+  "term_months": 12,
+  "status": "MANUAL_REVIEW",
+  "pd_score": 0.45,
+  "created_at": "ISO8601"
+}
+```
 
 ---
 
@@ -436,7 +584,7 @@
 ---
 
 ### POST /cases/{case_id}/assign
-**UC-CASE-02** – Nhận case (Assign to me).
+**UC-CASE-02** – Nhận case (Assign to me). Check Racing: `UPDATE ... WHERE assigned_to IS NULL`.
 
 | | |
 |---|---|
@@ -451,6 +599,11 @@
   "assigned_to": "uuid",
   "assigned_at": "ISO8601"
 }
+```
+
+**Response 409**
+```json
+{ "error": "CASE_ALREADY_ASSIGNED", "message": "Case này đã được nhận bởi người khác." }
 ```
 
 > *include* → Ghi Audit Log sự kiện `CASE_ASSIGNED`
@@ -489,8 +642,8 @@
 
 ---
 
-### POST /cases/{case_id}/approve
-**UC-CASE-04** – Duyệt case (Approve).
+### PATCH /cases/{case_id}/decision
+**UC-CASE-04/05** – Cập nhật trạng thái duyệt / từ chối case. Kiểm tra trạng thái hiện tại (nếu terminal thì chặn) và Optimistic Locking (version của case hiện tại).
 
 | | |
 |---|---|
@@ -499,7 +652,11 @@
 
 **Request Body**
 ```json
-{ "note": "string (bắt buộc – lý do duyệt)" }
+{
+  "decision": "APPROVED | REJECTED",
+  "note": "string (bắt buộc – lý do)",
+  "version": 2
+}
 ```
 
 **Response 200**
@@ -514,38 +671,14 @@
 }
 ```
 
+**Response 409**
+```json
+{ "error": "CONFLICT", "message": "Phiên bản dữ liệu không khớp. Case đã bị thay đổi bởi người khác." }
+```
+
 > *include* → UC-CASE-06 (Ghi chú lý do bắt buộc)  
-> *include* → UC-CASE-07 (Cập nhật TRANSACTIONS_LIVE.status = APPROVED)  
+> *include* → UC-CASE-07 (Cập nhật TRANSACTIONS_LIVE hoặc LOAN_APPLICATIONS)  
 > *include* → UC-AUDIT-01 (Ghi Audit Log tự động)
-
----
-
-### POST /cases/{case_id}/reject
-**UC-CASE-05** – Từ chối case (Reject).
-
-| | |
-|---|---|
-| **Auth** | Bearer Token |
-| **Roles** | REVIEWER |
-
-**Request Body**
-```json
-{ "note": "string (bắt buộc – lý do từ chối)" }
-```
-
-**Response 200**
-```json
-{
-  "case_id": "uuid",
-  "status": "REJECTED",
-  "txn_id": "uuid",
-  "txn_status": "REJECTED",
-  "reviewed_by": "uuid",
-  "reviewed_at": "ISO8601"
-}
-```
-
-> *include* → UC-CASE-06, UC-CASE-07, UC-AUDIT-01
 
 ---
 
@@ -673,6 +806,13 @@
 | **Auth** | Bearer Token |
 | **Roles** | MANAGER, ADMIN |
 
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `from_date` | ISO8601 | Bắt buộc |
+| `to_date` | ISO8601 | Bắt buộc |
+
 **Response 200**
 ```json
 {
@@ -681,7 +821,7 @@
   "fraud_rate": 0.08,
   "cases_pending": 23,
   "cases_assigned": 7,
-  "period": "today | this_week | this_month",
+  "period": "custom",
   "trend": [
     { "date": "2026-04-01", "total": 320, "fraud": 25, "legit": 295 },
     { "date": "2026-04-02", "total": 415, "fraud": 31, "legit": 384 }
@@ -703,15 +843,15 @@
 
 | Param | Type | Mô tả |
 |---|---|---|
-| `period` | string | `daily`, `weekly`, `monthly` |
-| `from_date` | ISO8601 | Từ ngày |
-| `to_date` | ISO8601 | Đến ngày |
+| `from_date` | ISO8601 | Bắt buộc |
+| `to_date` | ISO8601 | Bắt buộc |
+| `period` | string | (Tuỳ chọn) Thay đổi độ phân giải: `daily`, `weekly`, `monthly` |
 
 **Response 200**
 ```json
 {
   "source": "WAREHOUSE",
-  "period": "weekly",
+  "period": "daily",
   "data": {
     "fraud_count": 210,
     "fraud_amount": 8500000000,
@@ -721,7 +861,7 @@
     "fraud_rate_amount": 0.087
   },
   "breakdown": [
-    { "date": "2026-W13", "fraud": 48, "legit": 520 }
+    { "date": "2026-04-01", "fraud": 48, "legit": 520 }
   ]
 }
 ```
@@ -740,9 +880,9 @@
 
 | Param | Type | Mô tả |
 |---|---|---|
-| `period` | string | `daily`, `weekly`, `monthly`, `quarterly` |
 | `from_date` | ISO8601 | Bắt buộc |
 | `to_date` | ISO8601 | Bắt buộc |
+| `period` | string | `daily`, `weekly`, `monthly`, `quarterly` |
 
 **Response 200**
 ```json
@@ -780,46 +920,12 @@
 | Param | Type | Mô tả |
 |---|---|---|
 | `format` | string | `csv` hoặc `pdf` |
-| `period` | string | `daily`, `weekly`, `monthly` |
 | `from_date` | ISO8601 | Bắt buộc |
 | `to_date` | ISO8601 | Bắt buộc |
+| `period` | string | Tùy chọn gom nhóm: `daily`, `weekly`, `monthly` |
 
 **Response 200**
 > File download – `Content-Disposition: attachment`
-
----
-
-### POST /loan/submit
-**UC-BI-05 (Loan Simulator)** – Gửi đơn vay demo, nhận PD Score.
-
-| | |
-|---|---|
-| **Auth** | Bearer Token |
-| **Roles** | OPERATOR |
-
-**Request Body**
-```json
-{
-  "applicant_id": "string",
-  "loan_amount": 50000000,
-  "tenure_months": 24,
-  "annual_income": 180000000,
-  "credit_score": 680,
-  "employment_type": "FULL_TIME | PART_TIME | SELF_EMPLOYED",
-  "loan_purpose": "string"
-}
-```
-
-**Response 201**
-```json
-{
-  "loan_id": "uuid",
-  "pd_score": 0.13,
-  "risk_grade": "LOW | MEDIUM | HIGH",
-  "status": "APPROVED | REJECTED | MANUAL_REVIEW",
-  "processed_at": "ISO8601"
-}
-```
 
 ---
 
@@ -831,9 +937,19 @@
 | **Auth** | Bearer Token |
 | **Roles** | ADMIN |
 
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `page` | int | Số trang (mặc định 1) |
+| `limit` | int | Số bản ghi/trang (mặc định 20) |
+
 **Response 200**
 ```json
 {
+  "total": 1,
+  "page": 1,
+  "limit": 20,
   "base_path": "/datalake/raw/transaction_logs/",
   "directories": [
     {
@@ -886,6 +1002,42 @@
 
 ---
 
+### GET /etl/logs/{job_id}
+**UC-DATA-06** – Xem chi tiết log ETL pipeline theo ID.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ADMIN |
+
+**Response 200**
+```json
+{
+  "job_id": "uuid",
+  "job_type": "DAILY_ETL",
+  "status": "SUCCESS",
+  "rows_extracted": 1540,
+  "rows_loaded": 1538,
+  "started_at": "ISO8601",
+  "finished_at": "ISO8601",
+  "error_message": null,
+  "steps": [
+    {
+      "step_name": "EXTRACT",
+      "status": "SUCCESS",
+      "time_taken_ms": 1200
+    },
+    {
+      "step_name": "TRANSFORM",
+      "status": "SUCCESS",
+      "time_taken_ms": 4500
+    }
+  ]
+}
+```
+
+---
+
 ### POST /etl/trigger
 **UC-DATA-03/04/05** – Trigger ETL Pipeline thủ công (Extract → Transform → Load).
 
@@ -920,7 +1072,7 @@
 
 ## UC07 – Idempotency, State & Reconciliation
 
-### GET /transaction/{txn_id}/states
+### GET /transactions/{txn_id}/states
 **UC-STATE-05** – Xem lịch sử trạng thái (State History) của giao dịch.
 
 | | |
@@ -989,7 +1141,7 @@
 |---|---|---|
 | `page` | int | Số trang |
 | `limit` | int | Số bản ghi |
-| `status` | string | `MATCH`, `MISMATCH`, `RUNNING` |
+| `status` | string | `MATCH`, `MISMATCH`, `RUNNING`, `FAILED` |
 | `from_date` | ISO8601 | Từ ngày |
 
 **Response 200**
@@ -1008,6 +1160,14 @@
       "lake_sum": 9750000000,
       "warehouse_sum": 9750000000,
       "mismatch_detail": "OLTP vs Lake: delta_count=2, delta_amount=50000000",
+      "error_message": null,
+      "run_at": "ISO8601"
+    },
+    {
+      "job_id": "uuid-failed",
+      "date": "2026-04-03",
+      "status": "FAILED",
+      "error_message": "Database connection timeout timeout during extraction.",
       "run_at": "ISO8601"
     }
   ]
@@ -1030,6 +1190,7 @@
   "job_id": "uuid",
   "date": "2026-04-02",
   "status": "MISMATCH",
+  "error_message": null,
   "sources": {
     "oltp":      { "count": 1540, "sum_amount": 9800000000 },
     "datalake":  { "count": 1538, "sum_amount": 9750000000 },

@@ -111,6 +111,33 @@
 * Gửi giao dịch \-\> extend \-\> Phát hiện giao dịch giá trị cao (UC-TXN-06): Oracle Trigger TRG\_DETECT\_HIGH\_VALUE tự động kích hoạt khi amount \> 500,000,000 \-\> set MANUAL\_REVIEW \+ ghi audit.  
 * Cập nhật trạng thái \-\> include \-\> Ghi Audit Log (UC-TXN-11): mọi thay đổi trạng thái đều được ghi vết.
 
+## **UC04 – QUẢN LÝ KHOẢN VAY (LOAN & SCORING)**
+
+### **Mô tả Actor – Hành động**
+
+**Operator (Nhân viên Vận hành)**
+
+* Gửi đơn vay demo (UC-LOAN-01): gọi API (POST /api/loan/submit) mô phỏng dữ liệu đơn vay (customer\_info, income, loan\_amount, term_months...). Hệ thống tự động xác thực và chấm điểm PD.  
+* Xem danh sách đơn vay (UC-LOAN-05): xem bảng tất cả đơn vay đã tạo.  
+* Xem chi tiết đơn vay (UC-LOAN-06): xem dữ liệu khoản vay, thu nhập, pd\_score (Probability of Default) và trạng thái.
+
+**Reviewer (Nhân viên Duyệt)**
+
+* Xem danh sách đơn vay (UC-LOAN-05): xem tổng quan các đơn vay.  
+* Xem chi tiết đơn vay (UC-LOAN-06): xem chi tiết để chuẩn bị ra quyết định duyệt/từ chối.  
+* Cập nhật trạng thái đơn vay (UC-LOAN-07): cập nhật trạng thái (trong trường hợp duyệt trực tiếp hoặc liên kết qua màn hình Case Management).
+
+**Hệ thống AI (AI Engine)**
+
+* Chấm điểm rủi ro tín dụng (PD Scoring) (UC-LOAN-02): nhận thông tin hồ sơ vay, đẩy qua model Machine Learning (Random Forest) trả về pd\_score (0.0–1.0).
+
+**Quan hệ include/extend**
+
+* Gửi đơn vay \-\> include \-\> Xác thực dữ liệu đầu vào (UC-LOAN-03): validate thông tin tài chính và cá nhân cơ bản.  
+* Gửi đơn vay \-\> include \-\> Chấm điểm tín dụng (UC-LOAN-02): gọi model AI lấy pd\_score.  
+* Chấm điểm tín dụng \-\> include \-\> Phân luồng đơn vay (UC-LOAN-04): dựa vào vùng điểm pd\_score để tự động APPROVED, REJECTED hoặc đẩy sang MANUAL\_REVIEW.  
+* Cập nhật trạng thái \-\> include \-\> Ghi Audit Log (UC-LOAN-08): lưu vết lịch sử thay đổi trạng thái đơn vay.
+
 ## **UC05 – CASE MANAGEMENT VÀ AUDIT**
 
 ### **Mô tả Actor – Hành động**
@@ -162,6 +189,7 @@
 
 * Xem cấu trúc Data Lake (UC-DATA-02): kiểm tra thư mục, số file, kích thước.  
 * Xem log ETL (UC-DATA-06): kiểm tra ETL pipeline có chạy thành công hay lỗi.  
+* Chạy ETL Pipeline thủ công (UC-DATA-10): manual trigger quá trình Extract -> Transform -> Load qua API.  
 * Chạy đối soát theo ngày (UC-DATA-07): trigger đối soát thủ công nếu cần.  
 * Xem kết quả đối soát (UC-DATA-09): xem RECONCILIATION\_JOBS – status MATCH hay MISMATCH, chênh lệch bao nhiêu.
 

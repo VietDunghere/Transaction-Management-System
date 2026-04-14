@@ -1,6 +1,14 @@
 # API Summary – Transaction Management System
 
-> **Base URL:** `https://api.tms.local/api`
+> **Base URL:** `https://api.tms.local/api/v1`
+
+---
+
+## Health Check
+
+| # | Phương thức | URL | Input | Output | Tác dụng |
+|---|---|---|---|---|---|
+| 0 | `GET` | `/health` | _(không có)_ | `status`, `version`, `timestamp` | Kiểm tra trạng thái hệ thống _(Public)_ |
 
 ---
 
@@ -9,12 +17,15 @@
 | # | Phương thức | URL | Input | Output | Tác dụng |
 |---|---|---|---|---|---|
 | 1 | `POST` | `/auth/login` | `username`, `password` | `access_token`, `role`, `user_id` | Đăng nhập, nhận JWT token |
-| 2 | `POST` | `/auth/logout` | _(Bearer Token)_ | `message` | Đăng xuất, hủy phiên |
-| 3 | `PUT` | `/auth/change-password` | `current_password`, `new_password`, `confirm_password` | `message` | Đổi mật khẩu cá nhân |
-| 4 | `GET` | `/users` | Query: `page`, `limit`, `role`, `is_active` | Danh sách user (phân trang) | Xem danh sách tài khoản _(MANAGER, ADMIN)_ |
-| 5 | `POST` | `/users` | `username`, `full_name`, `email`, `password`, `role` | `user_id`, `role`, `created_at` | Tạo tài khoản nhân viên mới _(ADMIN)_ |
-| 6 | `PATCH` | `/users/{user_id}/disable` | _(user_id trên URL)_ | `is_active: false` | Vô hiệu hóa tài khoản _(ADMIN)_ |
-| 7 | `PATCH` | `/users/{user_id}/role` | `role` | `user_id`, `role`, `updated_at` | Gán/thay đổi vai trò người dùng _(ADMIN)_ |
+| 2 | `GET` | `/auth/me` | _(Bearer Token)_ | `user_id`, `username`, `role` | Lấy thông tin user hiện tại _(Tất cả roles)_ |
+| 3 | `POST` | `/auth/logout` | _(Bearer Token)_ | `message` | Đăng xuất, hủy phiên |
+| 4 | `PATCH` | `/auth/change-password` | `current_password`, `new_password`, `confirm_password` | `message` | Đổi mật khẩu cá nhân |
+| 5 | `GET` | `/users` | Query: `page`, `limit`, `role`, `is_active` | Danh sách user (phân trang) | Xem danh sách tài khoản _(MANAGER, ADMIN)_ |
+| 6 | `GET` | `/users/{user_id}` | `user_id` trên URL | Chi tiết User | Xem chi tiết 1 account _(MANAGER, ADMIN)_ |
+| 7 | `POST` | `/users` | `username`, `full_name`, `email`, `password`, `role` | `user_id`, `role`, `created_at` | Tạo tài khoản nhân viên mới _(ADMIN)_ |
+| 8 | `PATCH` | `/users/{user_id}/disable` | _(user_id trên URL)_ | `is_active: false` | Vô hiệu hóa tài khoản (server chặn tự disable) _(ADMIN)_ |
+| 9 | `PATCH` | `/users/{user_id}/enable` | _(user_id trên URL)_ | `is_active: true` | Mở khóa tài khoản _(ADMIN)_ |
+| 10 | `PATCH` | `/users/{user_id}/role` | `role` | `user_id`, `role`, `updated_at` | Gán/thay đổi vai trò người dùng _(ADMIN)_ |
 
 ---
 
@@ -22,10 +33,19 @@
 
 | # | Phương thức | URL | Input | Output | Tác dụng |
 |---|---|---|---|---|---|
-| 8 | `POST` | `/transaction/submit` | `card_number`, `amount`, `merchant_id`, `txn_time`, `currency`, `metadata` | `txn_id`, `idem_key`, `status`, `fraud_score`, `reason_code` | Gửi giao dịch demo; tự động validate, kiểm tra idempotency, chấm điểm AI, phân luồng _(OPERATOR)_ |
-| 9 | `GET` | `/transaction` | Query: `page`, `limit`, `status`, `from_date`, `to_date`, `merchant_id`, `min_amount`, `max_amount` | Danh sách giao dịch (phân trang) | Xem danh sách giao dịch với bộ lọc _(Tất cả roles)_ |
-| 10 | `GET` | `/transaction/{txn_id}` | `txn_id` trên URL | Chi tiết giao dịch + `state_history` | Xem chi tiết một giao dịch cụ thể _(Tất cả roles)_ |
-| 11 | `PATCH` | `/transaction/{txn_id}/status` | `status` (`APPROVED`/`REJECTED`), `note` (bắt buộc) | `txn_id`, `status`, `updated_by`, `updated_at` | Cập nhật trạng thái giao dịch sau khi reviewer duyệt _(REVIEWER)_ |
+| 11 | `POST` | `/transactions/submit` | `card_number` (số thật), `amount`, `merchant_id`, `currency` | `txn_id`, `idem_key`, `status`, `fraud_score` | Gửi giao dịch; tự mask thẻ, tính idem_key từ amount+card+merchant, gọi AI _(OPERATOR)_ |
+| 12 | `GET` | `/transactions` | Query: `page`, `limit`, `status`, `from_date`, `to_date` | Danh sách giao dịch | Xem danh sách (Operator chỉ xem của mình) _(Tất cả roles)_ |
+| 13 | `GET` | `/transactions/{txn_id}` | `txn_id` trên URL | Chi tiết giao dịch | Xem chi tiết giao dịch _(Tất cả roles)_ |
+
+---
+
+## UC04 – Quản lý Khoản vay (Loan & Scoring)
+
+| # | Phương thức | URL | Input | Output | Tác dụng |
+|---|---|---|---|---|---|
+| 14 | `POST` | `/loans/submit` | `customer_info`, `income`, `loan_amount`, `term_months` | `loan_id`, `idem_key`, `status`, `pd_score` | Gửi đơn vay demo; validate, tính idem_key, gọi AI chấm credit score _(OPERATOR)_ |
+| 15 | `GET` | `/loans` | Query: `page`, `limit`, `status`, `from_date`, `to_date` | Danh sách đơn vay | Xem danh sách khoản vay (Operator chỉ xem của mình) _(Tất cả roles)_ |
+| 16 | `GET` | `/loans/{loan_id}` | `loan_id` trên URL | Chi tiết khoản vay | Xem chi tiết một đơn vay _(Tất cả roles)_ |
 
 ---
 
@@ -33,14 +53,13 @@
 
 | # | Phương thức | URL | Input | Output | Tác dụng |
 |---|---|---|---|---|---|
-| 12 | `GET` | `/cases` | Query: `page`, `limit`, `status`, `assigned_to`, `from_date`, `to_date` | Danh sách case (phân trang) | Xem danh sách case MANUAL_REVIEW cần xử lý _(REVIEWER, MANAGER, ADMIN)_ |
-| 13 | `POST` | `/cases/{case_id}/assign` | `case_id` trên URL | `case_id`, `status: ASSIGNED`, `assigned_to`, `assigned_at` | Nhận case về xử lý (Assign to me), ghi audit log _(REVIEWER)_ |
-| 14 | `GET` | `/cases/{case_id}` | `case_id` trên URL | Chi tiết case + thông tin giao dịch + `state_history` | Xem chi tiết case để đánh giá _(REVIEWER, MANAGER, ADMIN)_ |
-| 15 | `POST` | `/cases/{case_id}/approve` | `note` (bắt buộc) | `case_id`, `status: APPROVED`, `txn_status: APPROVED` | Duyệt case; cập nhật trạng thái giao dịch, ghi audit log _(REVIEWER)_ |
-| 16 | `POST` | `/cases/{case_id}/reject` | `note` (bắt buộc) | `case_id`, `status: REJECTED`, `txn_status: REJECTED` | Từ chối case; cập nhật trạng thái giao dịch, ghi audit log _(REVIEWER)_ |
-| 17 | `GET` | `/audit-logs` | Query: `page`, `limit`, `entity_type`, `entity_id`, `actor_id`, `event_type`, `from_date`, `to_date` | Danh sách audit events (phân trang) | Xem toàn bộ Audit Log hệ thống _(MANAGER, ADMIN)_ |
-| 18 | `GET` | `/audit-logs/transaction/{txn_id}/trace` | `txn_id` trên URL | Timeline đầy đủ sự kiện của giao dịch | Truy vết toàn bộ lịch sử một giao dịch từ lúc tạo đến hiện tại _(MANAGER, ADMIN)_ |
-| 19 | `GET` | `/audit-logs/export` | Query: `format` (`csv`/`pdf`), `from_date`, `to_date`, `entity_type` | File download (CSV/PDF) | Xuất báo cáo Audit Log ra file _(MANAGER, ADMIN)_ |
+| 17 | `GET` | `/cases` | Query: `page`, `limit`, `status`, `assigned_to`, `from_date`, `to_date` | Danh sách case (phân trang) | Xem danh sách case MANUAL_REVIEW cần xử lý _(REVIEWER, MANAGER, ADMIN)_ |
+| 18 | `POST` | `/cases/{case_id}/assign` | `case_id` trên URL | `case_id`, `status: ASSIGNED` | Nhận case (có xử lý Race Condition khi assigned_to is null) _(REVIEWER)_ |
+| 19 | `GET` | `/cases/{case_id}` | `case_id` trên URL | Chi tiết case + thông tin gốc | Xem chi tiết case _(REVIEWER, MANAGER, ADMIN)_ |
+| 20 | `PATCH` | `/cases/{case_id}/decision` | `decision`, `note`, `version` | `case_id`, `status`, `updated_at` | Approve/Reject với update có Optimistic Lock (trạng thái sẽ đi đến 1 chiều) _(REVIEWER)_ |
+| 21 | `GET` | `/audit-logs` | Query: `page`, `limit`, `entity_type`, `actor_id`, vv.. | Danh sách audit events | Xem toàn bộ Audit Log _(MANAGER, ADMIN)_ |
+| 22 | `GET` | `/audit-logs/transaction/{txn_id}/trace` | `txn_id` trên URL | Timeline đầy đủ sự kiện | Truy vết toàn bộ lịch sử 1 transaction/loan _(MANAGER, ADMIN)_ |
+| 23 | `GET` | `/audit-logs/export` | Query: `format`, `from_date`, `to_date` | File (CSV/PDF) | Xuất báo cáo Audit Log ra file _(MANAGER, ADMIN)_ |
 
 ---
 
@@ -48,13 +67,14 @@
 
 | # | Phương thức | URL | Input | Output | Tác dụng |
 |---|---|---|---|---|---|
-| 20 | `GET` | `/dashboard/summary` | Query: `period` (`today`/`this_week`/`this_month`) | Tổng số giao dịch, fraud rate, cases pending, trend theo ngày | Xem Dashboard tổng quan _(MANAGER, ADMIN)_ |
-| 21 | `GET` | `/dashboard/fraud-chart` | Query: `period`, `from_date`, `to_date` | Tỷ lệ Fraud/Legit (count + amount), breakdown theo kỳ | Xem biểu đồ Fraud vs Legit từ Warehouse (OLAP) _(MANAGER, ADMIN)_ |
-| 22 | `GET` | `/reports/transactions` | Query: `period` (`daily`/`weekly`/`monthly`/`quarterly`), `from_date`, `to_date` | Báo cáo theo kỳ: count, amount, tỷ lệ APPROVED/REJECTED/MANUAL_REVIEW | Xem báo cáo giao dịch theo thời gian _(MANAGER, ADMIN)_ |
-| 23 | `GET` | `/reports/transactions/export` | Query: `format`, `period`, `from_date`, `to_date` | File download (CSV/PDF) | Xuất báo cáo giao dịch ra file _(MANAGER, ADMIN)_ |
-| 24 | `GET` | `/datalake/structure` | _(không có)_ | Danh sách thư mục theo ngày, số file, kích thước | Xem cấu trúc Data Lake _(ADMIN)_ |
-| 25 | `GET` | `/etl/logs` | Query: `page`, `limit`, `status`, `from_date` | Danh sách ETL jobs (rows extracted/loaded, lỗi nếu có) | Xem log ETL pipeline _(ADMIN)_ |
-| 26 | `POST` | `/etl/trigger` | `date`, `mode` (`FULL`/`INCREMENTAL`) | `job_id`, `status: RUNNING` | Trigger thủ công ETL Pipeline (Extract → Transform → Load) _(ADMIN)_ |
+| 24 | `GET` | `/dashboard/summary` | Query: `period` (`today|week|month`) | Tổng quan + `granularity` | Xem ds chỉ số tổng quan _(MANAGER, ADMIN)_ |
+| 25 | `GET` | `/dashboard/fraud-chart` | Query: `from_date`, `to_date` | Tỷ lệ Fraud/Legit | Xem biểu đồ (Ưu tiên absolute dates) _(MANAGER, ADMIN)_ |
+| 26 | `GET` | `/reports/transactions` | Query: `from_date`, `to_date` | Báo cáo theo ngày tháng | Xem báo cáo GD theo thời gian _(MANAGER, ADMIN)_ |
+| 27 | `GET` | `/reports/transactions/export` | Query: `format`, `from_date`, `to_date` | File download (CSV/PDF) | Xuất báo cáo giao dịch ra file _(MANAGER, ADMIN)_ |
+| 28 | `GET` | `/datalake/structure` | Query: `page`, `limit` | Cấu trúc thư mục (paged) | Xem cấu trúc Data Lake có phân trang _(ADMIN)_ |
+| 29 | `GET` | `/etl/logs` | Query: `page`, `limit`, `status` | Danh sách ETL jobs (paged) | Xem log tổng của ETL pipeline _(ADMIN)_ |
+| 30 | `GET` | `/etl/logs/{job_id}` | `job_id` trên URL | `status`, `logs` chi tiết | Poll trạng thái cho job id cụ thể _(ADMIN)_ |
+| 31 | `POST` | `/etl/trigger` | `date`, `mode` | `job_id`, `status: RUNNING` | Trigger thủ công ETL Pipeline (Extract->Transform->Load) _(ADMIN)_ |
 
 ---
 
@@ -62,10 +82,10 @@
 
 | # | Phương thức | URL | Input | Output | Tác dụng |
 |---|---|---|---|---|---|
-| 27 | `GET` | `/transaction/{txn_id}/states` | `txn_id` trên URL | `current_status`, `current_version`, `history[]` (status + version + actor) | Xem lịch sử trạng thái & version Optimistic Locking của giao dịch _(OPERATOR, ADMIN)_ |
-| 28 | `POST` | `/reconciliation/run` | `date` | `job_id`, `status: RUNNING` | Trigger đối soát: so khớp COUNT(*) và SUM(amount) giữa OLTP, Data Lake, Warehouse _(ADMIN)_ |
-| 29 | `GET` | `/reconciliation/jobs` | Query: `page`, `limit`, `status` (`MATCH`/`MISMATCH`/`RUNNING`), `from_date` | Danh sách reconciliation jobs với kết quả tóm tắt | Xem danh sách kết quả đối soát theo ngày _(ADMIN, MANAGER)_ |
-| 30 | `GET` | `/reconciliation/jobs/{job_id}` | `job_id` trên URL | Chi tiết 3 nguồn (OLTP/Lake/Warehouse), danh sách `discrepancies[]` | Xem chi tiết báo cáo chênh lệch khi MISMATCH _(ADMIN, MANAGER)_ |
+| 32 | `GET` | `/transactions/{txn_id}/states` | `txn_id` trên URL | `current_status`, `history[]` | Xem lịch sử state và version của giao dịch _(OPERATOR, ADMIN)_ |
+| 33 | `POST` | `/reconciliation/run` | `date` | `job_id`, `status: RUNNING` | Trigger chạy đối soát OLTP, Data Lake, Warehouse _(ADMIN)_ |
+| 34 | `GET` | `/reconciliation/jobs` | Query: `page`, `status` (`MATCH|MISMATCH|RUNNING|FAILED`) | Danh sách đối soát jobs | Xem list kết quả đối soát _(ADMIN, MANAGER)_ |
+| 35 | `GET` | `/reconciliation/jobs/{job_id}` | `job_id` trên URL | `discrepancies[]`, error msg | Xem chi tiết lệch / lỗi _(ADMIN, MANAGER)_ |
 
 ---
 
@@ -73,9 +93,11 @@
 
 | Nhóm | Số endpoints |
 |---|:---:|
-| Xác thực & Phân quyền | 7 |
-| Quản lý Giao dịch | 4 |
-| Case Management & Audit | 8 |
-| Data Engineering & Báo cáo | 7 |
+| Health Check | 1 |
+| Xác thực & Phân quyền | 10 |
+| Quản lý Giao dịch | 3 |
+| Quản lý Khoản vay | 3 |
+| Case Management & Audit | 7 |
+| Data Engineering & Báo cáo | 8 |
 | Idempotency, State & Reconciliation | 4 |
-| **Tổng** | **30** |
+| **Tổng** | **36** |
