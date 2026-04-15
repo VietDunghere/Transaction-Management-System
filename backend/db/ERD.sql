@@ -411,3 +411,359 @@ ALTER TABLE "txn_state_history" ADD FOREIGN KEY ("txn_id") REFERENCES "transacti
 ALTER TABLE "txn_state_history" ADD FOREIGN KEY ("changed_by_user_id") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "reconciliation_items" ADD FOREIGN KEY ("job_id") REFERENCES "reconciliation_jobs" ("job_id") DEFERRABLE INITIALLY IMMEDIATE;
+
+
+ALTER TABLE "customers" ADD (
+  "gender"   varchar(10),   
+  "dob"      date,              
+  "job"      varchar(150),      
+  "lat"      decimal(10,7),     
+  "long"     decimal(10,7),      
+  "city_pop" number              
+);
+
+
+
+ALTER TABLE "merchants" ADD (
+  "lat"  decimal(10,7),         
+  "long" decimal(10,7)           
+);
+
+
+ALTER TABLE "transactions_live" ADD (
+  "merch_lat"  decimal(10,7),    
+  "merch_long" decimal(10,7),   
+  "unix_time"  number           
+);
+
+-- ============================================================
+-- PROCEDURES & TRIGGERS
+-- ============================================================
+
+-- Procedure: PROC_SUBMIT_TRANSACTION
+-- Mục đích: Khởi tạo một giao dịch mới với cơ chế chống trùng lặp (Idempotency)
+CREATE OR REPLACE PROCEDURE PROC_SUBMIT_TRANSACTION (
+    p_idem_key           IN varchar2,
+    p_txn_id             IN varchar2,
+    p_customer_id        IN varchar2,
+    p_merchant_id        IN varchar2,
+    p_channel_id         IN number,
+    p_amount             IN number,
+    p_currency_code      IN varchar2,
+    p_fraud_score        IN number,
+    p_txn_time           IN timestamp,
+    -- OUT params
+    p_out_txn_id         OUT varchar2,
+    p_out_status         OUT varchar2
+) AS
+    v_existing_status varchar2(20);
+    v_existing_txn_id varchar2(36);
+BEGIN
+    -- B1 & B2: Check Idempotency (Kiểm tra trong txn_idempotency)
+    BEGIN
+        SELECT "txn_id", "status" 
+        INTO v_existing_txn_id, v_existing_status
+        FROM "txn_idempotency"
+        WHERE "idem_key" = p_idem_key;
+        
+        -- Nếu đã tồn tại key, nhảy sang trả về kết quả cũ
+        p_out_txn_id := v_existing_txn_id;
+        p_out_status := v_existing_status;
+        RETURN;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            NULL; -- Tiếp tục nếu chưa có idem_key
+    END;
+
+    -- B3: Insert vào transactions_live với status = 'PENDING'
+    INSERT INTO "transactions_live" (
+        "txn_id", "customer_id", "merchant_id", "channel_id", "amount", 
+        "currency_code", "txn_time", "status", "fraud_score", "created_at"
+    ) VALUES (
+        p_txn_id, p_customer_id, p_merchant_id, p_channel_id, p_amount, 
+        NVL(p_currency_code, 'VND'), NVL(p_txn_time, SYSTIMESTAMP), 'PENDING', p_fraud_score, SYSTIMESTAMP
+    );
+
+    -- B4: Insert vào txn_state khởi tạo version = 1
+    INSERT INTO "txn_state" (
+        "txn_id", "status", "last_update", "version", "retry_count"
+    ) VALUES (
+        p_txn_id, 'PENDING', SYSTIMESTAMP, 1, 0
+    );
+
+    -- B5: Insert vào txn_idempotency để chốt khóa chống trùng
+    INSERT INTO "txn_idempotency" (
+        "idem_key", "txn_id", "status", "created_at"
+    ) VALUES (
+        p_idem_key, p_txn_id, 'PENDING', SYSTIMESTAMP
+    );
+
+    -- Gán kết quả trả về
+    p_out_txn_id := p_txn_id;
+    p_out_status := 'PENDING';
+
+    -- B6: Commit giao dịch (ACID)
+    COMMIT;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Ngoại lệ: Lỗi DB -> ROLLBACK và ném lỗi ERR_DB_01
+        ROLLBACK;
+        RAISE_APPLICATION_ERROR(-20001, 'ERR_DB_01: Lỗi CSDL khi submit giao dịch - ' || SQLERRM);
+END;
+/
+
+-- Procedure: PROC_PROCESS_REVIEW_CASE
+-- Mục đích: Duyệt hoặc từ chối giao dịch cần Manual Review
+CREATE OR REPLACE PROCEDURE PROC_PROCESS_REVIEW_CASE (
+    p_case_id            IN varchar2,
+    p_decision           IN varchar2, -- 'APPROVE' hoặc 'REJECT'
+    p_decision_note      IN varchar2,
+    -- OUT params
+    p_out_status         OUT varchar2
+) AS
+    v_txn_id             varchar2(36);
+    v_case_status        varchar2(20);
+    v_new_txn_status     varchar2(20);
+BEGIN
+    -- B1 & B2: Lấy txn_id, case_status từ review_cases với Lock dòng (FOR UPDATE) 
+    -- để tránh Race Condition nếu nhiều user cùng duyệt 1 case
+    BEGIN
+        SELECT "txn_id", "case_status"
+        INTO v_txn_id, v_case_status
+        FROM "review_cases"
+        WHERE "case_id" = p_case_id
+        FOR UPDATE;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20002, 'ERR_CASE_00: Không tìm thấy Case');
+    END;
+
+    -- Kiểm tra ngoại lệ nếu case đã xử lý
+    IF v_case_status NOT IN ('OPEN', 'ASSIGNED') THEN
+        RAISE_APPLICATION_ERROR(-20003, 'ERR_CASE_01: Case đã được xử lý bởi người khác hoặc đã đóng.');
+    END IF;
+
+    -- Xác định status mới cho transaction
+    IF p_decision = 'APPROVE' THEN
+        v_new_txn_status := 'APPROVED';
+    ELSIF p_decision = 'REJECT' THEN
+        v_new_txn_status := 'REJECTED';
+    ELSE
+        RAISE_APPLICATION_ERROR(-20004, 'ERR_CASE_02: Quyết định (decision) không hợp lệ, chỉ nhận APPROVE hoặc REJECT.');
+    END IF;
+
+    -- B3: Cập nhật lại review_cases sang 'CLOSED'
+    UPDATE "review_cases"
+    SET "case_status" = 'CLOSED',
+        "decision" = p_decision,
+        "decision_note" = p_decision_note,
+        "decided_at" = SYSTIMESTAMP
+    WHERE "case_id" = p_case_id;
+
+    -- B4: Cập nhật status của transactions_live
+    UPDATE "transactions_live"
+    SET "status" = v_new_txn_status,
+        "updated_at" = SYSTIMESTAMP
+    WHERE "txn_id" = v_txn_id;
+
+    -- Gán status trả về
+    p_out_status := v_new_txn_status;
+
+    -- B5: Cập nhật thành công, gọi COMMIT (Trigger sẽ tự lo việc update txn_state & audit_logs)
+    COMMIT;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RAISE; -- Ném lỗi ra ngoài (bao gồm cả các exception khai báo ở trên)
+END;
+/
+
+-- Procedure: PROC_EXECUTE_RECONCILIATION
+-- Mục đích: Đối soát dữ liệu giao dịch giữa OLTP (transactions_live), DWH (fact_transactions) và Data Lake (raw_ingest_batches)
+CREATE OR REPLACE PROCEDURE PROC_EXECUTE_RECONCILIATION (
+    p_job_id       IN varchar2,
+    p_biz_date     IN date,
+    p_source_name  IN varchar2,
+    p_out_status   OUT varchar2
+) AS
+    v_live_count   number := 0;
+    v_live_amount  decimal(18,2) := 0;
+    v_dw_count     number := 0;
+    v_dw_amount    decimal(18,2) := 0;
+    v_raw_count    number := 0;
+    v_match_status varchar2(20);
+    v_time_id      number;
+BEGIN
+    -- B1: Tính tổng COUNT và SUM(amount) trong transactions_live cho ngày biz_date
+    SELECT COUNT("txn_id"), NVL(SUM("amount"), 0)
+    INTO v_live_count, v_live_amount
+    FROM "transactions_live"
+    WHERE TRUNC("txn_time") = TRUNC(p_biz_date);
+
+    -- B2: Truy vấn fact_transactions để lấy số lượng tương ứng trong Warehouse
+    BEGIN
+        SELECT "time_id" INTO v_time_id
+        FROM "dim_time"
+        WHERE "full_date" = TRUNC(p_biz_date);
+        
+        SELECT COUNT("fact_id"), NVL(SUM("amount"), 0)
+        INTO v_dw_count, v_dw_amount
+        FROM "fact_transactions"
+        WHERE "time_id" = v_time_id;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            v_dw_count := 0;
+            v_dw_amount := 0;
+    END;
+
+    -- B3: Truy vấn raw_ingest_batches để lấy số lượng từ Data Lake
+    SELECT NVL(SUM("record_count"), 0)
+    INTO v_raw_count
+    FROM "raw_ingest_batches"
+    WHERE "file_date" = TRUNC(p_biz_date)
+      AND "ingest_status" = 'SUCCESS';
+
+    -- Ngoại lệ: Nếu Warehouse chưa load xong (có phát sinh ở live/raw nhưng dw không có), coi như timeout/mismatch nặng
+    IF (v_live_count > 0 OR v_raw_count > 0) AND v_dw_count = 0 THEN
+        RAISE_APPLICATION_ERROR(-20005, 'ERR_RECON_01: Dữ liệu Warehouse chưa load xong hoặc Timeout.');
+    END IF;
+
+    -- B4: So sánh thông tin
+    IF v_live_count = v_dw_count AND v_live_amount = v_dw_amount AND v_live_count = v_raw_count THEN
+        v_match_status := 'MATCHED';
+    ELSE
+        v_match_status := 'MISMATCH';
+    END IF;
+
+    -- Insert vào reconciliation_jobs
+    INSERT INTO "reconciliation_jobs" (
+        "job_id", "biz_date", "source_name", "expected_count", "actual_count",
+        "expected_amount", "actual_amount", "status", "created_at", "completed_at"
+    ) VALUES (
+        p_job_id, TRUNC(p_biz_date), NVL(p_source_name, 'SYSTEM'), v_live_count, v_dw_count,
+        v_live_amount, v_dw_amount, v_match_status, SYSTIMESTAMP, SYSTIMESTAMP
+    );
+
+    -- Nếu lệch số liệu -> Ghi chi tiết vào reconciliation_items
+    IF v_match_status = 'MISMATCH' THEN
+        INSERT INTO "reconciliation_items" (
+            "item_id", "job_id", "issue_type", "expected_value", "actual_value", "created_at"
+        ) VALUES (
+            SYS_GUID(), p_job_id, 'COUNT_OR_AMOUNT_MISMATCH',
+            'Live: ' || v_live_count || ' reqs, Amt: ' || v_live_amount || ' | Raw: ' || v_raw_count || ' reqs',
+            'DW: ' || v_dw_count || ' reqs, Amt: ' || v_dw_amount,
+            SYSTIMESTAMP
+        );
+    END IF;
+
+    COMMIT;
+    p_out_status := v_match_status;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        
+        -- Ghi trạng thái FAILED lưu lại quá trình đối soát
+        BEGIN
+            INSERT INTO "reconciliation_jobs" (
+                "job_id", "biz_date", "source_name", "status", "created_at", "completed_at"
+            ) VALUES (
+                p_job_id, TRUNC(p_biz_date), NVL(p_source_name, 'SYSTEM'), 'FAILED', SYSTIMESTAMP, SYSTIMESTAMP
+            );
+            COMMIT;
+        EXCEPTION
+            WHEN OTHERS THEN
+                ROLLBACK;
+        END;
+        
+        p_out_status := 'FAILED';
+        RAISE;
+END;
+/
+
+-- ============================================================
+-- Trigger: TRG_DETECT_HIGH_VALUE
+-- Mục đích: Hard Rule - Ép giao dịch lớn hơn 500 triệu (VND) phải vào trạng thái MANUAL_REVIEW
+-- trước khi chèn vào database, không cho API / App được phép bỏ qua.
+-- ============================================================
+CREATE OR REPLACE TRIGGER TRG_DETECT_HIGH_VALUE
+BEFORE INSERT ON "transactions_live"
+FOR EACH ROW
+BEGIN
+    -- Nếu cột amount > 500M, ép status của dòng mới đổi sang 'MANUAL_REVIEW'
+    IF :NEW."amount" > 500000000 THEN
+        :NEW."status" := 'MANUAL_REVIEW';
+    END IF;
+END;
+/
+
+-- ============================================================
+-- Trigger: TRG_AUTO_CREATE_CASE
+-- Mục đích: Tự động tạo hồ sơ chờ xử lý (Review Case) để chuyển luồng (Workflow Routing)
+-- ============================================================
+CREATE OR REPLACE TRIGGER TRG_AUTO_CREATE_CASE
+AFTER INSERT OR UPDATE ON "transactions_live"
+FOR EACH ROW
+BEGIN
+    IF :NEW."status" = 'MANUAL_REVIEW' THEN
+        -- Kiểm tra xem là lệnh INSERT mới hay lệnh UPDATE đổi status cũ từ khác thành MANUAL_REVIEW
+        IF INSERTING OR (UPDATING AND NVL(:OLD."status", '') <> 'MANUAL_REVIEW') THEN
+            INSERT INTO "review_cases" (
+                "case_id", "txn_id", "case_status", "created_at"
+            ) VALUES (
+                SYS_GUID(), :NEW."txn_id", 'OPEN', SYSTIMESTAMP
+            );
+        END IF;
+    END IF;
+END;
+/
+
+-- ============================================================
+-- Trigger: TRG_OPTIMISTIC_LOCK_CHECK
+-- Mục đích: Ngăn chặn lỗi ghi đè dữ liệu (Race Condition) với Optimistic Locking
+-- ============================================================
+CREATE OR REPLACE TRIGGER TRG_OPTIMISTIC_LOCK_CHECK
+BEFORE UPDATE ON "txn_state"
+FOR EACH ROW
+BEGIN
+    -- Nếu ứng dụng truyền lên version khác với hiện tại, nghĩa là dữ liệu đã cũ
+    IF :NEW."version" <> :OLD."version" THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Data modified by another user');
+    END IF;
+END;
+/
+
+-- ============================================================
+-- Trigger: TRG_STATE_VERSION_UP
+-- Mục đích: Tự động tăng version khi có sự thay đổi trạng thái
+-- ============================================================
+CREATE OR REPLACE TRIGGER TRG_STATE_VERSION_UP
+BEFORE UPDATE ON "txn_state"
+FOR EACH ROW
+BEGIN
+    IF :NEW."status" <> :OLD."status" THEN
+        :NEW."version" := :OLD."version" + 1;
+    END IF;
+END;
+/
+
+-- ============================================================
+-- Trigger: TRG_LOG_STATUS_CHANGE
+-- Mục đích: Ghi log lịch sử mọi thay đổi trạng thái giao dịch để đảm bảo tính minh bạch (Auditability)
+-- ============================================================
+CREATE OR REPLACE TRIGGER TRG_LOG_STATUS_CHANGE
+AFTER UPDATE ON "transactions_live"
+FOR EACH ROW
+BEGIN
+    IF :OLD."status" <> :NEW."status" THEN
+        INSERT INTO "txn_state_history" (
+            "state_hist_id", "txn_id", "old_status", "new_status", "changed_at"
+        ) VALUES (
+            SYS_GUID(), :NEW."txn_id", :OLD."status", :NEW."status", SYSTIMESTAMP
+        );
+    END IF;
+END;
+/
+
