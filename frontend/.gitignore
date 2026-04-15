@@ -1,61 +1,24 @@
-# React dependencies
-node_modules/
-.pnp/
-.pnp.js
-
-# React build outputs
-build/
-dist/
-
-# Coverage and test outputs
-coverage/
-*.lcov
-playwright-report/
-test-results/
-cypress/videos/
-cypress/screenshots/
-
-# Tool caches
-.cache/
-.parcel-cache/
-.vite/
-.eslintcache
-*.tsbuildinfo
-
 # Logs
+logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# Runtime files
-*.pid
-*.pid.lock
-*.seed
+node_modules
+dist
+dist-ssr
+*.local
 
-# Environment files (keep templates tracked)
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-!.env.example
-!.env.sample
-!.env.template
-
-# Editor / IDE
-.idea/
+# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
-
-# OS files
+.idea
 .DS_Store
-Thumbs.db
-Desktop.ini
-
-# Misc
-*.tmp
-*.swp
-*~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
