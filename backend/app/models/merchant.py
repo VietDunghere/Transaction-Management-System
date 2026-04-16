@@ -41,7 +41,7 @@ class Merchant(Base):
     latitude: Mapped[Optional[float]] = mapped_column(Numeric(9, 6))
     longitude: Mapped[Optional[float]] = mapped_column(Numeric(9, 6))
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
 
     # Relationships
     transactions: Mapped[list["Transaction"]] = relationship(  # noqa: F821

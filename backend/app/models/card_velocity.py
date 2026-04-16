@@ -44,5 +44,5 @@ class CardVelocityStats(Base):
     distinct_days: Mapped[int] = mapped_column(Integer, default=1)
     last_txn_date: Mapped[Optional[str]] = mapped_column(String(10))  # YYYY-MM-DD
     last_updated: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime, server_default=func.current_timestamp(), onupdate=func.now(), nullable=False
     )

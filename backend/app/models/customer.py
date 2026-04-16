@@ -54,7 +54,7 @@ class Customer(Base):
     kyc_status: Mapped[Optional[str]] = mapped_column(String(20))
     income_level: Mapped[Optional[str]] = mapped_column(String(50))
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
 
     # Relationships
     transactions: Mapped[list["Transaction"]] = relationship(  # noqa: F821

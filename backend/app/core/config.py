@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # ---- Database ----
+    # Oracle 19c: oracle+oracledb://tms_user:password@localhost:1521/?service_name=ORCLPDB1
+    # SQLite (dev fallback): sqlite:///./tms.db
     database_url: str = "sqlite:///./tms.db"
 
     # ---- JWT ----

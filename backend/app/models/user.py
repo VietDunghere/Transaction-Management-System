@@ -39,7 +39,7 @@ class User(Base):
     full_name: Mapped[Optional[str]] = mapped_column(String(150))
     email: Mapped[Optional[str]] = mapped_column(String(150), unique=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, onupdate=func.now())
 
     # Relationships
@@ -68,7 +68,7 @@ class UserRole(Base):
     role_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("roles.role_id"), primary_key=True
     )
-    assigned_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="user_roles")

@@ -44,7 +44,7 @@ class RiskScoringResult(Base):
     # Reason codes dạng JSON: {"top_features": [...], "rule_hits": [...]}
     reason_json: Mapped[Optional[str]] = mapped_column(Text)
 
-    score_time: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    score_time: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
 
     # Relationships
     transaction: Mapped["Transaction"] = relationship(  # noqa: F821
@@ -70,7 +70,7 @@ class RuleHit(Base):
     rule_name: Mapped[Optional[str]] = mapped_column(String(150))
     hit_value: Mapped[Optional[str]] = mapped_column(String(255))
     severity: Mapped[Optional[str]] = mapped_column(String(20))  # LOW | MEDIUM | HIGH | CRITICAL
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
 
 
 class AuditLog(Base):
@@ -91,5 +91,5 @@ class AuditLog(Base):
         String(36), ForeignKey("users.user_id")
     )
     actor_name: Mapped[Optional[str]] = mapped_column(String(150))
-    event_ts: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    event_ts: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
     detail_json: Mapped[Optional[str]] = mapped_column(Text)

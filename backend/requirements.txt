@@ -8,7 +8,7 @@ uvicorn[standard]==0.29.0
 # Database
 # ========================================
 sqlalchemy==2.0.30
-psycopg2-binary==2.9.9        # PostgreSQL driver
+oracledb==2.4.1               # Oracle Database driver (Thin mode — không cần Oracle Client)
 alembic==1.13.1               # Database migrations
 
 # ========================================

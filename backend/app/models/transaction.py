@@ -59,7 +59,7 @@ class Transaction(Base):
 
     # ---- Metadata ----
     source_ip: Mapped[Optional[str]] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, onupdate=func.now())
 
     # ---- Relationships ----
@@ -89,7 +89,7 @@ class TxnState(Base):
         String(36), ForeignKey("transactions_live.txn_id"), primary_key=True
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False)
-    last_update: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    last_update: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.current_timestamp())
     reason_code: Mapped[Optional[str]] = mapped_column(String(50))
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_error_code: Mapped[Optional[str]] = mapped_column(String(50))
@@ -116,7 +116,7 @@ class TxnStateHistory(Base):
     changed_by_user_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("users.user_id")
     )
-    changed_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    changed_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
     change_reason: Mapped[Optional[str]] = mapped_column(String(200))
 
 
@@ -134,5 +134,5 @@ class TxnIdempotency(Base):
     # IN_PROGRESS | SUCCESS | FAILED
     status: Mapped[str] = mapped_column(String(20), nullable=False)
     response_snapshot_json: Mapped[Optional[str]] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, onupdate=func.now())

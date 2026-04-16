@@ -37,7 +37,7 @@ class ReviewCase(Base):
     decision_note: Mapped[Optional[str]] = mapped_column(Text)
     # Optimistic locking — tăng mỗi lần update để tránh lost update
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
     decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     # Relationships
@@ -70,7 +70,7 @@ class ReviewCaseAction(Base):
         String(36), ForeignKey("users.user_id"), nullable=False
     )
     action_note: Mapped[Optional[str]] = mapped_column(String(500))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
 
     # Relationships
     case: Mapped["ReviewCase"] = relationship("ReviewCase", back_populates="actions")

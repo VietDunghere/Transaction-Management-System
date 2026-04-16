@@ -2,10 +2,10 @@ from __future__ import annotations
 from typing import Optional, List, Dict, Any
 """
 SQLAlchemy engine và SessionLocal.
-Hỗ trợ cả PostgreSQL (production) lẫn SQLite (dev không có Docker).
+Target: Oracle Database 19c với python-oracledb (Thin mode).
 """
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, pool
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.core.config import get_settings
@@ -13,18 +13,25 @@ from app.core.config import get_settings
 settings = get_settings()
 
 # ---- Engine ----
-# SQLite cần thêm check_same_thread=False để dùng trong nhiều thread
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+_url = settings.database_url
 
-engine = create_engine(
-    settings.database_url,
-    connect_args=connect_args,
-    # Pool size cho PostgreSQL — SQLite bỏ qua
-    pool_pre_ping=True,       # Kiểm tra connection trước khi dùng
-    pool_size=10,
-    max_overflow=20,
-    echo=settings.debug,      # Log SQL queries khi debug
-)
+if _url.startswith("sqlite"):
+    # Dev fallback — SQLite không hỗ trợ pool_size
+    engine = create_engine(
+        _url,
+        connect_args={"check_same_thread": False},
+        echo=settings.debug,
+    )
+else:
+    # Oracle (oracle+oracledb://...) hoặc PostgreSQL
+    engine = create_engine(
+        _url,
+        pool_pre_ping=True,    # Kiểm tra connection trước khi dùng
+        pool_size=10,
+        max_overflow=20,
+        pool_recycle=1800,     # Recycle connection sau 30 phút (tránh Oracle timeout)
+        echo=settings.debug,
+    )
 
 # ---- Session factory ----
 SessionLocal = sessionmaker(
