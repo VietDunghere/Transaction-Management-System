@@ -1,40 +1,40 @@
 # API Design – Transaction Management System
 
-> **Base URL:** `https://api.tms.local/api/v1`  
-> **Auth:** JWT Bearer Token (áp dụng trừ `/auth/login` và `/health`)  
+> **Base URL:** `https://api.tms.local/api/v1`
+> **Auth:** JWT Bearer Token (trừ endpoint `/auth/login`)
 > **Content-Type:** `application/json`
 
 ---
 
 ## Mục lục
 
-0. [Tiện ích Hệ thống](#tiện-ích-hệ-thống)
-1. [UC02 – Xác thực & Phân quyền](#uc02--xác-thực--phân-quyền)
-2. [UC03 – Quản lý Giao dịch](#uc03--quản-lý-giao-dịch)
-3. [UC04 – Quản lý Khoản vay](#uc04--quản-lý-khoản-vay)
-4. [UC05 – Case Management & Audit](#uc05--case-management--audit)
-5. [UC06 – Data Engineering & Báo cáo](#uc06--data-engineering--báo-cáo)
-6. [UC07 – Idempotency, State & Reconciliation](#uc07--idempotency-state--reconciliation)
-7. [Quy ước chung](#quy-ước-chung)
+1. [Hệ thống & Health](#hệ-thống--health)
+2. [UC02 – Xác thực & Phân quyền](#uc02--xác-thực--phân-quyền)
+3. [UC03 – Quản lý Giao dịch](#uc03--quản-lý-giao-dịch)
+4. [UC04 – Hỗ trợ Quyết định Cho vay](#uc04--hỗ-trợ-quyết-định-cho-vay)
+5. [UC05 – Case Management & Audit](#uc05--case-management--audit)
+6. [UC06 – Data Engineering & Báo cáo](#uc06--data-engineering--báo-cáo)
+7. [UC07 – Idempotency, State & Reconciliation](#uc07--idempotency-state--reconciliation)
+8. [Quy ước chung](#quy-ước-chung)
 
 ---
 
-## Tiện ích Hệ thống
+## Hệ thống & Health
 
 ### GET /health
-**HEALTH** – Kiểm tra trạng thái hệ thống.
+Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes.
 
 | | |
 |---|---|
 | **Auth** | Không yêu cầu |
-| **Roles** | Public |
+| **Roles** | Tất cả |
 
 **Response 200**
 ```json
 {
   "status": "ok",
   "version": "1.0.0",
-  "timestamp": "2026-04-14T08:00:00Z"
+  "timestamp": "ISO8601"
 }
 ```
 
@@ -82,7 +82,7 @@
 { "error": "ACCOUNT_DISABLED", "message": "Tài khoản đã bị vô hiệu hóa." }
 ```
 
-> *include* → UC-AUTH-02 (Xác thực JWT tạo ra và ký)  
+> *include* → UC-AUTH-02 (Xác thực JWT tạo ra và ký)
 > *extend* → UC-AUTH-09 (Ghi Audit Log mọi lần login, kể cả thất bại)
 
 ---
@@ -103,7 +103,7 @@
 ---
 
 ### GET /auth/me
-**UC-AUTH-ME** – Lấy thông tin user hiện tại.
+**UC-AUTH-10** – Xem thông tin tài khoản đang đăng nhập.
 
 | | |
 |---|---|
@@ -114,8 +114,10 @@
 ```json
 {
   "user_id": "uuid",
-  "username": "duyhoang",
-  "role": "OPERATOR",
+  "username": "string",
+  "full_name": "string",
+  "email": "string",
+  "role": "OPERATOR | REVIEWER | MANAGER | ADMIN",
   "is_active": true
 }
 ```
@@ -129,6 +131,8 @@
 |---|---|
 | **Auth** | Bearer Token |
 | **Roles** | Tất cả |
+
+> ⚠️ Dùng `PATCH` (không phải `PUT`) — chỉ cập nhật partial resource.
 
 **Request Body**
 ```json
@@ -189,6 +193,34 @@
 
 ---
 
+### GET /users/{user_id}
+**UC-AUTH-11** – Xem chi tiết thông tin một người dùng.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | MANAGER, ADMIN |
+
+**Response 200**
+```json
+{
+  "user_id": "uuid",
+  "username": "string",
+  "full_name": "string",
+  "email": "string",
+  "role": "OPERATOR",
+  "is_active": true,
+  "created_at": "ISO8601"
+}
+```
+
+**Response 404**
+```json
+{ "error": "NOT_FOUND", "message": "Người dùng không tồn tại." }
+```
+
+---
+
 ### POST /users
 **UC-AUTH-05** – Tạo tài khoản người dùng mới.
 
@@ -230,6 +262,8 @@
 | **Auth** | Bearer Token |
 | **Roles** | ADMIN |
 
+> ⚠️ ADMIN không được tự vô hiệu hóa chính mình (Issue #5 – Audit).
+
 **Response 200**
 ```json
 { "user_id": "uuid", "is_active": false, "message": "Tài khoản đã bị vô hiệu hóa." }
@@ -237,13 +271,13 @@
 
 **Response 403**
 ```json
-{ "error": "SELF_DISABLE_FORBIDDEN", "message": "Không thể tự vô hiệu hóa tài khoản của chính mình." }
+{ "error": "FORBIDDEN", "message": "Không thể tự vô hiệu hóa tài khoản của chính mình." }
 ```
 
 ---
 
 ### PATCH /users/{user_id}/enable
-**UC-AUTH-ENABLE** – Khôi phục khóa tài khoản đã bị disable.
+**UC-AUTH-12** – Kích hoạt lại tài khoản đã bị vô hiệu hóa.
 
 | | |
 |---|---|
@@ -252,7 +286,7 @@
 
 **Response 200**
 ```json
-{ "user_id": "uuid", "is_active": true, "message": "Tài khoản đã được mở khóa." }
+{ "user_id": "uuid", "is_active": true, "message": "Tài khoản đã được kích hoạt." }
 ```
 
 ---
@@ -304,17 +338,19 @@
 ## UC03 – Quản lý Giao dịch
 
 ### POST /transactions/submit
-**UC-TXN-01** – Gửi giao dịch demo. (Client gửi card thật qua HTTPS, Backend tự masking trước khi lưu DB. `idempotency_key` được tính bằng hash của `card_number + amount + merchant_id` thay vì toàn bộ payload).
+**UC-TXN-01** – Gửi giao dịch vào hệ thống.
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
 | **Roles** | OPERATOR |
 
+> Server tự mask `card_number` — client gửi raw, không được gửi số thẻ đã mask sẵn.
+
 **Request Body**
 ```json
 {
-  "card_number": "string (số thật chứa max digits, e.g. 4111111111111111)",
+  "card_number": "string (raw — server tự mask và hash)",
   "amount": 1500000,
   "merchant_id": "string",
   "txn_time": "ISO8601",
@@ -330,7 +366,7 @@
 ```json
 {
   "txn_id": "uuid",
-  "idempotency_key": "string",
+  "idempotency_key": "sha256_hash_string",
   "status": "APPROVED | REJECTED | MANUAL_REVIEW",
   "fraud_score": 0.25,
   "override_reason": "LOW_RISK | HIGH_RISK | MANUAL_REQUIRED | HIGH_VALUE",
@@ -342,7 +378,7 @@
 ```json
 {
   "txn_id": "uuid",
-  "idempotency_key": "string",
+  "idempotency_key": "sha256_hash_string",
   "status": "APPROVED",
   "fraud_score": 0.25,
   "message": "Giao dịch đã được xử lý trước đó. Trả về kết quả cũ.",
@@ -361,22 +397,24 @@
 }
 ```
 
-> *include* → UC-TXN-02 (Validate input)  
-> *include* → UC-TXN-03 (Kiểm tra Idempotency – SHA256 hash của card_number+amount+merchant_id)  
-> *include* → UC-TXN-04 (AI Fraud Scoring)  
-> *include* → UC-TXN-05 (Phân luồng: score ≤0.3 → APPROVED, ≤0.7 → MANUAL_REVIEW, >0.7 → REJECTED)  
-> *extend* → UC-TXN-06 (Oracle Trigger: amount > 500,000,000 → MANUAL_REVIEW)  
+> *include* → UC-TXN-02 (Validate input)
+> *include* → UC-TXN-03 (Kiểm tra Idempotency – SHA256 hash payload)
+> *include* → UC-TXN-04 (AI Fraud Scoring)
+> *include* → UC-TXN-05 (Phân luồng: score ≤0.3 → APPROVED, ≤0.7 → MANUAL_REVIEW, >0.7 → REJECTED)
+> *extend* → UC-TXN-06 (amount > 500,000,000 → override MANUAL_REVIEW)
 > *extend* → UC-TXN-11 (Ghi Audit Log)
 
 ---
 
 ### GET /transactions
-**UC-TXN-07** – Xem danh sách giao dịch. (Lọc `submitted_by` tự động cho OPERATOR)
+**UC-TXN-07** – Xem danh sách giao dịch.
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
 | **Roles** | OPERATOR, REVIEWER, MANAGER, ADMIN |
+
+> ⚠️ OPERATOR chỉ thấy giao dịch do chính mình gửi (`submitted_by` tự động filter).
 
 **Query Params**
 
@@ -388,8 +426,8 @@
 | `from_date` | ISO8601 | Từ ngày |
 | `to_date` | ISO8601 | Đến ngày |
 | `merchant_id` | string | Lọc theo merchant |
-| `min_amount` | number | Lọc theo số tiền |
-| `max_amount` | number | Lọc theo số tiền |
+| `min_amount` | number | Lọc theo số tiền tối thiểu |
+| `max_amount` | number | Lọc theo số tiền tối đa |
 
 **Response 200**
 ```json
@@ -432,7 +470,7 @@
   "merchant_id": "string",
   "status": "MANUAL_REVIEW",
   "fraud_score": 0.55,
-  "override_reason": "MANUAL_REQUIRED",
+  "reason_code": "MANUAL_REQUIRED",
   "idempotency_key": "sha256_hash",
   "txn_time": "ISO8601",
   "processed_at": "ISO8601",
@@ -447,12 +485,14 @@
 }
 ```
 
+> ~~`PATCH /transactions/{txn_id}/status`~~ — **Đã gỡ bỏ** theo Audit Issue #3. Mọi việc duyệt/từ chối phải đi qua Case flow (`PATCH /cases/{case_id}/decision`) để đảm bảo Audit Trail.
+
 ---
 
-## UC04 – Quản lý Khoản vay
+## UC04 – Hỗ trợ Quyết định Cho vay (Loan Simulator)
 
 ### POST /loans/submit
-**UC-LOAN-01** – Gửi đơn vay demo tự động chấm điểm xếp hạng.
+**UC-LOAN-01** – Gửi đơn vay, nhận PD Score.
 
 | | |
 |---|---|
@@ -462,13 +502,13 @@
 **Request Body**
 ```json
 {
-  "customer_info": {
-    "age": 30,
-    "income": 20000000,
-    "credit_history_length": 5
-  },
+  "applicant_id": "string",
   "loan_amount": 50000000,
-  "term_months": 12
+  "tenure_months": 24,
+  "annual_income": 180000000,
+  "credit_score": 680,
+  "employment_type": "FULL_TIME | PART_TIME | SELF_EMPLOYED",
+  "loan_purpose": "string"
 }
 ```
 
@@ -476,40 +516,46 @@
 ```json
 {
   "loan_id": "uuid",
-  "idempotency_key": "string",
+  "pd_score": 0.13,
+  "risk_grade": "LOW | MEDIUM | HIGH",
   "status": "APPROVED | REJECTED | MANUAL_REVIEW",
-  "pd_score": 0.45,
   "processed_at": "ISO8601"
 }
 ```
 
-> *include* → UC-LOAN-03 (Validate input)  
-> *include* → UC-LOAN-02 (AI PD Scoring)  
-> *include* → UC-LOAN-04 (Phân luồng dựa trên `pd_score`)
-
 ---
 
 ### GET /loans
-**UC-LOAN-05** – Xem danh sách đơn vay (Lọc `submitted_by` tự động cho OPERATOR).
+**UC-LOAN-02** – Xem danh sách hồ sơ vay.
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | Tất cả roles |
+| **Roles** | MANAGER, ADMIN |
+
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `page` | int | Số trang |
+| `limit` | int | Số bản ghi/trang |
+| `status` | string | `PENDING`, `APPROVED`, `REJECTED`, `MANUAL_REVIEW` |
 
 **Response 200**
 ```json
 {
-  "total": 500,
+  "total": 120,
   "page": 1,
   "limit": 20,
   "data": [
     {
       "loan_id": "uuid",
+      "applicant_id": "string",
       "loan_amount": 50000000,
-      "status": "MANUAL_REVIEW",
-      "pd_score": 0.45,
-      "created_at": "ISO8601"
+      "pd_score": 0.13,
+      "risk_grade": "LOW",
+      "status": "APPROVED",
+      "processed_at": "ISO8601"
     }
   ]
 }
@@ -518,23 +564,28 @@
 ---
 
 ### GET /loans/{loan_id}
-**UC-LOAN-06** – Xem chi tiết một đơn vay.
+**UC-LOAN-03** – Xem chi tiết hồ sơ vay.
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | Tất cả roles |
+| **Roles** | MANAGER, ADMIN |
 
 **Response 200**
 ```json
 {
   "loan_id": "uuid",
-  "customer_info": {},
+  "applicant_id": "string",
   "loan_amount": 50000000,
-  "term_months": 12,
-  "status": "MANUAL_REVIEW",
-  "pd_score": 0.45,
-  "created_at": "ISO8601"
+  "tenure_months": 24,
+  "annual_income": 180000000,
+  "credit_score": 680,
+  "employment_type": "FULL_TIME",
+  "loan_purpose": "string",
+  "pd_score": 0.13,
+  "risk_grade": "LOW",
+  "status": "APPROVED",
+  "processed_at": "ISO8601"
 }
 ```
 
@@ -543,7 +594,7 @@
 ## UC05 – Case Management & Audit
 
 ### GET /cases
-**UC-CASE-01** – Xem danh sách case OPEN/ASSIGNED.
+**UC-CASE-01** – Xem danh sách case.
 
 | | |
 |---|---|
@@ -590,6 +641,8 @@
 |---|---|
 | **Auth** | Bearer Token |
 | **Roles** | REVIEWER |
+
+> ⚠️ Dùng `WHERE assigned_to IS NULL` để chặn race condition (Issue #9 – Audit).
 
 **Response 200**
 ```json
@@ -643,19 +696,22 @@
 ---
 
 ### PATCH /cases/{case_id}/decision
-**UC-CASE-04/05** – Cập nhật trạng thái duyệt / từ chối case. Kiểm tra trạng thái hiện tại (nếu terminal thì chặn) và Optimistic Locking (version của case hiện tại).
+**UC-CASE-04/05** – Duyệt hoặc từ chối case (Approve/Reject gộp chung).
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | REVIEWER |
+| **Roles** | REVIEWER, MANAGER |
+
+> Gộp `approve` và `reject` thành một endpoint. Dùng `PATCH` (partial update).
+> Tham số `version` bắt buộc để kích hoạt **Optimistic Locking** — tránh hai reviewer ghi đè nhau.
 
 **Request Body**
 ```json
 {
-  "decision": "APPROVED | REJECTED",
-  "note": "string (bắt buộc – lý do)",
-  "version": 2
+  "decision": "APPROVE | REJECT",
+  "note": "string (bắt buộc – tối thiểu 10 ký tự)",
+  "version": 1
 }
 ```
 
@@ -663,21 +719,25 @@
 ```json
 {
   "case_id": "uuid",
-  "status": "APPROVED",
+  "status": "APPROVED | REJECTED",
   "txn_id": "uuid",
-  "txn_status": "APPROVED",
+  "txn_status": "APPROVED | REJECTED",
   "reviewed_by": "uuid",
-  "reviewed_at": "ISO8601"
+  "reviewed_at": "ISO8601",
+  "version": 2
 }
 ```
 
-**Response 409**
+**Response 409 – Optimistic Lock conflict**
 ```json
-{ "error": "CONFLICT", "message": "Phiên bản dữ liệu không khớp. Case đã bị thay đổi bởi người khác." }
+{
+  "error": "OPTIMISTIC_LOCK_ERROR",
+  "message": "Case đã được cập nhật bởi người khác. Vui lòng tải lại và thử lại."
+}
 ```
 
-> *include* → UC-CASE-06 (Ghi chú lý do bắt buộc)  
-> *include* → UC-CASE-07 (Cập nhật TRANSACTIONS_LIVE hoặc LOAN_APPLICATIONS)  
+> *include* → UC-CASE-06 (Ghi chú lý do bắt buộc)
+> *include* → UC-CASE-07 (Cập nhật transactions_live.status)
 > *include* → UC-AUDIT-01 (Ghi Audit Log tự động)
 
 ---
@@ -726,7 +786,7 @@
 
 ---
 
-### GET /audit-logs/transaction/{txn_id}/trace
+### GET /audit-logs/transactions/{txn_id}/trace
 **UC-AUDIT-03** – Truy vết toàn bộ lịch sử của một giao dịch.
 
 | | |
@@ -791,7 +851,7 @@
 | `entity_type` | string | Tùy chọn – lọc loại entity |
 
 **Response 200**
-> `Content-Type: text/csv` hoặc `application/pdf`  
+> `Content-Type: text/csv` hoặc `application/pdf`
 > `Content-Disposition: attachment; filename="audit_log_{from}_{to}.csv"`
 
 ---
@@ -810,8 +870,8 @@
 
 | Param | Type | Mô tả |
 |---|---|---|
-| `from_date` | ISO8601 | Bắt buộc |
-| `to_date` | ISO8601 | Bắt buộc |
+| `period` | string | `today`, `this_week`, `this_month` |
+| `granularity` | string | `hour`, `day`, `week` — độ chi tiết của trend (default: `day`) |
 
 **Response 200**
 ```json
@@ -821,7 +881,8 @@
   "fraud_rate": 0.08,
   "cases_pending": 23,
   "cases_assigned": 7,
-  "period": "custom",
+  "period": "today | this_week | this_month",
+  "granularity": "day",
   "trend": [
     { "date": "2026-04-01", "total": 320, "fraud": 25, "legit": 295 },
     { "date": "2026-04-02", "total": 415, "fraud": 31, "legit": 384 }
@@ -832,20 +893,22 @@
 ---
 
 ### GET /dashboard/fraud-chart
-**UC-BI-02** – Biểu đồ tỷ lệ Fraud vs Legit (từ Warehouse/OLAP).
+**UC-BI-02** – Biểu đồ tỷ lệ Fraud vs Legit.
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
 | **Roles** | MANAGER, ADMIN |
 
+> Dùng `from_date`/`to_date` làm tham số chính. `period` là tham số phụ để nhóm dữ liệu.
+
 **Query Params**
 
 | Param | Type | Mô tả |
 |---|---|---|
-| `from_date` | ISO8601 | Bắt buộc |
-| `to_date` | ISO8601 | Bắt buộc |
-| `period` | string | (Tuỳ chọn) Thay đổi độ phân giải: `daily`, `weekly`, `monthly` |
+| `from_date` | ISO8601 | Từ ngày (bắt buộc) |
+| `to_date` | ISO8601 | Đến ngày (bắt buộc) |
+| `period` | string | `daily`, `weekly`, `monthly` — nhóm dữ liệu |
 
 **Response 200**
 ```json
@@ -941,8 +1004,8 @@
 
 | Param | Type | Mô tả |
 |---|---|---|
-| `page` | int | Số trang (mặc định 1) |
-| `limit` | int | Số bản ghi/trang (mặc định 20) |
+| `page` | int | Số trang (default: 1) |
+| `limit` | int | Số bản ghi/trang (default: 20) |
 
 **Response 200**
 ```json
@@ -951,6 +1014,9 @@
   "page": 1,
   "limit": 20,
   "base_path": "/datalake/raw/transaction_logs/",
+  "total": 30,
+  "page": 1,
+  "limit": 20,
   "directories": [
     {
       "date": "2026-04-01",
@@ -1003,7 +1069,7 @@
 ---
 
 ### GET /etl/logs/{job_id}
-**UC-DATA-06** – Xem chi tiết log ETL pipeline theo ID.
+**UC-DATA-07** – Xem chi tiết một ETL job.
 
 | | |
 |---|---|
@@ -1015,31 +1081,28 @@
 {
   "job_id": "uuid",
   "job_type": "DAILY_ETL",
-  "status": "SUCCESS",
+  "status": "FAILED",
+  "mode": "INCREMENTAL",
+  "date": "2026-04-01",
   "rows_extracted": 1540,
-  "rows_loaded": 1538,
+  "rows_transformed": 1538,
+  "rows_loaded": 0,
   "started_at": "ISO8601",
   "finished_at": "ISO8601",
-  "error_message": null,
-  "steps": [
-    {
-      "step_name": "EXTRACT",
-      "status": "SUCCESS",
-      "time_taken_ms": 1200
-    },
-    {
-      "step_name": "TRANSFORM",
-      "status": "SUCCESS",
-      "time_taken_ms": 4500
-    }
-  ]
+  "error_message": "Connection timeout to Warehouse",
+  "triggered_by": "uuid"
 }
+```
+
+**Response 404**
+```json
+{ "error": "NOT_FOUND", "message": "ETL job không tồn tại." }
 ```
 
 ---
 
 ### POST /etl/trigger
-**UC-DATA-03/04/05** – Trigger ETL Pipeline thủ công (Extract → Transform → Load).
+**UC-DATA-03/04/05** – Trigger ETL Pipeline thủ công.
 
 | | |
 |---|---|
@@ -1064,8 +1127,8 @@
 }
 ```
 
-> *include* → UC-DATA-04 (Transform: dedup, fill missing, GeoIP enrich, map Star Schema)  
-> *include* → UC-DATA-05 (Load vào FACT_TRANSACTIONS + DIM tables)  
+> *include* → UC-DATA-04 (Transform: dedup, fill missing, GeoIP enrich, map Star Schema)
+> *include* → UC-DATA-05 (Load vào FACT_TRANSACTIONS + DIM tables)
 > *include* → UC-DATA-06 (Ghi log ETL)
 
 ---
@@ -1073,7 +1136,7 @@
 ## UC07 – Idempotency, State & Reconciliation
 
 ### GET /transactions/{txn_id}/states
-**UC-STATE-05** – Xem lịch sử trạng thái (State History) của giao dịch.
+**UC-STATE-05** – Xem lịch sử trạng thái của giao dịch.
 
 | | |
 |---|---|
@@ -1099,7 +1162,7 @@
 ---
 
 ### POST /reconciliation/run
-**UC-RECON-01** – Trigger chạy đối soát (Reconciliation).
+**UC-RECON-01** – Trigger chạy đối soát.
 
 | | |
 |---|---|
@@ -1122,7 +1185,7 @@
 }
 ```
 
-> *include* → UC-RECON-02 (So khớp COUNT(*) và SUM(amount) giữa OLTP, Data Lake, Warehouse)  
+> *include* → UC-RECON-02 (So khớp COUNT(*) và SUM(amount) giữa OLTP, Data Lake, Warehouse)
 > *extend* → UC-RECON-03 (Tạo báo cáo MISMATCH nếu phát hiện chênh lệch)
 
 ---
@@ -1189,8 +1252,7 @@
 {
   "job_id": "uuid",
   "date": "2026-04-02",
-  "status": "MISMATCH",
-  "error_message": null,
+  "status": "MISMATCH | FAILED",
   "sources": {
     "oltp":      { "count": 1540, "sum_amount": 9800000000 },
     "datalake":  { "count": 1538, "sum_amount": 9750000000 },
@@ -1244,15 +1306,17 @@
 
 | Module | OPERATOR | REVIEWER | MANAGER | ADMIN |
 |---|:---:|:---:|:---:|:---:|
-| Auth (login/logout/change-pw) | ✓ | ✓ | ✓ | ✓ |
+| Health | ✓ | ✓ | ✓ | ✓ |
+| Auth (login/logout/change-pw/me) | ✓ | ✓ | ✓ | ✓ |
 | User Management | – | – | Chỉ đọc | Full |
 | Transaction Submit | ✓ | – | – | – |
 | Transaction View | ✓ | ✓ | ✓ | ✓ |
-| Transaction Update Status | – | ✓ | – | – |
+| Transaction States | ✓ | – | – | ✓ |
 | Case Management | – | Full | Chỉ đọc | Chỉ đọc |
 | Audit Log | – | – | ✓ | ✓ |
 | Dashboard / BI | – | – | ✓ | ✓ |
 | Loan Submit | ✓ | – | – | – |
+| Loan View | – | – | ✓ | ✓ |
 | ETL / Data Lake | – | – | – | ✓ |
 | Reconciliation | – | – | Chỉ đọc | Full |
 
@@ -1263,4 +1327,4 @@
 | `≤ 0.30` | `APPROVED` (tự động) |
 | `0.30 < score ≤ 0.70` | `MANUAL_REVIEW` (tạo case) |
 | `> 0.70` | `REJECTED` (tự động) |
-| Bất kỳ, `amount > 500,000,000` | Override → `MANUAL_REVIEW` (Oracle Trigger) |
+| Bất kỳ, `amount > 500,000,000` | Override → `MANUAL_REVIEW` |
