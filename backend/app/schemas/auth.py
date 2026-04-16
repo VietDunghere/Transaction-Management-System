@@ -20,6 +20,11 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int = Field(description="Thời hạn access token (giây)")
+    # User info — trả ngay sau login để frontend không cần gọi thêm /auth/me
+    user_id: str
+    username: str
+    full_name: str
+    role: str
 
 
 class RefreshRequest(BaseModel):

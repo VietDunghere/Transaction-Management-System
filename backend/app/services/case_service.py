@@ -140,7 +140,8 @@ class CaseService:
             action_note=request.decision_note,
         )
         self._db.add(action)
-        self._write_audit(case_id, actor_user_id, f"CASE_{request.decision.value}D", {
+        event_type = "CASE_APPROVED" if request.decision.value == "APPROVE" else "CASE_REJECTED"
+        self._write_audit(case_id, actor_user_id, event_type, {
             "decision": request.decision.value,
             "note": request.decision_note,
         })

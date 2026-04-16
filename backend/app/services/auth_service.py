@@ -140,4 +140,8 @@ class AuthService:
             access_token=access,
             refresh_token=refresh,
             expires_in=settings.jwt_access_token_expire_minutes * 60,
+            user_id=user.user_id,
+            username=user.username,
+            full_name=user.full_name or "",
+            role=user.roles[0] if user.roles else "UNKNOWN",
         )

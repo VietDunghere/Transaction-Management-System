@@ -109,7 +109,7 @@ def create_user(
     token: TokenPayload = Depends(require_roles("ADMIN")),
 ) -> CreateUserResponse:
     svc = UserService(db)
-    return svc.create_user(body)
+    return svc.create_user(body, actor_user_id=token.sub)
 
 
 @router.patch(

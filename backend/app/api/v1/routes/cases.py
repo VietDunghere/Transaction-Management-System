@@ -39,7 +39,7 @@ def list_cases(
     case_status: Optional[CaseStatus] = Query(None),
     assigned_to: Optional[str] = Query(None, description="Lọc theo reviewer user_id"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=20, ge=1, le=100),
 ) -> PagedResponse[CaseListItem]:
     svc = CaseService(db)
 
@@ -52,7 +52,7 @@ def list_cases(
         case_status=case_status,
         assigned_to=effective_assigned_to,
         page=page,
-        page_size=page_size,
+        page_size=limit,
     )
 
     list_data = []
@@ -73,9 +73,9 @@ def list_cases(
         data=list_data,
         pagination=PaginationMeta(
             page=page,
-            page_size=page_size,
+            page_size=limit,
             total_items=total,
-            total_pages=math.ceil(total / page_size),
+            total_pages=math.ceil(total / limit) if total > 0 else 0,
         ),
     )
 

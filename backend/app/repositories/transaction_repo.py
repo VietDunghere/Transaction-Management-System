@@ -124,3 +124,15 @@ class TransactionRepository:
     def append_state_history(self, record: TxnStateHistory) -> None:
         """Ghi thêm 1 row vào lịch sử trạng thái."""
         self._db.add(record)
+
+    def get_state_history(self, txn_id: str) -> list[TxnStateHistory]:
+        """
+        Lấy toàn bộ lịch sử trạng thái của giao dịch, sắp xếp theo thời gian tăng dần.
+        Dùng cho endpoint audit trail.
+        """
+        return (
+            self._db.query(TxnStateHistory)
+            .filter(TxnStateHistory.txn_id == txn_id)
+            .order_by(TxnStateHistory.changed_at)
+            .all()
+        )

@@ -5,6 +5,7 @@ Business logic cho quản lý tài khoản (CRUD, disable/enable, role).
 Commit tại service layer — repo chỉ flush.
 """
 
+import json
 import math
 import uuid
 from datetime import datetime, timezone
@@ -19,6 +20,7 @@ from app.core.exceptions import (
 )
 from app.core.logging import get_logger
 from app.core.security import hash_password
+from app.models.scoring import AuditLog
 from app.models.user import Role, User, UserRole
 from app.repositories.user_repo import UserRepository
 from app.schemas.user import (
@@ -29,6 +31,24 @@ from app.schemas.user import (
 )
 
 logger = get_logger(__name__)
+
+
+def _write_user_audit(
+    db: Session,
+    event_type: str,
+    entity_id: str,
+    actor_user_id: str,
+    detail: dict,
+) -> None:
+    """Ghi audit log cho user lifecycle events — gọi trước commit."""
+    db.add(AuditLog(
+        log_id=str(uuid.uuid4()),
+        event_type=event_type,
+        entity_type="User",
+        entity_id=entity_id,
+        actor_user_id=actor_user_id,
+        detail_json=json.dumps(detail),
+    ))
 
 
 class UserService:
@@ -64,7 +84,7 @@ class UserService:
 
     # ---- Create ----
 
-    def create_user(self, req: CreateUserRequest) -> CreateUserResponse:
+    def create_user(self, req: CreateUserRequest, actor_user_id: str) -> CreateUserResponse:
         """
         Tạo tài khoản nhân viên mới (ADMIN only).
         Raises: ConflictError nếu username/email trùng.
@@ -98,6 +118,11 @@ class UserService:
         user_role = UserRole(user_id=user.user_id, role_id=role_entity.role_id)
         self._repo.add_user_role(user_role)
 
+        _write_user_audit(self._db, "USER_CREATED", user.user_id, actor_user_id=actor_user_id, detail={
+            "username": req.username,
+            "email": req.email,
+            "role": req.role,
+        })
         self._db.commit()
         self._db.refresh(user)
 
@@ -125,6 +150,9 @@ class UserService:
             raise NotFoundError("User")
 
         user.is_active = False
+        _write_user_audit(self._db, "USER_DISABLED", user_id, actor_user_id=actor_user_id, detail={
+            "username": user.username,
+        })
         self._db.commit()
         self._db.refresh(user)
 
@@ -138,6 +166,9 @@ class UserService:
             raise NotFoundError("User")
 
         user.is_active = True
+        _write_user_audit(self._db, "USER_ENABLED", user_id, actor_user_id=actor_user_id, detail={
+            "username": user.username,
+        })
         self._db.commit()
         self._db.refresh(user)
 
@@ -172,6 +203,10 @@ class UserService:
         user_role = UserRole(user_id=user_id, role_id=role_entity.role_id)
         self._repo.add_user_role(user_role)
 
+        _write_user_audit(self._db, "USER_ROLE_UPDATED", user_id, actor_user_id=actor_user_id, detail={
+            "username": user.username,
+            "new_role": req.role,
+        })
         self._db.commit()
         self._db.refresh(user)
 

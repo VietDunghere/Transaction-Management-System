@@ -9,6 +9,7 @@ GET  /transactions/{id}  — chi tiết giao dịch (OPERATOR, MANAGER)
 
 import math
 from decimal import Decimal
+from typing import List
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.api.v1.deps import require_roles
 from app.schemas.auth import TokenPayload
 from app.db.deps import DbSession
+from app.repositories.transaction_repo import TransactionRepository
 from app.schemas.common import PagedResponse, PaginationMeta, TransactionStatus
 from app.schemas.transaction import (
     FraudScoreDetail,
@@ -23,6 +25,7 @@ from app.schemas.transaction import (
     TransactionResponse,
     TransactionSubmitRequest,
     TransactionSubmitResponse,
+    TxnStateHistoryItem,
 )
 from app.services.transaction_service import TransactionService
 
@@ -120,3 +123,27 @@ def get_transaction(
             top_risk_factors=reasons.get("top_features", []),
         )
     return response
+
+
+@router.get(
+    "/{txn_id}/state-history",
+    response_model=List[TxnStateHistoryItem],
+    summary="Lịch sử trạng thái giao dịch",
+    description=(
+        "Trả về toàn bộ audit trail các lần thay đổi trạng thái của giao dịch, "
+        "sắp xếp theo thời gian tăng dần. "
+        "Dùng để trace vòng đời: PENDING → APPROVED / REJECTED / MANUAL_REVIEW."
+    ),
+)
+def get_transaction_state_history(
+    txn_id: str,
+    db: DbSession,
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER")),
+) -> List[TxnStateHistoryItem]:
+    svc = TransactionService(db)
+    # Verify transaction exists before returning history
+    svc.get_transaction(txn_id)
+
+    repo = TransactionRepository(db)
+    history = repo.get_state_history(txn_id)
+    return [TxnStateHistoryItem.model_validate(h) for h in history]
