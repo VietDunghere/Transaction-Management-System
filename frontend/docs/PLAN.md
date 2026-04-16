@@ -74,7 +74,43 @@ Rule bắt buộc: task của Doanh không được yêu cầu quyết định k
     - Tạo skeleton API client + error contract chuẩn.
 - Doanh:
     - Dựng base layout, khung trang, typography/spacing theo token đã chốt.
+        - App shell v1:
+            - Khung chung gồm header, sidebar, content container cho tất cả module.
+            - Slot rõ ràng cho page title, breadcrumb, action area.
+        - Page frame template:
+            - Template cho list page (filter bar + table zone + pagination zone).
+            - Template cho detail page (summary section + info section + timeline/activities section).
+            - Template cho dashboard page (KPI row + chart row + secondary cards row).
+            - Template cho form page (form body + action footer sticky).
+        - Typography theo token:
+            - Chốt mapping H1/H2/H3/body/caption theo semantic usage.
+            - Không dùng font-size hardcode ngoài token map.
+        - Spacing theo token:
+            - Chốt spacing scale cho section, block, card, form-field, table-cell.
+            - Chỉ dùng spacing token, hạn chế giá trị px rời.
+        - Responsive baseline:
+            - Desktop: sidebar mở mặc định.
+            - Tablet: sidebar thu gọn, giữ hierarchy nội dung.
+            - Mobile: stacked layout, action ưu tiên theo chiều dọc.
+        - Acceptance criteria:
+            - 5 module lớn đều render được trên cùng app shell.
+            - Không có layout vỡ ở 3 breakpoint chính (mobile/tablet/desktop).
     - Tạo bộ component UI low-risk phiên bản v1.
+        - Primitive components (presentational only):
+            - Button, Input, Select, Textarea, Badge/StatusChip, Card, Modal shell.
+        - Data display components:
+            - TableShell, StatCard, KeyValueRow, TimelineItem, SectionHeader.
+        - Navigation/filter components:
+            - SearchBox UI, FilterBar UI, DateRange UI shell, Pagination UI.
+        - State components:
+            - LoadingSkeleton block, EmptyState block, ErrorState block (static).
+        - Rules bắt buộc cho v1:
+            - Chỉ nhận props; không gọi API, không chứa business logic quyết định trạng thái.
+            - Không phụ thuộc store global; không side effect.
+            - Tên component + props thống nhất, dễ thay mock bằng dữ liệu thật ở phase sau.
+        - Output v1 cần bàn giao cuối ngày:
+            - Danh sách component + props contract ngắn gọn.
+            - 1 trang demo nội bộ thể hiện đầy đủ component states cơ bản.
 - Deliverable:
     - Skeleton chạy được, có route khung cho 5 module lớn.
 
@@ -86,7 +122,45 @@ Rule bắt buộc: task của Doanh không được yêu cầu quyết định k
     - Define acceptance criteria cho từng module.
 - Doanh:
     - Hoàn thiện UI page-level cho 5 module với mock data.
+        - UC02 Auth/Authorization:
+            - Login page (username/password, error text tĩnh, disabled button state).
+            - Change password page (form layout + helper/error text tĩnh).
+            - User management shell (list/filter UI tĩnh cho MANAGER/ADMIN view).
+        - UC03 Transaction Management:
+            - Transaction submit page (form UI, review block, result card tĩnh).
+            - Transaction list page (table, filter bar, pagination UI tĩnh).
+            - Transaction detail page (summary card, metadata panel, state history timeline UI).
+        - UC05 Case Management & Audit:
+            - Case list page (OPEN/ASSIGNED tabs, filter, assignee badge).
+            - Case detail page (transaction snapshot, action panel approve/reject UI tĩnh).
+            - Audit log page (event list/table, filter panel, trace drawer/modal UI).
+        - UC06 BI/Data/Reports:
+            - Dashboard summary page (KPI cards + trend chart placeholder).
+            - Fraud chart page (period selector + chart container + legend).
+            - Reports page (table report + export button UI tĩnh).
+            - ETL logs/page admin shell (job list + status badge + trigger panel tĩnh).
+        - UC07 State/Reconciliation:
+            - Reconciliation jobs page (job list + status chips + date filter UI).
+            - Reconciliation detail page (sources comparison + discrepancies section).
+            - Transaction state history view (timeline/table component tái sử dụng).
+        - Chuẩn đầu ra page-level:
+            - Mỗi page có mock data riêng, tách file constants/mock rõ ràng.
+            - Không gọi API thật, không cài business rule quyết định trạng thái.
+            - Có responsive tối thiểu cho desktop + tablet + mobile.
     - Hoàn thiện states: loading/empty/error static.
+        - Loading static:
+            - Có skeleton cho table/list/card/form theo từng page.
+            - Có loading placeholder cho chart (container + legend giả lập).
+        - Empty static:
+            - Empty message rõ ngữ cảnh (ví dụ: chưa có giao dịch/case/report).
+            - Có CTA tĩnh hợp lý (refresh, clear filter, create first item).
+        - Error static:
+            - Error banner/card tĩnh theo 3 nhóm: network, unauthorized, unknown.
+            - Có nút Retry UI tĩnh (chưa gắn action thật trong giai đoạn này).
+        - Chuẩn chất lượng cho states:
+            - Copy text ngắn gọn, không technical noise.
+            - Trạng thái hiển thị nhất quán giữa các module (cùng pattern component).
+            - Không để layout shift lớn khi chuyển giữa loading/empty/error/data.
     - Chuẩn bị checklist QA test tay vòng 1.
 - Deliverable cuối 18/04:
     - Frontend demo full flow bằng hardcode/mock, không block bởi API.
