@@ -54,5 +54,5 @@ def create_tables() -> None:
     Gọi khi startup — trong production dùng Alembic migrate thay thế.
     """
     # Import tất cả models để Base biết cần tạo bảng nào
-    from app.models import user, customer, merchant, transaction, scoring, case, card_velocity  # noqa: F401
+    from app.models import user, customer, merchant, transaction, scoring, case, card_velocity, loan, etl_log, reconciliation  # noqa: F401
     Base.metadata.create_all(bind=engine)

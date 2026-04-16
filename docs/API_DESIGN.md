@@ -255,7 +255,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 ---
 
 ### PATCH /users/{user_id}/disable
-**UC-AUTH-06** – Vô hiệu hóa tài khoản.
+**UC-AUTH-06** – Vô hiệu hóa tài khoản (Server kiểm tra `user_id != current_user_id` để tránh tự khóa).
 
 | | |
 |---|---|
@@ -311,6 +311,30 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 ---
 
+### GET /users/{user_id}
+**UC-AUTH-09** – Xem chi tiết 1 người dùng.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | MANAGER, ADMIN |
+
+**Response 200**
+```json
+{
+  "user_id": "uuid",
+  "username": "string",
+  "full_name": "string",
+  "email": "string",
+  "role": "REVIEWER",
+  "is_active": true,
+  "created_at": "ISO8601",
+  "updated_at": "ISO8601"
+}
+```
+
+---
+
 ## UC03 – Quản lý Giao dịch
 
 ### POST /transactions/submit
@@ -345,7 +369,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
   "idempotency_key": "sha256_hash_string",
   "status": "APPROVED | REJECTED | MANUAL_REVIEW",
   "fraud_score": 0.25,
-  "reason_code": "LOW_RISK | HIGH_RISK | MANUAL_REQUIRED | HIGH_VALUE",
+  "override_reason": "LOW_RISK | HIGH_RISK | MANUAL_REQUIRED | HIGH_VALUE",
   "processed_at": "ISO8601"
 }
 ```
@@ -611,7 +635,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 ---
 
 ### POST /cases/{case_id}/assign
-**UC-CASE-02** – Nhận case (Assign to me).
+**UC-CASE-02** – Nhận case (Assign to me). Check Racing: `UPDATE ... WHERE assigned_to IS NULL`.
 
 | | |
 |---|---|
@@ -628,6 +652,11 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
   "assigned_to": "uuid",
   "assigned_at": "ISO8601"
 }
+```
+
+**Response 409**
+```json
+{ "error": "CASE_ALREADY_ASSIGNED", "message": "Case này đã được nhận bởi người khác." }
 ```
 
 > *include* → Ghi Audit Log sự kiện `CASE_ASSIGNED`
@@ -885,7 +914,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 ```json
 {
   "source": "WAREHOUSE",
-  "period": "weekly",
+  "period": "daily",
   "data": {
     "fraud_count": 210,
     "fraud_amount": 8500000000,
@@ -895,7 +924,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
     "fraud_rate_amount": 0.087
   },
   "breakdown": [
-    { "date": "2026-W13", "fraud": 48, "legit": 520 }
+    { "date": "2026-04-01", "fraud": 48, "legit": 520 }
   ]
 }
 ```
@@ -914,9 +943,9 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 | Param | Type | Mô tả |
 |---|---|---|
-| `period` | string | `daily`, `weekly`, `monthly`, `quarterly` |
 | `from_date` | ISO8601 | Bắt buộc |
 | `to_date` | ISO8601 | Bắt buộc |
+| `period` | string | `daily`, `weekly`, `monthly`, `quarterly` |
 
 **Response 200**
 ```json
@@ -954,9 +983,9 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | Param | Type | Mô tả |
 |---|---|---|
 | `format` | string | `csv` hoặc `pdf` |
-| `period` | string | `daily`, `weekly`, `monthly` |
 | `from_date` | ISO8601 | Bắt buộc |
 | `to_date` | ISO8601 | Bắt buộc |
+| `period` | string | Tùy chọn gom nhóm: `daily`, `weekly`, `monthly` |
 
 **Response 200**
 > File download – `Content-Disposition: attachment`
@@ -981,6 +1010,9 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 **Response 200**
 ```json
 {
+  "total": 1,
+  "page": 1,
+  "limit": 20,
   "base_path": "/datalake/raw/transaction_logs/",
   "total": 30,
   "page": 1,
@@ -1191,6 +1223,14 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
       "lake_sum": 9750000000,
       "warehouse_sum": 9750000000,
       "mismatch_detail": "OLTP vs Lake: delta_count=2, delta_amount=50000000",
+      "error_message": null,
+      "run_at": "ISO8601"
+    },
+    {
+      "job_id": "uuid-failed",
+      "date": "2026-04-03",
+      "status": "FAILED",
+      "error_message": "Database connection timeout timeout during extraction.",
       "run_at": "ISO8601"
     }
   ]

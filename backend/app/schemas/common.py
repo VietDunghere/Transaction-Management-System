@@ -4,9 +4,9 @@ Pydantic schemas: Common
 Các schema dùng chung toàn ứng dụng: pagination, response wrapper, enums.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional, Generic, TypeVar
+from typing import List, Optional, Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -45,6 +45,22 @@ class CaseActionType(str, Enum):
     REOPEN = "REOPEN"
 
 
+class LoanStatus(str, Enum):
+    """Vòng đời khoản vay."""
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    DISBURSED = "DISBURSED"
+    CLOSED = "CLOSED"
+    DEFAULTED = "DEFAULTED"
+
+
+class LoanDecision(str, Enum):
+    """Quyết định phê duyệt khoản vay."""
+    APPROVE = "APPROVE"
+    REJECT = "REJECT"
+
+
 # ============================================================
 # Response wrappers
 # ============================================================
@@ -68,4 +84,4 @@ class ErrorDetail(BaseModel):
     code: str
     message: str
     detail: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

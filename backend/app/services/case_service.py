@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
     CaseAlreadyDecidedError,
+    ConflictError,
     NotFoundError,
     OptimisticLockError,
     PermissionDeniedError,
@@ -21,7 +22,7 @@ from app.core.logging import get_logger
 from app.models.case import ReviewCase, ReviewCaseAction
 from app.models.scoring import AuditLog
 from app.repositories.case_repo import CaseRepository
-from app.schemas.case import CaseAssignRequest, CaseDecideRequest
+from app.schemas.case import CaseDecideRequest
 from app.schemas.common import CaseStatus
 
 logger = get_logger(__name__)
@@ -48,40 +49,54 @@ class CaseService:
         """Danh sách cases với filter và pagination."""
         return self._case_repo.list_cases(**kwargs)
 
-    def assign(
-        self,
-        case_id: str,
-        request: CaseAssignRequest,
-        actor_user_id: str,
-    ) -> ReviewCase:
+    def self_assign(self, case_id: str, reviewer_user_id: str) -> ReviewCase:
         """
-        MANAGER giao case cho REVIEWER.
+        REVIEWER tự nhận case về xử lý.
+        Dùng WHERE assigned_to IS NULL để chặn race condition
+        (Transaction Locking — chỉ 1 reviewer nhận được).
 
         Raises:
-            NotFoundError, CaseAlreadyDecidedError
+            NotFoundError, ConflictError (nếu đã có người nhận)
         """
         case = self._get_open_case(case_id)
 
-        old_status = case.case_status
-        case.assigned_to = request.reviewer_user_id
-        case.case_status = CaseStatus.ASSIGNED.value
+        if case.assigned_to is not None:
+            raise ConflictError("Case này đã được nhận bởi reviewer khác.")
+
+        # Atomic update with WHERE assigned_to IS NULL
+        rows_updated = (
+            self._db.query(ReviewCase)
+            .filter(
+                ReviewCase.case_id == case_id,
+                ReviewCase.assigned_to.is_(None),
+            )
+            .update(
+                {
+                    "assigned_to": reviewer_user_id,
+                    "case_status": CaseStatus.ASSIGNED.value,
+                },
+                synchronize_session="fetch",
+            )
+        )
+
+        if rows_updated == 0:
+            raise ConflictError("Case này đã được nhận bởi reviewer khác.")
 
         # Ghi action log
         action = ReviewCaseAction(
             action_id=str(uuid.uuid4()),
             case_id=case_id,
             action_type="ASSIGN",
-            actor_user_id=actor_user_id,
-            action_note=f"Assigned to {request.reviewer_user_id}",
+            actor_user_id=reviewer_user_id,
+            action_note=f"Self-assigned by {reviewer_user_id}",
         )
         self._db.add(action)
-        self._write_audit(case_id, actor_user_id, "CASE_ASSIGNED", {
-            "assigned_to": request.reviewer_user_id,
-            "old_status": old_status,
+        self._write_audit(case_id, reviewer_user_id, "CASE_ASSIGNED", {
+            "assigned_to": reviewer_user_id,
         })
         self._db.commit()
 
-        logger.info("case_assigned", case_id=case_id, reviewer=request.reviewer_user_id)
+        logger.info("case_self_assigned", case_id=case_id, reviewer=reviewer_user_id)
         return self._case_repo.get_by_id(case_id)
 
     def decide(
@@ -125,7 +140,8 @@ class CaseService:
             action_note=request.decision_note,
         )
         self._db.add(action)
-        self._write_audit(case_id, actor_user_id, f"CASE_{request.decision.value}D", {
+        event_type = "CASE_APPROVED" if request.decision.value == "APPROVE" else "CASE_REJECTED"
+        self._write_audit(case_id, actor_user_id, event_type, {
             "decision": request.decision.value,
             "note": request.decision_note,
         })

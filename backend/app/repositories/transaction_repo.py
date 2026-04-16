@@ -39,6 +39,7 @@ class TransactionRepository:
         status: Optional[TransactionStatus] = None,
         customer_id: Optional[str] = None,
         merchant_id: Optional[str] = None,
+        submitted_by: Optional[str] = None,
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         page: int = 1,
@@ -60,6 +61,8 @@ class TransactionRepository:
             filters.append(Transaction.customer_id == customer_id)
         if merchant_id:
             filters.append(Transaction.merchant_id == merchant_id)
+        if submitted_by:
+            filters.append(Transaction.submitted_by == submitted_by)
         if date_from:
             filters.append(Transaction.txn_time >= date_from)
         if date_to:
@@ -121,3 +124,15 @@ class TransactionRepository:
     def append_state_history(self, record: TxnStateHistory) -> None:
         """Ghi thêm 1 row vào lịch sử trạng thái."""
         self._db.add(record)
+
+    def get_state_history(self, txn_id: str) -> list[TxnStateHistory]:
+        """
+        Lấy toàn bộ lịch sử trạng thái của giao dịch, sắp xếp theo thời gian tăng dần.
+        Dùng cho endpoint audit trail.
+        """
+        return (
+            self._db.query(TxnStateHistory)
+            .filter(TxnStateHistory.txn_id == txn_id)
+            .order_by(TxnStateHistory.changed_at)
+            .all()
+        )
