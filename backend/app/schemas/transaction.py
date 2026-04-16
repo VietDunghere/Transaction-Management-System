@@ -97,3 +97,16 @@ class TransactionSubmitResponse(BaseModel):
     decision: str
     message: str
     case_id: Optional[str] = Field(None, description="Không null nếu MANUAL_REVIEW")
+
+
+class TxnStateHistoryItem(BaseModel):
+    """Một bước thay đổi trạng thái trong audit trail của giao dịch."""
+    state_hist_id: str
+    txn_id: str
+    old_status: Optional[str] = None
+    new_status: str
+    changed_by_user_id: Optional[str] = None
+    changed_at: datetime
+    change_reason: Optional[str] = None
+
+    model_config = {"from_attributes": True}

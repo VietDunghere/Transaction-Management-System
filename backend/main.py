@@ -9,6 +9,7 @@ Khởi động ứng dụng, đăng ký routers, middleware và event handlers.
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -95,6 +96,30 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
         content={
             "code": type(exc).__name__,
             "message": exc.detail,
+            "path": str(request.url.path),
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """
+    Xử lý Pydantic validation errors (422) — đồng nhất format với AppException.
+    Mặc định FastAPI trả {"detail": [...]} khác với {"code", "message", "path"} của chúng ta.
+    """
+    errors = [
+        {
+            "field": ".".join(str(loc) for loc in err["loc"][1:]) if len(err["loc"]) > 1 else str(err["loc"][0]) if err["loc"] else "unknown",
+            "message": err["msg"],
+        }
+        for err in exc.errors()
+    ]
+    return JSONResponse(
+        status_code=422,
+        content={
+            "code": "ValidationError",
+            "message": "Dữ liệu đầu vào không hợp lệ.",
+            "errors": errors,
             "path": str(request.url.path),
         },
     )
