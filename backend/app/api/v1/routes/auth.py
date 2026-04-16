@@ -1,17 +1,20 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Router: Auth
-POST /auth/login  — đăng nhập, lấy JWT
-POST /auth/refresh — lấy access token mới
+POST  /auth/login           — đăng nhập, lấy JWT
+POST  /auth/logout          — đăng xuất (stateless — client discard token)
+GET   /auth/me              — thông tin tài khoản đang đăng nhập
+PATCH /auth/change-password — đổi mật khẩu cá nhân
+POST  /auth/refresh         — lấy access token mới
 """
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.v1.deps import get_auth_service
-from app.db.deps import get_db
+from app.api.v1.deps import CurrentToken, CurrentUser, get_auth_service
+from app.db.deps import DbSession
 from app.schemas.auth import LoginRequest, RefreshRequest, TokenResponse
+from app.schemas.user import ChangePasswordRequest, MeResponse, MessageResponse
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -28,6 +31,53 @@ def login(
     auth_service: AuthService = Depends(get_auth_service),
 ) -> TokenResponse:
     return auth_service.login(body.username, body.password)
+
+
+@router.post(
+    "/logout",
+    response_model=MessageResponse,
+    summary="Đăng xuất",
+    description="Đăng xuất — JWT stateless nên client chỉ cần discard token.",
+)
+def logout(token: CurrentToken) -> MessageResponse:
+    return MessageResponse(message="Đăng xuất thành công.")
+
+
+@router.get(
+    "/me",
+    response_model=MeResponse,
+    summary="Thông tin tài khoản",
+    description="Xem thông tin tài khoản đang xác thực. Tất cả roles đều truy cập được.",
+)
+def me(user: CurrentUser) -> MeResponse:
+    return MeResponse(
+        user_id=user.user_id,
+        username=user.username,
+        full_name=user.full_name,
+        role=user.roles[0] if user.roles else "UNKNOWN",
+        is_active=user.is_active,
+    )
+
+
+@router.patch(
+    "/change-password",
+    response_model=MessageResponse,
+    summary="Đổi mật khẩu",
+    description="Đổi mật khẩu cá nhân. Cần cung cấp mật khẩu hiện tại để xác thực.",
+)
+def change_password(
+    body: ChangePasswordRequest,
+    db: DbSession,
+    token: CurrentToken,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> MessageResponse:
+    auth_service.change_password(
+        user_id=token.sub,
+        current_password=body.current_password,
+        new_password=body.new_password,
+    )
+    db.commit()
+    return MessageResponse(message="Đổi mật khẩu thành công.")
 
 
 @router.post(

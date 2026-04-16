@@ -6,7 +6,7 @@ Các schema dùng chung toàn ứng dụng: pagination, response wrapper, enums.
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Generic, TypeVar
+from typing import List, Optional, Generic, TypeVar
 
 from pydantic import BaseModel, Field
 

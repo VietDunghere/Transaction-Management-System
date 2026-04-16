@@ -16,7 +16,6 @@ from app.api.v1.deps import get_current_token, require_roles
 from app.db.deps import DbSession
 from app.schemas.auth import TokenPayload
 from app.schemas.case import (
-    CaseAssignRequest,
     CaseDecideRequest,
     CaseListItem,
     CaseResponse,
@@ -127,27 +126,30 @@ def get_case(
 @router.post(
     "/{case_id}/assign",
     response_model=CaseResponse,
-    summary="Giao case cho reviewer",
-    description="MANAGER giao case cho một REVIEWER cụ thể để xử lý.",
+    summary="Nhận case về xử lý",
+    description=(
+        "REVIEWER tự nhận case về xử lý. "
+        "Có constraint Transaction Locking (WHERE assigned_to IS NULL) để chặn race condition."
+    ),
 )
 def assign_case(
     case_id: str,
-    body: CaseAssignRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("REVIEWER")),
 ) -> CaseResponse:
     svc = CaseService(db)
-    svc.assign(case_id, body, actor_user_id=token.sub)
+    svc.self_assign(case_id, reviewer_user_id=token.sub)
     return get_case(case_id, db, token)
 
 
-@router.post(
-    "/{case_id}/decide",
+@router.patch(
+    "/{case_id}/decision",
     response_model=CaseResponse,
-    summary="Quyết định APPROVE/REJECT",
+    summary="Duyệt/Từ chối case",
     description=(
-        "REVIEWER đưa ra quyết định cuối cho case. "
-        "Yêu cầu cung cấp version hiện tại để tránh lost update (optimistic locking)."
+        "REVIEWER đưa ra quyết định APPROVED/REJECTED cho case. "
+        "Yêu cầu cung cấp version hiện tại để tránh lost update (optimistic locking). "
+        "Gộp Approve & Reject vào 1 endpoint."
     ),
 )
 def decide_case(

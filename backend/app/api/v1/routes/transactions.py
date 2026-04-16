@@ -30,7 +30,7 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
 
 @router.post(
-    "",
+    "/submit",
     response_model=TransactionSubmitResponse,
     status_code=201,
     summary="Submit giao dịch mới",
@@ -56,28 +56,37 @@ def submit_transaction(
 )
 def list_transactions(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER")),
     status: Optional[TransactionStatus] = Query(None),
-    customer_id: Optional[str] = Query(None),
     merchant_id: Optional[str] = Query(None),
+    from_date: Optional[str] = Query(None, description="Từ ngày (ISO 8601)"),
+    to_date: Optional[str] = Query(None, description="Đến ngày (ISO 8601)"),
+    min_amount: Optional[Decimal] = Query(None, ge=0),
+    max_amount: Optional[Decimal] = Query(None, ge=0),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=20, ge=1, le=100),
 ) -> PagedResponse[TransactionResponse]:
     svc = TransactionService(db)
+
+    # OPERATOR chỉ thấy giao dịch do mình submit
+    submitted_by = None
+    if "OPERATOR" in token.roles and "MANAGER" not in token.roles and "ADMIN" not in token.roles:
+        submitted_by = token.sub
+
     items, total = svc.list_transactions(
         status=status,
-        customer_id=customer_id,
         merchant_id=merchant_id,
+        submitted_by=submitted_by,
         page=page,
-        page_size=page_size,
+        page_size=limit,
     )
     return PagedResponse(
         data=[TransactionResponse.model_validate(t) for t in items],
         pagination=PaginationMeta(
             page=page,
-            page_size=page_size,
+            page_size=limit,
             total_items=total,
-            total_pages=math.ceil(total / page_size),
+            total_pages=math.ceil(total / limit) if total > 0 else 0,
         ),
     )
 
