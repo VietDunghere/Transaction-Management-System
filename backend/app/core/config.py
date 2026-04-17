@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     fraud_review_threshold: float = 0.05
     fraud_model_version: str = "rf_v3_regularized"
 
+    # ---- Loan Approval Model ----
+    loan_model_path: str = "./ml_models/loan_model.pkl"
+    loan_high_risk_threshold: float = 0.50
+    loan_medium_risk_threshold: float = 0.20
+    loan_model_version: str = "loan_v1"
+
     # ---- API ----
     api_prefix: str = "/api/v1"
     cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173"]

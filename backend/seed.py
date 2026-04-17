@@ -18,6 +18,7 @@ from app.core.security import hash_password
 from app.models.user import User, Role, UserRole
 from app.models.customer import Customer
 from app.models.merchant import Merchant, Channel
+from app.models.loan import Loan
 
 
 def seed(db: Session) -> None:
@@ -203,6 +204,155 @@ def seed(db: Session) -> None:
             print(f"[merchants] created {m_data['merchant_code']}")
         else:
             print(f"[merchants] skip {m_data['merchant_code']} (exists)")
+
+    # ── Loans (with AI features) ───────────────────────────
+    # Lấy user operator1 và các customer đã tạo
+    db.flush()
+    op_user = db.query(User).filter(User.username == "operator1").first()
+    mgr_user = db.query(User).filter(User.username == "manager1").first()
+
+    if not op_user:
+        print("[loans] skip — operator1 user not found")
+    else:
+        loans_data = [
+            {
+                # LOW RISK — Thu nhập cao, grade A, không lịch sử nợ xấu
+                "loan_id": "loan-0001-0000-0000-000000000001",
+                "customer_id": "cust-0003-0000-0000-000000000003",
+                "submitted_by": op_user.user_id,
+                "principal_amount": 15000.00,
+                "currency_code": "USD",
+                "interest_rate": 0.0750,      # 7.5% → AI nhận 7.50
+                "term_months": 36,
+                "purpose": "Home improvement loan",
+                "status": "APPROVED",
+                "reviewed_by": mgr_user.user_id if mgr_user else None,
+                "review_note": "AI low risk — approved",
+                "reviewed_at": datetime(2026, 4, 15, 10, 0, 0),
+                # AI input features
+                "person_age": 48,
+                "person_income": 150000.00,
+                "person_home_ownership": "OWN",
+                "person_emp_length": 20,
+                "loan_grade": "A",
+                "loan_intent": "HOMEIMPROVEMENT",
+                "cb_person_default_on_file": "N",
+                "cb_person_cred_hist_length": 22,
+                # AI output
+                "pd_score": 0.0523,
+                "risk_level": "LOW RISK",
+            },
+            {
+                # MEDIUM RISK — Thu nhập trung bình, grade C
+                "loan_id": "loan-0002-0000-0000-000000000002",
+                "customer_id": "cust-0001-0000-0000-000000000001",
+                "submitted_by": op_user.user_id,
+                "principal_amount": 20000.00,
+                "currency_code": "USD",
+                "interest_rate": 0.1350,
+                "term_months": 48,
+                "purpose": "Personal loan for renovation",
+                "status": "PENDING",
+                # AI input features
+                "person_age": 36,
+                "person_income": 65000.00,
+                "person_home_ownership": "MORTGAGE",
+                "person_emp_length": 8,
+                "loan_grade": "C",
+                "loan_intent": "PERSONAL",
+                "cb_person_default_on_file": "N",
+                "cb_person_cred_hist_length": 10,
+                # AI output
+                "pd_score": 0.2814,
+                "risk_level": "MEDIUM RISK",
+            },
+            {
+                # HIGH RISK — Thu nhập thấp, grade E, có lịch sử nợ xấu
+                "loan_id": "loan-0003-0000-0000-000000000003",
+                "customer_id": "cust-0002-0000-0000-000000000002",
+                "submitted_by": op_user.user_id,
+                "principal_amount": 25000.00,
+                "currency_code": "USD",
+                "interest_rate": 0.1980,
+                "term_months": 60,
+                "purpose": "Education loan for MBA program",
+                "status": "REJECTED",
+                "reviewed_by": mgr_user.user_id if mgr_user else None,
+                "review_note": "AI high risk — PD score exceeds threshold",
+                "reviewed_at": datetime(2026, 4, 16, 14, 30, 0),
+                # AI input features
+                "person_age": 24,
+                "person_income": 28000.00,
+                "person_home_ownership": "RENT",
+                "person_emp_length": 2,
+                "loan_grade": "E",
+                "loan_intent": "EDUCATION",
+                "cb_person_default_on_file": "Y",
+                "cb_person_cred_hist_length": 3,
+                # AI output
+                "pd_score": 0.8721,
+                "risk_level": "HIGH RISK",
+            },
+            {
+                # MEDIUM RISK — Venture loan, grade D
+                "loan_id": "loan-0004-0000-0000-000000000004",
+                "customer_id": "cust-0001-0000-0000-000000000001",
+                "submitted_by": op_user.user_id,
+                "principal_amount": 30000.00,
+                "currency_code": "USD",
+                "interest_rate": 0.1650,
+                "term_months": 24,
+                "purpose": "Startup venture capital",
+                "status": "PENDING",
+                # AI input features
+                "person_age": 36,
+                "person_income": 65000.00,
+                "person_home_ownership": "MORTGAGE",
+                "person_emp_length": 8,
+                "loan_grade": "D",
+                "loan_intent": "VENTURE",
+                "cb_person_default_on_file": "N",
+                "cb_person_cred_hist_length": 10,
+                # AI output
+                "pd_score": 0.4256,
+                "risk_level": "MEDIUM RISK",
+            },
+            {
+                # LOW RISK — Medical loan, grade B, stable income
+                "loan_id": "loan-0005-0000-0000-000000000005",
+                "customer_id": "cust-0003-0000-0000-000000000003",
+                "submitted_by": op_user.user_id,
+                "principal_amount": 8000.00,
+                "currency_code": "USD",
+                "interest_rate": 0.0920,
+                "term_months": 12,
+                "purpose": "Medical procedure expenses",
+                "status": "APPROVED",
+                "reviewed_by": mgr_user.user_id if mgr_user else None,
+                "review_note": "Low risk profile — approved promptly",
+                "reviewed_at": datetime(2026, 4, 14, 9, 15, 0),
+                # AI input features
+                "person_age": 48,
+                "person_income": 150000.00,
+                "person_home_ownership": "OWN",
+                "person_emp_length": 20,
+                "loan_grade": "B",
+                "loan_intent": "MEDICAL",
+                "cb_person_default_on_file": "N",
+                "cb_person_cred_hist_length": 22,
+                # AI output
+                "pd_score": 0.0891,
+                "risk_level": "LOW RISK",
+            },
+        ]
+
+        for l_data in loans_data:
+            existing = db.query(Loan).filter(Loan.loan_id == l_data["loan_id"]).first()
+            if not existing:
+                db.add(Loan(**l_data))
+                print(f"[loans] created {l_data['loan_id'][:18]}... ({l_data['status']}, {l_data['risk_level']})")
+            else:
+                print(f"[loans] skip {l_data['loan_id'][:18]}... (exists)")
 
     db.commit()
     print("\n[seed] Done.")

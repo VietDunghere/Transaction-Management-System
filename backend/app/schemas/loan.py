@@ -115,3 +115,25 @@ class LoanListItem(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class LoanSimulationRequest(BaseModel):
+    """Input parameters for Loan AI Simulation (predict PD Score)."""
+    person_age: int = Field(..., ge=18, le=100, description="Age of the applicant")
+    person_income: int = Field(..., ge=0, description="Annual income")
+    person_home_ownership: str = Field(..., description="RENT, MORTGAGE, OWN, OTHER")
+    person_emp_length: int = Field(..., ge=0, description="Employment length in years")
+    loan_intent: str = Field(..., description="PERSONAL, EDUCATION, MEDICAL, VENTURE, HOMEIMPROVEMENT, DEBTCONSOLIDATION")
+    loan_grade: str = Field(..., description="A, B, C, D, E, F, G")
+    loan_amnt: float = Field(..., gt=0, description="Loan amount requested")
+    loan_int_rate: float = Field(..., ge=0, description="Interest rate")
+    cb_person_default_on_file: str = Field(..., description="Y or N for historical default")
+    cb_person_cred_hist_length: int = Field(..., ge=0, description="Credit history length in years")
+
+
+class LoanSimulationResponse(BaseModel):
+    """Output from Loan AI Simulation."""
+    pd_score: float
+    risk_level: str
+    top_risk_factors: list[str]
+    model_version: str

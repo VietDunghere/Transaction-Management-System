@@ -68,14 +68,20 @@ class Loan(Base):
     disbursed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     maturity_date: Mapped[Optional[date]] = mapped_column(Date)
 
-    # ---- Loan AI input features (filled at application time) ----
-    annual_income: Mapped[Optional[float]] = mapped_column(Numeric(18, 2))
-    employment_years: Mapped[Optional[float]] = mapped_column(Numeric(5, 2))
-    debt_to_income_ratio: Mapped[Optional[float]] = mapped_column(Numeric(6, 4))
-    credit_score: Mapped[Optional[int]] = mapped_column(Integer)
-    prior_default_count: Mapped[Optional[int]] = mapped_column(Integer)
+    # ---- Loan AI input features (snapshot tại thời điểm nộp đơn) ----
+    # Matching: train_loan_model.py v4 feature contract
+    # (loan_amnt = principal_amount, loan_int_rate = interest_rate * 100,
+    #  loan_percent_income = principal_amount / person_income — computed at scoring time)
+    person_age: Mapped[Optional[int]] = mapped_column(Integer)
+    person_income: Mapped[Optional[float]] = mapped_column(Numeric(18, 2))
+    person_home_ownership: Mapped[Optional[str]] = mapped_column(String(20))   # RENT|MORTGAGE|OWN|OTHER
+    person_emp_length: Mapped[Optional[int]] = mapped_column(Integer)
+    loan_grade: Mapped[Optional[str]] = mapped_column(String(2))               # A-G
+    loan_intent: Mapped[Optional[str]] = mapped_column(String(30))             # PERSONAL|EDUCATION|MEDICAL|VENTURE|HOMEIMPROVEMENT|DEBTCONSOLIDATION
+    cb_person_default_on_file: Mapped[Optional[str]] = mapped_column(String(1)) # Y|N
+    cb_person_cred_hist_length: Mapped[Optional[int]] = mapped_column(Integer)
 
-    # ---- Loan AI output (filled by scoring service) ----
+    # ---- Loan AI output (filled by LoanScoringService) ----
     # Probability of default: 0.0 – 1.0
     pd_score: Mapped[Optional[float]] = mapped_column(Numeric(6, 4))
     # LOW | MEDIUM | HIGH

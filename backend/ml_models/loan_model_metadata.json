@@ -1,0 +1,86 @@
+{
+  "model_version": "loan_v4_xgboost",
+  "trained_at": "2026-04-17T03:34:22.649616+00:00",
+  "algorithm": "XGBClassifier",
+  "optimizer": "Optuna Bayesian TPE",
+  "decision_threshold": 0.21480782330036163,
+  "features_used": {
+    "numerical": [
+      "person_age",
+      "person_income",
+      "person_emp_length",
+      "loan_amnt",
+      "loan_int_rate",
+      "loan_percent_income",
+      "cb_person_cred_hist_length"
+    ],
+    "categorical": [
+      "person_home_ownership",
+      "loan_intent",
+      "loan_grade",
+      "cb_person_default_on_file"
+    ],
+    "engineered": [
+      "age_group",
+      "income_bin",
+      "int_rate_bin"
+    ],
+    "total_count": 14
+  },
+  "best_hyperparameters": {
+    "n_estimators": 500,
+    "max_depth": 5,
+    "learning_rate": 0.029323105618991624,
+    "subsample": 0.6071847502459278,
+    "colsample_bytree": 0.9905354130446519,
+    "reg_alpha": 0.2826411346239432,
+    "reg_lambda": 7.331431882844369,
+    "min_child_weight": 6,
+    "scale_pos_weight": 1.9843888141368513
+  },
+  "evaluation_metrics": {
+    "test_roc_auc": 0.8096,
+    "train_roc_auc": 0.8475,
+    "auc_gap": 0.038,
+    "test_f1_macro": 0.5888,
+    "train_f1_macro": 0.6086,
+    "f1_gap": 0.0198,
+    "test_accuracy": 0.6071,
+    "class_0_precision": 0.949,
+    "class_0_recall": 0.5245,
+    "class_0_f1": 0.6756,
+    "class_1_precision": 0.348,
+    "class_1_recall": 0.9,
+    "class_1_f1": 0.502,
+    "confusion_matrix": [
+      [
+        3682,
+        3338
+      ],
+      [
+        198,
+        1782
+      ]
+    ],
+    "overfitting_detected": false
+  },
+  "feature_importances_top10": {
+    "num__loan_percent_income": 0.1455,
+    "cat__cb_person_default_on_file_Y": 0.0899,
+    "cat__loan_grade_A": 0.0729,
+    "cat__cb_person_default_on_file_N": 0.0707,
+    "cat__loan_grade_G": 0.0652,
+    "cat__loan_grade_B": 0.0598,
+    "cat__loan_grade_F": 0.0564,
+    "cat__loan_grade_E": 0.0461,
+    "cat__loan_grade_C": 0.0451,
+    "num__loan_int_rate": 0.0308
+  },
+  "anti_overfit": {
+    "cv_folds": 5,
+    "test_size": 0.2,
+    "auc_gap": 0.038,
+    "f1_gap": 0.0198,
+    "overfitting_detected": false
+  }
+}
