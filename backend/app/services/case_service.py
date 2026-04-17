@@ -21,6 +21,7 @@ from app.core.exceptions import (
 from app.core.logging import get_logger
 from app.models.case import ReviewCase, ReviewCaseAction
 from app.models.scoring import AuditLog
+from app.models.transaction import Transaction, TxnState, TxnStateHistory
 from app.repositories.case_repo import CaseRepository
 from app.schemas.case import CaseDecideRequest
 from app.schemas.common import CaseStatus
@@ -145,6 +146,23 @@ class CaseService:
             "decision": request.decision.value,
             "note": request.decision_note,
         })
+
+        # Sync Transaction and TxnState to final status
+        txn_new_status = "APPROVED" if request.decision.value == "APPROVE" else "REJECTED"
+        self._db.query(Transaction).filter(Transaction.txn_id == case.txn_id).update(
+            {"status": txn_new_status}, synchronize_session="fetch"
+        )
+        self._db.query(TxnState).filter(TxnState.txn_id == case.txn_id).update(
+            {"status": txn_new_status}, synchronize_session="fetch"
+        )
+        self._db.add(TxnStateHistory(
+            state_hist_id=str(uuid.uuid4()),
+            txn_id=case.txn_id,
+            old_status="MANUAL_REVIEW",
+            new_status=txn_new_status,
+            changed_by_user_id=actor_user_id,
+            change_reason=f"Case {case_id} decided: {request.decision.value}",
+        ))
         self._db.commit()
 
         logger.info(

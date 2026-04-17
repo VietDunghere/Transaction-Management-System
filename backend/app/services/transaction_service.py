@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import IdempotencyConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.models.scoring import AuditLog, RiskScoringResult
-from app.models.transaction import Transaction, TxnIdempotency, TxnStateHistory
+from app.models.transaction import Transaction, TxnIdempotency, TxnState, TxnStateHistory
 from app.models.case import ReviewCase, ReviewCaseAction
 from app.repositories.transaction_repo import TransactionRepository
 from app.repositories.user_repo import UserRepository
@@ -136,6 +136,14 @@ class TransactionService:
             source_ip=request.source_ip,
         )
         self._txn_repo.create(txn)
+
+        # ---- TxnState: snapshot trạng thái hiện tại (optimistic lock table) ----
+        txn_state = TxnState(
+            txn_id=txn.txn_id,
+            status=scoring_result.decision,
+            version=1,
+        )
+        self._db.add(txn_state)
 
         # ---- Bước 8: Lưu scoring result ----
         risk_record = RiskScoringResult(
