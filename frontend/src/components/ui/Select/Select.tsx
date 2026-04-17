@@ -20,10 +20,7 @@ export function Select({ label, error, options, placeholder, className, id, ...r
     return (
         <div className="flex flex-col gap-2">
             {label && (
-                <label
-                    htmlFor={selectId}
-                    className="text-base font-bold text-[#1a1a1a]"
-                >
+                <label htmlFor={selectId} className="text-sm font-semibold text-[var(--color-text-primary)]">
                     {label}
                 </label>
             )}
@@ -32,15 +29,16 @@ export function Select({ label, error, options, placeholder, className, id, ...r
                     id={selectId}
                     className={cn(
                         'w-full appearance-none',
-                        'px-4 py-3 pr-9',
+                        'px-4 py-3 pr-10',
                         'text-base',
-                        'bg-white brutal-border',
-                        'rounded-sm',
+                        'bg-[var(--color-bg-primary)]',
+                        'border border-[var(--color-border-default)]',
+                        'rounded-lg',
                         'outline-none transition-all duration-150',
-                        'focus:ring-2 focus:ring-[#1a1a1a] focus:ring-offset-1',
+                        'focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]',
                         'cursor-pointer',
-                        error && 'border-[#ef4444]',
-                        rest.disabled && 'opacity-50 cursor-not-allowed bg-[#f5f5f0]',
+                        error && 'border-[var(--color-status-danger)]',
+                        rest.disabled && 'opacity-50 cursor-not-allowed bg-[var(--color-surface-card)]',
                         className,
                     )}
                     {...rest}
@@ -58,14 +56,10 @@ export function Select({ label, error, options, placeholder, className, id, ...r
                 </select>
                 <ChevronDown
                     size={16}
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#a3a3a3]"
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]"
                 />
             </div>
-            {error && (
-                <p className="text-sm text-[#ef4444] font-bold">
-                    {error}
-                </p>
-            )}
+            {error && <p className="text-sm text-[var(--color-status-danger)] font-semibold">{error}</p>}
         </div>
     );
 }

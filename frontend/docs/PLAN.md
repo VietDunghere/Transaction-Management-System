@@ -1,234 +1,170 @@
 # Frontend Delivery Plan (16/04 -> 24/04)
 
-## 1) Bối cảnh và nguyên tắc lập kế hoạch
+## 1) Cập nhật trạng thái và nguyên tắc
 
-- Mục tiêu: hoàn thành toàn bộ frontend theo module lớn trước 24/04, đã test và sẵn sàng handoff.
-- Ràng buộc: API chưa chốt hoàn toàn, chỉ bám module lớn; backend dự kiến hoàn tất full API trong 17-18/04.
+- Trạng thái hiện tại: task 16/04 (Foundation + Design Context) đã hoàn thành.
+- API contract đã cập nhật theo API_DESIGN v1.0.0 (17/04), từ giai đoạn này lock theo endpoint + payload thực tế.
+- Mục tiêu giữ nguyên: hoàn thiện frontend trước 24/04, đã test và sẵn sàng handoff/UAT.
 - Quy mô nhân sự:
-    - Biden (4/5, mạnh kỹ thuật + prompt + AI tools): nhận toàn bộ task rủi ro cao, task có thể làm sai logic nghiệp vụ, task ảnh hưởng critical path.
-    - Doanh (1/5, mạnh research, code web mức cơ bản): chỉ nhận task rủi ro thấp, có thể review/replace nhanh, không được đứng trên critical path.
+    - Biden (4/5): owner toàn bộ critical path, logic nghiệp vụ rủi ro cao, tích hợp API và xử lý edge case.
+    - Doanh (1/5): owner task low-risk (UI/presentational/formatting/checklist QA), không giữ khóa tiến độ release.
 - Nguyên tắc điều phối:
     - Critical path do Biden nắm.
-    - Doanh làm song song các phần UI/presentational/mocking/QA checklist để tăng throughput nhưng không khóa tiến độ.
-    - Chấp nhận hardcode tạm + mock adapter trong giai đoạn chờ API.
-    - Thời lượng testing + bugfix chiếm xấp xỉ 40% tổng thời gian.
+    - Doanh chạy song song để tăng throughput nhưng không quyết định kiến trúc/nghiệp vụ có side effect.
+    - Duy trì adapter layer để cô lập thay đổi nhỏ từ backend.
+    - Testing + bugfix tiếp tục chiếm khoảng 40% effort tổng.
 
-## 2) Scope module (chỉ lấy module lớn từ API Design)
+## 2) Scope module theo API_DESIGN mới
 
-- UC02: Auth & Authorization.
+- UC02: Authentication & Authorization.
 - UC03: Transaction Management.
-- UC05: Case Management & Audit.
-- UC06: Dashboard, BI, Data/Reports.
-- UC07: State History & Reconciliation.
+- UC04: User Management.
+- UC05: Case Management & Review.
+- UC06: Loan Management.
+- UC07: Audit Logging.
+- UC08: Dashboard & Reports.
+- UC09: ETL Pipeline.
 
-Ghi chú: không lock theo endpoint chi tiết ở thời điểm này, chỉ lock theo module boundary để giảm rủi ro đổi API.
+Nhóm ưu tiên triển khai:
 
-## 3) Flow thực hiện bắt buộc
+- P0 (critical path): UC02, UC03, UC05, UC08.
+- P1 (parallel): UC04, UC06, UC07, UC09.
 
-1. Dùng Figma MCP để lấy style/context từ file thiết kế.
-2. Dùng AI để đề xuất layout -> chuyển thành component map.
-3. Dựng frontend hardcode + mock state trước khi API ổn định.
-4. Khi API đủ (17-18/04), bắt đầu ghép API và sync chặt với backend.
-5. Testing + bugfix là giai đoạn trọng tâm cuối, chiếm khoảng 40% effort.
+## 3) Flow thực hiện (đã cập nhật)
+
+1. Giữ nguyên nền tảng 16/04 (token, app shell, route skeleton, UI primitives).
+2. Tích hợp API theo từng wave ưu tiên P0 -> P1.
+3. Chuẩn hóa xử lý chung: auth token, error envelope, pagination, role guard.
+4. Hoàn tất regression + bugfix theo checklist trước cutoff 24/04.
 
 ## 4) Phân công theo vai trò và mức rủi ro
 
 ### 4.1 Biden (owner critical path, high-risk)
 
-- Kiến trúc nền:
-    - Router skeleton, route guard theo role, module boundary.
-    - API layer chuẩn (axios client, error mapping, auth token handling, retry policy tối thiểu).
-    - Query key strategy, mutation flow, cache invalidation.
-- Nghiệp vụ nhạy cảm:
-    - Luồng Auth/RBAC và điều hướng theo permission.
-    - Luồng Transaction/Case state transition, approve/reject, note bắt buộc.
-    - Mapping dữ liệu BI/Reconciliation có nhiều trạng thái và edge cases.
-- Tích hợp backend:
-    - Chốt contract thực tế với BE, tạo adapter cho khác biệt payload.
-    - Xử lý lỗi, fallback UI, empty states, permission denied.
+- Kiến trúc và tích hợp lõi:
+    - Route guard theo RBAC thực tế.
+    - API client chuẩn (token lifecycle, refresh, error mapping, retry tối thiểu).
+    - Query/mutation strategy và cache invalidation.
+- Nghiệp vụ rủi ro cao:
+    - Auth flow (login, me, refresh, change-password).
+    - Transaction + Case state transition.
+    - Loan decision/case decision có optimistic locking (`version`).
+    - Dashboard/report mapping và export flow (json/csv).
 - Quality gate:
-    - Thiết kế test strategy, viết test case rủi ro cao, điều phối bug triage cuối kỳ.
+    - Thiết kế test strategy theo rủi ro.
+    - Owner bug triage mức high/critical.
 
 ### 4.2 Doanh (owner low-risk, non-blocking)
 
 - UI/presentational:
-    - Dựng layout theo Figma (không xử lý business logic phức tạp).
-    - Tạo reusable component low-risk: table shell, filter panel UI, badges, cards, skeletons, empty states.
-    - Hoàn thiện responsive cơ bản cho các page chính.
-- Hardcode/mocking:
-    - Mock data và static page cho toàn bộ module để unblock demo flow.
-    - Gắn wiring UI đơn giản bằng props, tránh tự thiết kế state machine.
+    - Dựng/chỉnh page-level UI theo payload thực tế.
+    - Hoàn thiện table/filter/cards/charts shell, loading/empty/error states.
+    - Rà soát responsive và consistency.
 - QA hỗ trợ:
-    - Viết checklist test tay theo page.
-    - Smoke test vòng 1 sau mỗi lần merge từ Biden.
+    - Viết checklist test tay theo module.
+    - Smoke test sau từng đợt merge.
 
-Rule bắt buộc: task của Doanh không được yêu cầu quyết định kiến trúc, không nắm flow nghiệp vụ có side effect, không giữ khóa merge của release branch.
+Rule bắt buộc: task của Doanh không quyết định kiến trúc, không nắm nghiệp vụ có side effect, không giữ khóa merge branch critical.
 
 ## 5) Kế hoạch theo mốc thời gian (16/04 -> 24/04)
 
-## 16/04 - Foundation + Design Context
+## 16/04 - Foundation + Design Context (Done)
+
+- Biden: đã chốt route/module map nền, API client skeleton, error contract chung.
+- Doanh: đã dựng app shell/page templates, UI primitives v1, bộ state components và responsive baseline.
+- Deliverable đã đạt:
+    - Skeleton chạy ổn, render được toàn bộ module khung.
+
+## 17/04 - 18/04 - Integration Wave 1 (P0)
 
 - Biden:
-    - Lấy context style qua Figma MCP, chốt design token + component taxonomy.
-    - Chốt route map và module map theo UC02/03/05/06/07.
-    - Tạo skeleton API client + error contract chuẩn.
+    - Tích hợp UC02: `/auth/login`, `/auth/logout`, `/auth/me`, `/auth/change-password`, `/auth/refresh`.
+    - Tích hợp UC03: `/transactions/submit`, `/transactions`, `/transactions/{txn_id}`, `/transactions/{txn_id}/state-history`.
+    - Tích hợp UC05: `/cases`, `/cases/{case_id}`, `/cases/{case_id}/assign`, `/cases/{case_id}/decision`.
+    - Hoàn thiện unauthorized/forbidden flow theo role.
 - Doanh:
-    - Dựng base layout, khung trang, typography/spacing theo token đã chốt.
-        - App shell v1:
-            - Khung chung gồm header, sidebar, content container cho tất cả module.
-            - Slot rõ ràng cho page title, breadcrumb, action area.
-        - Page frame template:
-            - Template cho list page (filter bar + table zone + pagination zone).
-            - Template cho detail page (summary section + info section + timeline/activities section).
-            - Template cho dashboard page (KPI row + chart row + secondary cards row).
-            - Template cho form page (form body + action footer sticky).
-        - Typography theo token:
-            - Chốt mapping H1/H2/H3/body/caption theo semantic usage.
-            - Không dùng font-size hardcode ngoài token map.
-        - Spacing theo token:
-            - Chốt spacing scale cho section, block, card, form-field, table-cell.
-            - Chỉ dùng spacing token, hạn chế giá trị px rời.
-        - Responsive baseline:
-            - Desktop: sidebar mở mặc định.
-            - Tablet: sidebar thu gọn, giữ hierarchy nội dung.
-            - Mobile: stacked layout, action ưu tiên theo chiều dọc.
-        - Acceptance criteria:
-            - 5 module lớn đều render được trên cùng app shell.
-            - Không có layout vỡ ở 3 breakpoint chính (mobile/tablet/desktop).
-    - Tạo bộ component UI low-risk phiên bản v1.
-        - Primitive components (presentational only):
-            - Button, Input, Select, Textarea, Badge/StatusChip, Card, Modal shell.
-        - Data display components:
-            - TableShell, StatCard, KeyValueRow, TimelineItem, SectionHeader.
-        - Navigation/filter components:
-            - SearchBox UI, FilterBar UI, DateRange UI shell, Pagination UI.
-        - State components:
-            - LoadingSkeleton block, EmptyState block, ErrorState block (static).
-        - Rules bắt buộc cho v1:
-            - Chỉ nhận props; không gọi API, không chứa business logic quyết định trạng thái.
-            - Không phụ thuộc store global; không side effect.
-            - Tên component + props thống nhất, dễ thay mock bằng dữ liệu thật ở phase sau.
-        - Output v1 cần bàn giao cuối ngày:
-            - Danh sách component + props contract ngắn gọn.
-            - 1 trang demo nội bộ thể hiện đầy đủ component states cơ bản.
-- Deliverable:
-    - Skeleton chạy được, có route khung cho 5 module lớn.
-
-## 17/04 - 18/04 - Hardcode trước API
-
-- Biden:
-    - Dựng flow nghiệp vụ hardcode cho Auth + Transaction + Case actions.
-    - Chuẩn bị adapter layer để cắm API nhanh khi BE chốt.
-    - Define acceptance criteria cho từng module.
-- Doanh:
-    - Hoàn thiện UI page-level cho 5 module với mock data.
-        - UC02 Auth/Authorization:
-            - Login page (username/password, error text tĩnh, disabled button state).
-            - Change password page (form layout + helper/error text tĩnh).
-            - User management shell (list/filter UI tĩnh cho MANAGER/ADMIN view).
-        - UC03 Transaction Management:
-            - Transaction submit page (form UI, review block, result card tĩnh).
-            - Transaction list page (table, filter bar, pagination UI tĩnh).
-            - Transaction detail page (summary card, metadata panel, state history timeline UI).
-        - UC05 Case Management & Audit:
-            - Case list page (OPEN/ASSIGNED tabs, filter, assignee badge).
-            - Case detail page (transaction snapshot, action panel approve/reject UI tĩnh).
-            - Audit log page (event list/table, filter panel, trace drawer/modal UI).
-        - UC06 BI/Data/Reports:
-            - Dashboard summary page (KPI cards + trend chart placeholder).
-            - Fraud chart page (period selector + chart container + legend).
-            - Reports page (table report + export button UI tĩnh).
-            - ETL logs/page admin shell (job list + status badge + trigger panel tĩnh).
-        - UC07 State/Reconciliation:
-            - Reconciliation jobs page (job list + status chips + date filter UI).
-            - Reconciliation detail page (sources comparison + discrepancies section).
-            - Transaction state history view (timeline/table component tái sử dụng).
-        - Chuẩn đầu ra page-level:
-            - Mỗi page có mock data riêng, tách file constants/mock rõ ràng.
-            - Không gọi API thật, không cài business rule quyết định trạng thái.
-            - Có responsive tối thiểu cho desktop + tablet + mobile.
-    - Hoàn thiện states: loading/empty/error static.
-        - Loading static:
-            - Có skeleton cho table/list/card/form theo từng page.
-            - Có loading placeholder cho chart (container + legend giả lập).
-        - Empty static:
-            - Empty message rõ ngữ cảnh (ví dụ: chưa có giao dịch/case/report).
-            - Có CTA tĩnh hợp lý (refresh, clear filter, create first item).
-        - Error static:
-            - Error banner/card tĩnh theo 3 nhóm: network, unauthorized, unknown.
-            - Có nút Retry UI tĩnh (chưa gắn action thật trong giai đoạn này).
-        - Chuẩn chất lượng cho states:
-            - Copy text ngắn gọn, không technical noise.
-            - Trạng thái hiển thị nhất quán giữa các module (cùng pattern component).
-            - Không để layout shift lớn khi chuyển giữa loading/empty/error/data.
-    - Chuẩn bị checklist QA test tay vòng 1.
+    - Cập nhật form/list/detail UI theo payload thật của UC02/03/05.
+    - Chuẩn hóa trạng thái loading/empty/error cho các page P0.
+    - Chạy smoke test vòng 1 sau mỗi gói tích hợp.
 - Deliverable cuối 18/04:
-    - Frontend demo full flow bằng hardcode/mock, không block bởi API.
+    - UC02/03/05 chạy end-to-end với API thật, không còn phụ thuộc mock cho luồng chính.
 
-## 19/04 - 20/04 - API Integration Wave 1
-
-- Biden (chủ lực):
-    - Ghép API Auth + Transaction + Case/Audit.
-    - Resolve mismatch payload/status code với backend.
-    - Bổ sung guard, error boundary, unauthorized flow.
-- Doanh:
-    - Support map field UI theo payload thực tế (low-risk only).
-    - Cập nhật table/filter/display format.
-    - Chạy smoke test sau từng gói tích hợp.
-- Deliverable cuối 20/04:
-    - Core module chạy end-to-end với API thật.
-
-## 21/04 - API Integration Wave 2 + Stabilize
+## 19/04 - 20/04 - Integration Wave 2 (P1 - Part A)
 
 - Biden:
-    - Ghép API Dashboard/Reports + Reconciliation.
-    - Hoàn tất state history/reconciliation view logic.
-    - Chốt toàn bộ edge-case handling.
+    - Tích hợp UC04: `/users`, `/users/{user_id}`, create/enable/disable/update-role.
+    - Tích hợp UC06: `/loans`, `/loans/{loan_id}`, `/loans/simulate`, `/loans/{loan_id}/decision`.
+    - Tích hợp UC07: `/audit-logs`, `/audit-logs/entities/{entity_type}/{entity_id}`, `/audit-logs/{log_id}`.
+    - Xử lý conflict 409 cho endpoint có `version`.
 - Doanh:
-    - Hoàn thiện hiển thị chart/card/table theo dữ liệu thật.
-    - Rà soát responsive và consistency UI.
-- Deliverable:
-    - Toàn bộ 5 module lớn đã cắm API mức production-ready (không gồm polish sâu).
+    - Hoàn thiện page-level UI cho User/Loan/Audit theo field thực tế.
+    - Chuẩn hóa format tiền tệ, score, timestamp UTC -> local display.
+    - Rà responsive cho các page newly integrated.
+- Deliverable cuối 20/04:
+    - UC04/06/07 cắm API đầy đủ, pass smoke test vòng 1.
 
-## 22/04 - 24/04 - Testing + Bugfix (40% effort)
+## 21/04 - Integration Wave 3 (P1 - Part B) + Stabilize
+
+- Biden:
+    - Tích hợp UC08: `/dashboard/summary`, `/dashboard/fraud-trend`, `/reports/transactions`, `/reports/fraud`.
+    - Tích hợp UC09: `/etl/run`, `/etl/logs` + guard ADMIN.
+    - Chốt hành vi export csv/json, pagination chuẩn, mapping error envelope chung.
+- Doanh:
+    - Hoàn thiện chart/card/table bind dữ liệu thật cho UC08.
+    - Hoàn thiện ETL logs/admin shell theo dữ liệu thật.
+    - Smoke test toàn hệ thống sau wave 3.
+- Deliverable cuối 21/04:
+    - Toàn bộ UC02 -> UC09 đã tích hợp API ở mức production-ready (chưa tính polish sâu).
+
+## 22/04 - 23/04 - Testing + Bugfix (40% effort trọng tâm)
 
 - Biden:
     - Owner bug triage, fix bug high/critical.
-    - Tập trung regression cho role/permission, state transition, API failures.
-    - Chốt test sign-off kỹ thuật trước cutoff.
+    - Regression trọng điểm: RBAC matrix, token refresh, state transition, optimistic locking, API failure fallback.
 - Doanh:
-    - Chạy test checklist đầy đủ, ghi bug rõ reproduce steps.
-    - Fix bug UI low-risk (spacing/text/format/display).
-    - Re-test và xác nhận bug đóng.
+    - Chạy full checklist manual, log bug kèm reproduce steps rõ ràng.
+    - Fix bug UI low-risk (layout/text/format/consistency), re-test xác nhận bug đóng.
+- Deliverable cuối 23/04:
+    - Bug critical = 0, bug high đã fix hoặc có workaround được chấp nhận.
+
+## 24/04 - Hardening + Handoff
+
+- Biden:
+    - Final regression pass, technical sign-off, chốt danh sách known issues (nếu có).
+- Doanh:
+    - Chốt checklist test, cập nhật ảnh/chứng cứ test flow chính.
 - Deliverable cuối 24/04:
-    - Test pass cho flow chính, bug critical = 0, bug high đã xử lý hoặc có workaround được chấp nhận.
+    - Sẵn sàng bàn giao UAT, flow chính hoạt động ổn định theo API_DESIGN v1.0.0.
 
 ## 6) Ma trận module x owner
 
-| Module lớn                | Biden (High-risk owner)                                  | Doanh (Low-risk support)                                  |
-| ------------------------- | -------------------------------------------------------- | --------------------------------------------------------- |
-| UC02 Auth/Authorization   | Auth flow, RBAC guard, token/error handling              | Login/change-password UI, validation UI, empty/error view |
-| UC03 Transaction          | Submit/list/detail/status logic, query/mutation strategy | Table/filter UI, detail panel layout, static formatting   |
-| UC05 Case/Audit           | Assign/approve/reject logic, audit timeline mapping      | Case list/detail presentational, timeline component UI    |
-| UC06 BI/Data              | Data mapping chart/report/export behavior                | Dashboard layout, card/chart shell, loading skeleton      |
-| UC07 Reconciliation/State | History/reconciliation logic, mismatch handling          | Reconciliation table/report UI, visual states             |
+| Module                 | Biden (High-risk owner)                                         | Doanh (Low-risk support)                           |
+| ---------------------- | --------------------------------------------------------------- | -------------------------------------------------- |
+| UC02 Auth              | Auth flow, token lifecycle, RBAC guard                          | Login/change-password UI, state/error view         |
+| UC03 Transaction       | Submit/list/detail/state-history logic                          | Table/filter/detail presentational, format display |
+| UC04 User Management   | Role/permission logic, enable/disable/update-role               | User list/form UI, static validation text          |
+| UC05 Case Management   | Assign/decision flow, required note, conflict handling          | Case list/detail UI, timeline rendering            |
+| UC06 Loan Management   | Loan decision flow, simulate/decision mapping, version conflict | Loan form/list/detail UI, scoring/result display   |
+| UC07 Audit Logging     | Filter/query mapping, entity trail logic                        | Audit table/detail UI, pagination shell            |
+| UC08 Dashboard/Reports | KPI/trend mapping, export behavior                              | Chart/card shell, table/report presentation        |
+| UC09 ETL Pipeline      | Trigger/log integration, admin-only guard                       | ETL log UI/status chip/filter presentation         |
 
 ## 7) Cơ chế kiểm soát tiến độ và rủi ro
 
 - Daily 2 checkpoints:
-    - 10:00: chốt mục tiêu trong ngày, xác nhận blocker với backend.
-    - 17:30: demo increment, chốt bug list, cập nhật plan hôm sau.
+    - 10:00: chốt mục tiêu ngày + blocker với backend.
+    - 17:30: demo increment + bug list + kế hoạch ngày tiếp theo.
 - Quy tắc merge:
-    - PR có ảnh hưởng nghiệp vụ/kiến trúc phải do Biden review và merge.
-    - PR từ Doanh chỉ vào nhánh feature low-risk; không merge thẳng vào critical branch nếu chưa qua smoke test.
+    - PR ảnh hưởng nghiệp vụ/kiến trúc: Biden review + merge.
+    - PR low-risk từ Doanh: phải qua smoke test trước khi vào nhánh chính.
 - Fallback khi API thay đổi muộn:
-    - Giữ adapter layer để cô lập thay đổi contract.
-    - Ưu tiên đảm bảo flow chính hoạt động trước, polish đẩy sau.
+    - Ưu tiên sửa adapter layer trước.
+    - Freeze UI behavior cho flow chính, đẩy polish xuống sau.
 
 ## 8) Definition of Done (cutoff 24/04)
 
-- 5 module lớn hoàn thiện UI + integration theo mức API đã chốt.
-- Quyền theo role hoạt động đúng trên flow chính.
-- Không còn bug critical; bug high không chặn demo/UAT.
-- Bộ test (manual + automated khả dụng) đã chạy xong và có biên bản kết quả.
-- Sẵn sàng chuyển sang vòng UAT với backend.
+- UC02 -> UC09 hoàn thiện UI + integration theo API_DESIGN v1.0.0.
+- RBAC hoạt động đúng theo role matrix trên flow chính.
+- Hỗ trợ đầy đủ các hành vi bắt buộc: pagination chuẩn, error envelope chuẩn, optimistic locking cho case/loan.
+- Bug critical = 0; bug high không chặn demo/UAT.
+- Bộ test (manual + automated khả dụng) đã chạy xong, có biên bản và sẵn sàng handoff backend/UAT.

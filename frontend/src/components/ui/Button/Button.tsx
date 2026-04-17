@@ -12,16 +12,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClass: Record<ButtonVariant, string> = {
-    primary: 'bg-[#1a1a1a] text-white hover:bg-[#333]',
-    secondary: 'bg-white text-[#1a1a1a] hover:bg-[#f5f5f0]',
-    danger: 'bg-[#ef4444] text-white hover:bg-red-600',
-    ghost: 'bg-transparent text-[#525252] hover:bg-[#f5f5f0]',
+    primary: 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] hover:opacity-90',
+    secondary:
+        'bg-[var(--color-surface-card)] text-[var(--color-text-primary)] border border-[var(--color-border-default)] hover:bg-[var(--color-bg-subtle)]',
+    danger: 'bg-[var(--color-status-danger)] text-white hover:opacity-90',
+    ghost: 'bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-subtle)] hover:text-[var(--color-text-primary)]',
 };
 
 const sizeClass: Record<ButtonSize, string> = {
-    sm: 'px-4 py-2 text-sm gap-2',
+    sm: 'px-4 py-1.5 text-sm gap-2',
     md: 'px-5 py-2.5 text-base gap-2',
-    lg: 'px-8 py-3.5 text-lg gap-3',
+    lg: 'px-8 py-3.5 text-base gap-3',
 };
 
 export function Button({
@@ -32,29 +33,20 @@ export function Button({
     disabled,
     className,
     children,
-    style,
     ...rest
 }: ButtonProps) {
     const isDisabled = disabled || loading;
-    const isGhost = variant === 'ghost';
 
     return (
         <button
             className={cn(
-                'inline-flex items-center justify-center font-bold rounded cursor-pointer select-none',
+                'inline-flex items-center justify-center font-semibold rounded-lg cursor-pointer select-none',
                 'transition-all duration-150',
-                'hover:-translate-x-0.5 hover:-translate-y-0.5',
-                'active:translate-x-0.5 active:translate-y-0.5',
                 variantClass[variant],
                 sizeClass[size],
                 isDisabled && 'pointer-events-none opacity-50',
                 className,
             )}
-            style={{
-                border: isGhost ? 'none' : '2px solid #1a1a1a',
-                boxShadow: isGhost ? 'none' : '3px 3px 0 0 #1a1a1a',
-                ...style,
-            }}
             disabled={isDisabled}
             {...rest}
         >

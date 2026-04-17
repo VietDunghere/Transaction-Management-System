@@ -13,10 +13,7 @@ export function Textarea({ label, error, hint, className, id, ...rest }: Textare
     return (
         <div className="flex flex-col gap-2">
             {label && (
-                <label
-                    htmlFor={textareaId}
-                    className="text-base font-bold text-[#1a1a1a]"
-                >
+                <label htmlFor={textareaId} className="text-sm font-semibold text-[var(--color-text-primary)]">
                     {label}
                 </label>
             )}
@@ -25,25 +22,20 @@ export function Textarea({ label, error, hint, className, id, ...rest }: Textare
                 className={cn(
                     'w-full px-4 py-3',
                     'text-base min-h-[140px] resize-y',
-                    'bg-white brutal-border',
-                    'rounded-sm',
+                    'bg-[var(--color-bg-primary)]',
+                    'border border-[var(--color-border-default)]',
+                    'rounded-lg',
                     'outline-none transition-all duration-150',
-                    'focus:ring-2 focus:ring-[#1a1a1a] focus:ring-offset-1',
-                    'placeholder:text-[#a3a3a3]',
-                    error && 'border-[#ef4444]',
-                    rest.disabled && 'opacity-50 cursor-not-allowed bg-[#f5f5f0]',
+                    'focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]',
+                    'placeholder:text-[var(--color-text-tertiary)]',
+                    error && 'border-[var(--color-status-danger)]',
+                    rest.disabled && 'opacity-50 cursor-not-allowed bg-[var(--color-surface-card)]',
                     className,
                 )}
                 {...rest}
             />
-            {hint && !error && (
-                <p className="text-sm text-[#a3a3a3]">{hint}</p>
-            )}
-            {error && (
-                <p className="text-sm text-[#ef4444] font-bold">
-                    {error}
-                </p>
-            )}
+            {hint && !error && <p className="text-sm text-[var(--color-text-secondary)]">{hint}</p>}
+            {error && <p className="text-sm text-[var(--color-status-danger)] font-semibold">{error}</p>}
         </div>
     );
 }

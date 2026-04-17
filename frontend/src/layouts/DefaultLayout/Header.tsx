@@ -1,4 +1,4 @@
-import { Menu, Bell, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Star, Bell, Clock, Settings, Menu } from 'lucide-react';
 import { cn } from '~/utils/cn';
 
 interface HeaderProps {
@@ -6,83 +6,86 @@ interface HeaderProps {
     onToggleSidebar: () => void;
 }
 
-export function Header({ onToggleSidebar, isSidebarOpen: _isSidebarOpen }: HeaderProps) {
+export function Header({ onToggleSidebar }: HeaderProps) {
     return (
         <header
             className={cn(
                 'flex items-center justify-between shrink-0',
-                'px-6',
-                'bg-white',
-                'border-b-2 border-[#1a1a1a]',
+                'bg-[var(--color-bg-primary)]',
+                'border-b border-[var(--color-border-default)]',
             )}
-            style={{ height: 'var(--header-height)' }}
+            style={{ height: 'var(--header-height)', padding: '20px 28px' }}
         >
-            {/* Left — Hamburger (visible on all sizes) + breadcrumb slot */}
-            <div className="flex items-center gap-3">
+            {/* Left — nav arrows + breadcrumb */}
+            <div className="flex items-center gap-2">
+                {/* Mobile menu toggle */}
                 <button
-                    id="sidebar-toggle-btn"
                     onClick={onToggleSidebar}
-                    className={cn(
-                        'flex items-center justify-center',
-                        'size-9 rounded-sm',
-                        'hover:bg-[#f5f5f0]',
-                        'transition-colors duration-150',
-                        'cursor-pointer',
-                    )}
-                    aria-label="Toggle sidebar"
+                    className="flex items-center justify-center size-6 rounded-sm md:hidden cursor-pointer"
                     style={{ border: 'none', background: 'transparent' }}
+                    aria-label="Toggle sidebar"
                 >
-                    <Menu size={20} />
+                    <Menu size={16} />
                 </button>
 
-                {/* Breadcrumb slot — injected by page later */}
-                <div
-                    id="header-breadcrumb"
-                    className="text-sm text-[#a3a3a3]"
-                />
+                {/* Nav arrows */}
+                <button
+                    className="flex items-center justify-center size-6 rounded-sm cursor-pointer hover:bg-[var(--color-bg-subtle)] transition-colors"
+                    style={{ border: 'none', background: 'transparent', padding: 4 }}
+                    aria-label="Go back"
+                >
+                    <ChevronLeft size={16} className="text-[var(--color-text-primary)]" />
+                </button>
+                <button
+                    className="flex items-center justify-center size-6 rounded-sm cursor-pointer hover:bg-[var(--color-bg-subtle)] transition-colors"
+                    style={{ border: 'none', background: 'transparent', padding: 4 }}
+                    aria-label="Go forward"
+                >
+                    <ChevronRight size={16} className="text-[var(--color-text-primary)]" />
+                </button>
+
+                {/* Breadcrumb */}
+                <nav className="flex items-center gap-2 ml-2" aria-label="Breadcrumb">
+                    <span className="text-xs text-[var(--color-text-secondary)] px-3 py-1 rounded-sm cursor-pointer hover:bg-[var(--color-bg-subtle)] transition-colors">
+                        Dashboards
+                    </span>
+                    <span className="text-xs text-[var(--color-text-tertiary)]">/</span>
+                    <span className="text-xs text-[var(--color-text-secondary)] px-3 py-1 rounded-sm">Default</span>
+                </nav>
             </div>
 
-            {/* Right — Actions */}
-            <div className="flex items-center gap-2">
-                {/* Notifications */}
-                <button
-                    id="notification-btn"
-                    className={cn(
-                        'relative flex items-center justify-center',
-                        'size-9 rounded-sm',
-                        'hover:bg-[#f5f5f0]',
-                        'transition-colors duration-150',
-                        'cursor-pointer',
-                    )}
-                    style={{ border: 'none', background: 'transparent' }}
-                    aria-label="Notifications"
+            {/* Right — search + action icons */}
+            <div className="flex items-center gap-5">
+                {/* Search box */}
+                <div
+                    className="hidden sm:flex items-center gap-2 rounded-sm bg-[var(--color-surface-input)] cursor-pointer"
+                    style={{ padding: '4px 8px', width: 160, height: 28 }}
                 >
-                    <Bell size={18} />
-                    <span
-                        className="absolute top-1.5 right-1.5 size-2 rounded-full bg-[#ef4444]"
-                        aria-hidden
-                    />
-                </button>
+                    <Search size={14} className="text-[var(--color-text-tertiary)] shrink-0" />
+                    <span className="flex-1 text-xs text-[var(--color-text-tertiary)]">Search</span>
+                    <span className="text-xs text-[var(--color-text-tertiary)] bg-[var(--color-bg-primary)] px-1.5 py-0.5 rounded-sm border border-[var(--color-border-default)]">
+                        /
+                    </span>
+                </div>
 
-                {/* User avatar */}
-                <button
-                    id="user-profile-btn"
-                    className={cn(
-                        'flex items-center gap-2',
-                        'px-3 py-1',
-                        'rounded-sm',
-                        'border-2 border-[#1a1a1a]',
-                        'bg-white',
-                        'hover:bg-[#f5f5f0]',
-                        'text-sm font-medium',
-                        'transition-all duration-150',
-                        'cursor-pointer',
-                    )}
-                    style={{ boxShadow: 'var(--shadow-brutal-sm)' }}
-                >
-                    <User size={16} />
-                    <span className="hidden sm:inline">Admin</span>
-                </button>
+                {/* Action icons */}
+                <div className="flex items-center gap-1">
+                    {[
+                        { icon: <Star size={16} />, label: 'Favorites' },
+                        { icon: <Bell size={16} />, label: 'Notifications' },
+                        { icon: <Clock size={16} />, label: 'Recent' },
+                        { icon: <Settings size={16} />, label: 'Settings' },
+                    ].map((action) => (
+                        <button
+                            key={action.label}
+                            className="flex items-center justify-center size-6 rounded-sm cursor-pointer hover:bg-[var(--color-bg-subtle)] transition-colors"
+                            style={{ border: 'none', background: 'transparent', padding: 4 }}
+                            aria-label={action.label}
+                        >
+                            <span className="text-[var(--color-text-primary)]">{action.icon}</span>
+                        </button>
+                    ))}
+                </div>
             </div>
         </header>
     );

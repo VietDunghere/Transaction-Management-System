@@ -11,21 +11,21 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-    default: 'bg-[#1a1a1a] text-white border-[#1a1a1a]',
-    success: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    warning: 'bg-amber-100 text-amber-800 border-amber-300',
-    danger: 'bg-red-100 text-red-800 border-red-300',
-    info: 'bg-blue-100 text-blue-800 border-blue-300',
-    muted: 'bg-[#f5f5f0] text-[#525252] border-[#d4d4d4]',
+    default: 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)]',
+    success: 'bg-emerald-50 text-emerald-700',
+    warning: 'bg-amber-50 text-amber-700',
+    danger: 'bg-red-50 text-red-700',
+    info: 'bg-blue-50 text-blue-700',
+    muted: 'bg-[var(--color-surface-card)] text-[var(--color-text-secondary)]',
 };
 
 const dotStyles: Record<BadgeVariant, string> = {
-    default: 'bg-[#1a1a1a]',
+    default: 'bg-[var(--color-bg-primary)]',
     success: 'bg-emerald-500',
     warning: 'bg-amber-500',
     danger: 'bg-red-500',
     info: 'bg-blue-500',
-    muted: 'bg-[#a3a3a3]',
+    muted: 'bg-[var(--color-text-secondary)]',
 };
 
 export function Badge({ variant = 'default', children, className, dot = false }: BadgeProps) {
@@ -35,7 +35,7 @@ export function Badge({ variant = 'default', children, className, dot = false }:
                 'inline-flex items-center gap-1.5',
                 'px-3 py-1',
                 'text-sm font-semibold',
-                'rounded border',
+                'rounded-md',
                 variantStyles[variant],
                 className,
             )}

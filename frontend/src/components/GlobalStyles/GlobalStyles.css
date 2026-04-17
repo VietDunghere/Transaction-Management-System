@@ -1,5 +1,2 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* Tailwind v4 preflight handles the reset. Do NOT add unlayered
+   * { padding: 0 } here — it overrides @layer utilities. */
