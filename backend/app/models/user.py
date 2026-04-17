@@ -8,7 +8,7 @@ Quản lý tài khoản nhân viên và phân quyền theo role.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Identity, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -19,7 +19,7 @@ class Role(Base):
 
     __tablename__ = "roles"
 
-    role_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    role_id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
     role_name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
 
     # Relationships
