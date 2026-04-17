@@ -129,6 +129,15 @@ class LoanService:
             purpose=request.purpose,
             status=LoanStatus.PENDING.value,
             version=1,
+            # AI input features — optional, used for scoring on APPROVE
+            person_age=request.person_age,
+            person_income=request.person_income,
+            person_home_ownership=request.person_home_ownership,
+            person_emp_length=request.person_emp_length,
+            loan_intent=request.loan_intent,
+            loan_grade=request.loan_grade,
+            cb_person_default_on_file=request.cb_person_default_on_file,
+            cb_person_cred_hist_length=request.cb_person_cred_hist_length,
         )
         self._loan_repo.create(loan)
         self._write_audit(loan.loan_id, submitted_by_user_id, "LOAN_APPLIED", {

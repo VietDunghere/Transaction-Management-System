@@ -46,6 +46,16 @@ class LoanApplyRequest(BaseModel):
         description="Mục đích vay — tối thiểu 10 ký tự",
     )
 
+    # AI input features — optional; if provided, pd_score is auto-computed on APPROVE
+    person_age: Optional[int] = Field(None, ge=18, le=100)
+    person_income: Optional[float] = Field(None, ge=1_000, le=10_000_000)
+    person_home_ownership: Optional[Literal["RENT", "MORTGAGE", "OWN", "OTHER"]] = None
+    person_emp_length: Optional[int] = Field(None, ge=0, le=60)
+    loan_intent: Optional[Literal["PERSONAL", "EDUCATION", "MEDICAL", "VENTURE", "HOMEIMPROVEMENT", "DEBTCONSOLIDATION"]] = None
+    loan_grade: Optional[Literal["A", "B", "C", "D", "E", "F", "G"]] = None
+    cb_person_default_on_file: Optional[Literal["Y", "N"]] = None
+    cb_person_cred_hist_length: Optional[int] = Field(None, ge=0, le=60)
+
 
 class LoanDecisionRequest(BaseModel):
     """
@@ -96,6 +106,10 @@ class LoanResponse(BaseModel):
     reviewed_at: Optional[datetime] = None
     created_at: datetime
 
+    # AI risk assessment — populated when AI features were provided on apply
+    pd_score: Optional[float] = None
+    risk_level: Optional[str] = None
+
     model_config = {"from_attributes": True}
 
 
@@ -113,6 +127,8 @@ class LoanListItem(BaseModel):
     monthly_payment: Optional[Decimal] = None
     reviewed_at: Optional[datetime] = None
     created_at: datetime
+    pd_score: Optional[float] = None
+    risk_level: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
