@@ -9,7 +9,7 @@ Channel: kênh giao dịch (POS, ATM, Online, Mobile).
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, func
+from sqlalchemy import Boolean, DateTime, Identity, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -54,7 +54,7 @@ class Channel(Base):
 
     __tablename__ = "channels"
 
-    channel_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    channel_id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
     channel_code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     channel_name: Mapped[str] = mapped_column(String(100), nullable=False)
 
