@@ -1,9 +1,9 @@
 {
-  "model_version": "loan_v5_xgboost",
-  "trained_at": "2026-04-17T05:16:16.547553+00:00",
-  "algorithm": "XGBClassifier",
-  "optimizer": "Optuna Bayesian TPE",
-  "decision_threshold": 0.1955076903104782,
+  "model_version": "loan_v6",
+  "algorithm": "xgboost",
+  "trained_at": "2026-04-17T05:39:07.883238+00:00",
+  "optimizer": "Optuna Bayesian TPE (XGBoost + LightGBM)",
+  "decision_threshold": 0.7799999999999999,
   "features_used": {
     "numerical": [
       "person_age",
@@ -14,7 +14,7 @@
       "loan_percent_income",
       "cb_person_cred_hist_length",
       "debt_burden",
-      "income_stability"
+      "loan_grade_numeric"
     ],
     "categorical": [
       "person_home_ownership",
@@ -30,60 +30,61 @@
     "total_count": 16
   },
   "best_hyperparameters": {
-    "n_estimators": 400,
+    "algorithm": "xgboost",
+    "n_estimators": 600,
     "max_depth": 3,
-    "learning_rate": 0.04401363403760949,
-    "subsample": 0.6895313376764021,
-    "colsample_bytree": 0.7155465634234833,
-    "reg_alpha": 9.363839759877973,
-    "reg_lambda": 9.123991126116554,
-    "min_child_weight": 7,
-    "gamma": 4.946997383140071,
-    "scale_pos_weight": 1.788424600733582
+    "learning_rate": 0.03463681130027855,
+    "subsample": 0.8070354551117065,
+    "colsample_bytree": 0.47993692893740536,
+    "reg_alpha": 0.9901437474107198,
+    "reg_lambda": 0.04500682915004945,
+    "min_child_weight": 20,
+    "gamma": 1.9559473688153604,
+    "scale_pos_weight": 5.042276828490573
   },
   "evaluation_metrics": {
-    "test_roc_auc": 0.8057,
-    "train_roc_auc": 0.8123,
-    "auc_gap": 0.0066,
-    "test_f1_macro": 0.5788,
-    "train_f1_macro": 0.5819,
-    "f1_gap": 0.003,
-    "test_accuracy": 0.5956,
-    "class_0_precision": 0.9476,
-    "class_0_recall": 0.5097,
-    "class_0_f1": 0.6629,
-    "class_1_precision": 0.3411,
-    "class_1_recall": 0.9,
-    "class_1_f1": 0.4948,
+    "test_roc_auc": 0.9359,
+    "train_roc_auc": 0.9382,
+    "auc_gap": 0.0023,
+    "test_f1_macro": 0.836,
+    "train_f1_macro": 0.8358,
+    "f1_gap": -0.0002,
+    "test_accuracy": 0.8634,
+    "class_0_precision": 0.9237,
+    "class_0_recall": 0.8832,
+    "class_0_f1": 0.903,
+    "class_1_precision": 0.73,
+    "class_1_recall": 0.8125,
+    "class_1_f1": 0.7691,
     "confusion_matrix": [
       [
-        3976,
-        3824
+        10174,
+        1346
       ],
       [
-        220,
-        1980
+        840,
+        3640
       ]
     ],
     "overfitting_detected": false
   },
   "feature_importances_top10": {
-    "num__debt_burden": 0.1919,
-    "num__loan_percent_income": 0.1495,
-    "eng__income_bin": 0.0851,
-    "cat__cb_person_default_on_file_Y": 0.0564,
-    "cat__loan_grade_A": 0.0534,
-    "cat__cb_person_default_on_file_N": 0.0509,
-    "cat__loan_grade_B": 0.0469,
-    "cat__loan_grade_F": 0.0431,
-    "cat__loan_grade_G": 0.0405,
-    "cat__loan_grade_E": 0.0355
+    "num__debt_burden": 0.2569,
+    "num__loan_percent_income": 0.1222,
+    "num__loan_grade_numeric": 0.0892,
+    "eng__income_bin": 0.0807,
+    "eng__int_rate_bin": 0.058,
+    "cat__cb_person_default_on_file_N": 0.0547,
+    "cat__loan_grade_A": 0.0493,
+    "num__loan_amnt": 0.0489,
+    "cat__cb_person_default_on_file_Y": 0.0459,
+    "num__person_income": 0.0408
   },
   "anti_overfit": {
     "cv_folds": 5,
     "test_size": 0.2,
-    "auc_gap": 0.0066,
-    "f1_gap": 0.003,
+    "auc_gap": 0.0023,
+    "f1_gap": -0.0002,
     "overfitting_detected": false
   }
 }

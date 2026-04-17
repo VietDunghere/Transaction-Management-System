@@ -35,6 +35,7 @@ numpy>=1.26.4
 joblib>=1.4.2                 # Serialize/load model
 optuna>=3.6.1                 # Hyperparameter optimization (Bayesian)
 xgboost>=2.0.3                # State-of-the-art tree boosting
+lightgbm>=4.0.0               # Leaf-wise tree boosting — faster, often better F1
 
 # ========================================
 # Logging
