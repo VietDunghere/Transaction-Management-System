@@ -1,0 +1,228 @@
+"""
+Seed dữ liệu khởi tạo cho Transaction Management System.
+Chạy: python seed.py
+Yêu cầu: DB đã tạo bảng (SQLAlchemy create_tables hoặc Alembic migrate xong).
+"""
+
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+
+from datetime import date, datetime
+import uuid
+
+from sqlalchemy.orm import Session
+
+from app.db.base import SessionLocal, create_tables
+from app.core.security import hash_password
+from app.models.user import User, Role, UserRole
+from app.models.customer import Customer
+from app.models.merchant import Merchant, Channel
+
+
+def seed(db: Session) -> None:
+    # ── Roles ──────────────────────────────────────────────
+    roles_data = ["OPERATOR", "REVIEWER", "MANAGER", "ADMIN"]
+    roles: dict[str, Role] = {}
+
+    for name in roles_data:
+        existing = db.query(Role).filter(Role.role_name == name).first()
+        if not existing:
+            r = Role(role_name=name)
+            db.add(r)
+            db.flush()
+            roles[name] = r
+        else:
+            roles[name] = existing
+
+    print(f"[roles] OK — {list(roles.keys())}")
+
+    # ── Users ───────────────────────────────────────────────
+    users_data = [
+        {"username": "admin",    "password": "Admin@123",    "full_name": "System Admin",      "email": "admin@tms.local",    "role": "ADMIN"},
+        {"username": "operator1","password": "Operator@123", "full_name": "Nguyễn Văn Operator","email": "op1@tms.local",     "role": "OPERATOR"},
+        {"username": "operator2","password": "Operator@123", "full_name": "Trần Thị Operator",  "email": "op2@tms.local",     "role": "OPERATOR"},
+        {"username": "reviewer1","password": "Reviewer@123", "full_name": "Lê Văn Reviewer",    "email": "rev1@tms.local",    "role": "REVIEWER"},
+        {"username": "manager1", "password": "Manager@123",  "full_name": "Phạm Thị Manager",   "email": "mgr1@tms.local",    "role": "MANAGER"},
+    ]
+
+    for u_data in users_data:
+        existing = db.query(User).filter(User.username == u_data["username"]).first()
+        if existing:
+            print(f"[users] skip {u_data['username']} (exists)")
+            continue
+
+        user = User(
+            user_id=str(uuid.uuid4()),
+            username=u_data["username"],
+            password_hash=hash_password(u_data["password"]),
+            full_name=u_data["full_name"],
+            email=u_data["email"],
+            is_active=True,
+        )
+        db.add(user)
+        db.flush()
+
+        role = roles[u_data["role"]]
+        db.add(UserRole(user_id=user.user_id, role_id=role.role_id))
+        print(f"[users] created {user.username} ({u_data['role']})")
+
+    # ── Channels ────────────────────────────────────────────
+    channels_data = [
+        {"channel_code": "POS",        "channel_name": "Point of Sale"},
+        {"channel_code": "ATM",        "channel_name": "ATM"},
+        {"channel_code": "ONLINE",     "channel_name": "Online Banking"},
+        {"channel_code": "MOBILE_APP", "channel_name": "Mobile App"},
+    ]
+
+    for c_data in channels_data:
+        existing = db.query(Channel).filter(Channel.channel_code == c_data["channel_code"]).first()
+        if not existing:
+            db.add(Channel(**c_data))
+            print(f"[channels] created {c_data['channel_code']}")
+        else:
+            print(f"[channels] skip {c_data['channel_code']} (exists)")
+
+    # ── Customers ───────────────────────────────────────────
+    customers_data = [
+        {
+            "customer_id": "cust-0001-0000-0000-000000000001",
+            "customer_code": "CUST001",
+            "full_name": "Nguyễn Văn An",
+            "date_of_birth": date(1990, 5, 15),
+            "gender": "M",
+            "job": "engineer",
+            "city": "Ho Chi Minh City",
+            "state": "HCM",
+            "latitude": 10.7769,
+            "longitude": 106.7009,
+            "city_population": 9000000,
+            "kyc_status": "VERIFIED",
+            "income_level": "MEDIUM",
+        },
+        {
+            "customer_id": "cust-0002-0000-0000-000000000002",
+            "customer_code": "CUST002",
+            "full_name": "Trần Thị Bình",
+            "date_of_birth": date(1985, 8, 22),
+            "gender": "F",
+            "job": "teacher",
+            "city": "Hanoi",
+            "state": "HN",
+            "latitude": 21.0245,
+            "longitude": 105.8412,
+            "city_population": 8000000,
+            "kyc_status": "VERIFIED",
+            "income_level": "LOW",
+        },
+        {
+            "customer_id": "cust-0003-0000-0000-000000000003",
+            "customer_code": "CUST003",
+            "full_name": "Lê Minh Cường",
+            "date_of_birth": date(1978, 3, 10),
+            "gender": "M",
+            "job": "manager",
+            "city": "Da Nang",
+            "state": "DN",
+            "latitude": 16.0544,
+            "longitude": 108.2022,
+            "city_population": 1100000,
+            "kyc_status": "VERIFIED",
+            "income_level": "HIGH",
+        },
+    ]
+
+    for c_data in customers_data:
+        existing = db.query(Customer).filter(Customer.customer_id == c_data["customer_id"]).first()
+        if not existing:
+            db.add(Customer(**c_data))
+            print(f"[customers] created {c_data['customer_code']}")
+        else:
+            print(f"[customers] skip {c_data['customer_code']} (exists)")
+
+    # ── Merchants ───────────────────────────────────────────
+    merchants_data = [
+        {
+            "merchant_id": "mcht-0001-0000-0000-000000000001",
+            "merchant_code": "MCHT001",
+            "merchant_name": "Vinmart",
+            "merchant_category": "grocery_pos",
+            "city": "Ho Chi Minh City",
+            "state": "HCM",
+            "country": "VN",
+            "risk_level": "LOW",
+            "is_blacklisted": False,
+            "latitude": 10.7800,
+            "longitude": 106.6950,
+        },
+        {
+            "merchant_id": "mcht-0002-0000-0000-000000000002",
+            "merchant_code": "MCHT002",
+            "merchant_name": "Shopee Online",
+            "merchant_category": "shopping_net",
+            "city": "Ho Chi Minh City",
+            "state": "HCM",
+            "country": "VN",
+            "risk_level": "LOW",
+            "is_blacklisted": False,
+            "latitude": 10.7880,
+            "longitude": 106.7040,
+        },
+        {
+            "merchant_id": "mcht-0003-0000-0000-000000000003",
+            "merchant_code": "MCHT003",
+            "merchant_name": "CGV Cinema",
+            "merchant_category": "entertainment",
+            "city": "Hanoi",
+            "state": "HN",
+            "country": "VN",
+            "risk_level": "LOW",
+            "is_blacklisted": False,
+            "latitude": 21.0300,
+            "longitude": 105.8500,
+        },
+        {
+            "merchant_id": "mcht-0004-0000-0000-000000000004",
+            "merchant_code": "MCHT004",
+            "merchant_name": "Unknown Online Store",
+            "merchant_category": "misc_net",
+            "city": "Unknown",
+            "state": "XX",
+            "country": "VN",
+            "risk_level": "HIGH",
+            "is_blacklisted": False,
+            "latitude": 0.0,
+            "longitude": 0.0,
+        },
+    ]
+
+    for m_data in merchants_data:
+        existing = db.query(Merchant).filter(Merchant.merchant_id == m_data["merchant_id"]).first()
+        if not existing:
+            db.add(Merchant(**m_data))
+            print(f"[merchants] created {m_data['merchant_code']}")
+        else:
+            print(f"[merchants] skip {m_data['merchant_code']} (exists)")
+
+    db.commit()
+    print("\n[seed] Done.")
+    print("\nTest accounts:")
+    print("  admin     / Admin@123    (ADMIN)")
+    print("  operator1 / Operator@123 (OPERATOR)")
+    print("  reviewer1 / Reviewer@123 (REVIEWER)")
+    print("  manager1  / Manager@123  (MANAGER)")
+
+
+if __name__ == "__main__":
+    print("[seed] Creating tables if not exists...")
+    create_tables()
+
+    db = SessionLocal()
+    try:
+        seed(db)
+    except Exception as e:
+        db.rollback()
+        print(f"[seed] ERROR: {e}")
+        raise
+    finally:
+        db.close()
