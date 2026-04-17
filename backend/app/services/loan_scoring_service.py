@@ -217,8 +217,10 @@ class LoanScoringService:
         else:
             int_rate_bin = "high"
 
+        working_life = max(age - 18, 1)
+
         return {
-            # Numerical
+            # Numerical — base
             "person_age": age,
             "person_income": income,
             "person_emp_length": inp.person_emp_length,
@@ -226,12 +228,15 @@ class LoanScoringService:
             "loan_int_rate": rate,
             "loan_percent_income": inp.loan_amnt / max(income, 1),
             "cb_person_cred_hist_length": inp.cb_person_cred_hist_length,
+            # Numerical — v5 interaction features (must match train_loan_model.py engineer_features)
+            "debt_burden": (inp.loan_amnt * rate / 100.0) / max(income, 1),
+            "income_stability": inp.person_emp_length / working_life,
             # Categorical — normalize to uppercase to match training data
             "person_home_ownership": inp.person_home_ownership.upper(),
             "loan_intent": inp.loan_intent.upper(),
             "loan_grade": inp.loan_grade.upper(),
             "cb_person_default_on_file": inp.cb_person_default_on_file.upper(),
-            # Engineered (v4)
+            # Engineered categorical (v4 bins — fixed boundaries)
             "age_group": age_group,
             "income_bin": income_bin,
             "int_rate_bin": int_rate_bin,

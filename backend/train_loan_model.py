@@ -50,6 +50,7 @@ import optuna
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import (
+    average_precision_score,
     classification_report,
     confusion_matrix,
     f1_score,
@@ -75,7 +76,8 @@ CATEGORICAL_COLS = [
     "loan_grade",
     "cb_person_default_on_file",
 ]
-NUMERICAL_COLS = [
+# Base numerical cols (raw — present before engineer_features)
+NUMERICAL_COLS_BASE = [
     "person_age",
     "person_income",
     "person_emp_length",
@@ -84,6 +86,13 @@ NUMERICAL_COLS = [
     "loan_percent_income",
     "cb_person_cred_hist_length",
 ]
+# Derived numerical (computed inside engineer_features — v5 additions)
+NUMERICAL_COLS_ENGINEERED = [
+    "debt_burden",       # annual interest cost / income — captures true repayment strain
+    "income_stability",  # emp_length / working life  — captures income reliability
+]
+NUMERICAL_COLS = NUMERICAL_COLS_BASE + NUMERICAL_COLS_ENGINEERED
+# Categorical bins (fixed boundaries — not data-derived, no leakage)
 ENGINEERED_CAT_COLS = [
     "age_group",
     "income_bin",
@@ -91,6 +100,8 @@ ENGINEERED_CAT_COLS = [
 ]
 TARGET_COL = "loan_status"
 
+# Columns required in raw data before engineering
+BASE_COLS = NUMERICAL_COLS_BASE + CATEGORICAL_COLS
 ALL_FEATURE_COLS = NUMERICAL_COLS + CATEGORICAL_COLS + ENGINEERED_CAT_COLS
 
 
@@ -100,27 +111,33 @@ ALL_FEATURE_COLS = NUMERICAL_COLS + CATEGORICAL_COLS + ENGINEERED_CAT_COLS
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     Create derived features that capture non-linear risk patterns.
-    These bins help tree models find cleaner splits.
+    All bin boundaries are FIXED domain-knowledge constants — safe to apply
+    before or after train/test split (no data leakage).
+    Called separately on train and test splits in main().
     """
     df = df.copy()
 
-    # Age group — young borrowers (<25) are higher risk
+    income = df["person_income"].clip(lower=1)
+    working_life = (df["person_age"] - 18).clip(lower=1)
+
+    # v5: Interaction features — XGBoost can't discover these from raw features alone
+    # Annual interest cost relative to income (true repayment strain)
+    df["debt_burden"] = (df["loan_amnt"] * df["loan_int_rate"] / 100.0) / income
+    # Fraction of adult working life with employment (income reliability signal)
+    df["income_stability"] = df["person_emp_length"] / working_life
+
+    # Categorical bins (fixed boundaries)
     bins_age = [0, 25, 35, 50, 100]
     labels_age = ["young", "adult", "middle", "senior"]
-    df["age_group"] = pd.cut(df["person_age"], bins=bins_age, labels=labels_age, right=True)
-    df["age_group"] = df["age_group"].astype(str)
+    df["age_group"] = pd.cut(df["person_age"], bins=bins_age, labels=labels_age, right=True).astype(str)
 
-    # Income bin — low income correlates with default
     bins_inc = [0, 30_000, 60_000, 120_000, float("inf")]
     labels_inc = ["low", "mid", "high", "very_high"]
-    df["income_bin"] = pd.cut(df["person_income"], bins=bins_inc, labels=labels_inc, right=True)
-    df["income_bin"] = df["income_bin"].astype(str)
+    df["income_bin"] = pd.cut(df["person_income"], bins=bins_inc, labels=labels_inc, right=True).astype(str)
 
-    # Interest rate bin — high rate ≈ high risk
     bins_rate = [0, 10.0, 15.0, 25.0]
     labels_rate = ["low", "mid", "high"]
-    df["int_rate_bin"] = pd.cut(df["loan_int_rate"], bins=bins_rate, labels=labels_rate, right=True)
-    df["int_rate_bin"] = df["int_rate_bin"].astype(str)
+    df["int_rate_bin"] = pd.cut(df["loan_int_rate"], bins=bins_rate, labels=labels_rate, right=True).astype(str)
 
     return df
 
@@ -229,19 +246,19 @@ def create_objective(X_train: pd.DataFrame, y_train: pd.Series):
 
     def objective(trial: optuna.Trial) -> float:
         params = {
-            "n_estimators": trial.suggest_int("n_estimators", 100, 500, step=50),
-            "max_depth": trial.suggest_int("max_depth", 3, 8),
-            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
-            "subsample": trial.suggest_float("subsample", 0.6, 1.0),
-            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+            "n_estimators": trial.suggest_int("n_estimators", 100, 800, step=50),
+            "max_depth": trial.suggest_int("max_depth", 3, 10),
+            "learning_rate": trial.suggest_float("learning_rate", 0.005, 0.3, log=True),
+            "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.4, 1.0),
             "reg_alpha": trial.suggest_float("reg_alpha", 1e-4, 10.0, log=True),
             "reg_lambda": trial.suggest_float("reg_lambda", 1e-4, 10.0, log=True),
-            "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+            "min_child_weight": trial.suggest_int("min_child_weight", 1, 20),
+            "gamma": trial.suggest_float("gamma", 0.0, 5.0),
             "scale_pos_weight": trial.suggest_float("scale_pos_weight", base_scale * 0.5, base_scale * 2.0),
-            "eval_metric": "logloss",
+            "eval_metric": "aucpr",  # PR-AUC as native XGBoost eval metric
             "random_state": RANDOM_STATE,
             "n_jobs": -1,
-            "use_label_encoder": False,
         }
 
         fold_scores = []
@@ -256,12 +273,13 @@ def create_objective(X_train: pd.DataFrame, y_train: pd.Series):
             clf = XGBClassifier(**params)
             clf.fit(Xt, y_ft, eval_set=[(Xv, y_fv)], verbose=False)
 
-            y_pred = clf.predict(Xv)
-            fold_scores.append(f1_score(y_fv, y_pred, average="macro"))
+            # PR-AUC as CV objective — better signal than macro F1 for imbalanced data
+            y_prob = clf.predict_proba(Xv)[:, 1]
+            fold_scores.append(average_precision_score(y_fv, y_prob))
 
-        mean_f1 = float(np.mean(fold_scores))
+        mean_prauc = float(np.mean(fold_scores))
         trial.set_user_attr("cv_std", round(float(np.std(fold_scores)), 4))
-        return mean_f1
+        return mean_prauc
 
     return objective
 
@@ -369,7 +387,7 @@ def save_artifacts(clf, preprocessor, best_params, metrics, importances, thresho
     joblib.dump(artifact, model_path, compress=3)
 
     meta = {
-        "model_version": "loan_v4_xgboost",
+        "model_version": "loan_v5_xgboost",
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "algorithm": "XGBClassifier",
         "optimizer": "Optuna Bayesian TPE",
@@ -416,27 +434,29 @@ def main():
     optuna.logging.set_verbosity(optuna.logging.WARNING)
 
     print("╔════════════════════════════════════════════════════════════╗")
-    print("║  🏦 Loan Approval — Pipeline v4 (XGBoost + Feature Eng.)  ║")
+    print("║  🏦 Loan Approval — Pipeline v5 (XGBoost + Feature Eng.)  ║")
     print("╚════════════════════════════════════════════════════════════╝\n")
 
     # 1. Data
     print("━" * 60)
-    print("  STEP 1/6 : Load & Engineer Features")
+    print("  STEP 1/6 : Load Data")
     print("━" * 60)
     df = load_data(args.csv, args.samples)
-    df = engineer_features(df)
-    X = df[ALL_FEATURE_COLS]
     y = df[TARGET_COL]
-    print(f"  Total features: {len(ALL_FEATURE_COLS)} ({len(NUMERICAL_COLS)} num + {len(CATEGORICAL_COLS)} cat + {len(ENGINEERED_CAT_COLS)} eng)")
+    X_raw = df[BASE_COLS]
+    print(f"  Features: {len(ALL_FEATURE_COLS)} total ({len(NUMERICAL_COLS)} num + {len(CATEGORICAL_COLS)} cat + {len(ENGINEERED_CAT_COLS)} eng_cat)")
+    print(f"  v5 new: debt_burden, income_stability (interaction features)")
     print("  ✅ OK\n")
 
-    # 2. Split
+    # 2. Split FIRST on raw data, then engineer independently — clean split, no leakage
     print("━" * 60)
-    print("  STEP 2/6 : Stratified Split (80/20)")
+    print("  STEP 2/6 : Stratified Split (80/20) → Engineer Features")
     print("━" * 60)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y,
+    X_raw_train, X_raw_test, y_train, y_test = train_test_split(
+        X_raw, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y,
     )
+    X_train = engineer_features(X_raw_train)[ALL_FEATURE_COLS]
+    X_test = engineer_features(X_raw_test)[ALL_FEATURE_COLS]
     print(f"  Train: {len(X_train):,}  Test: {len(X_test):,}\n")
 
     # 3. Optuna
@@ -467,14 +487,12 @@ def main():
     X_train_t = preprocessor.fit_transform(X_train)
     X_test_t = preprocessor.transform(X_test)
 
-    final_params = {
-        k: v for k, v in bp.params.items()
-    }
+    final_params = {k: v for k, v in bp.params.items()}
     final_params.update({
-        "eval_metric": "logloss",
+        "eval_metric": "aucpr",
+        "early_stopping_rounds": 50,
         "random_state": RANDOM_STATE,
         "n_jobs": -1,
-        "use_label_encoder": False,
     })
     clf = XGBClassifier(**final_params)
     clf.fit(X_train_t, y_train, eval_set=[(X_test_t, y_test)], verbose=False)
