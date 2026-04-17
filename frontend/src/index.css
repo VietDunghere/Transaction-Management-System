@@ -1,1 +1,190 @@
 @import "tailwindcss";
+
+/* ============================================================
+   HUZA FRAUD — Design Tokens & Neo-Brutalist Theme
+   ============================================================ */
+
+@theme {
+  /* ---------- Color Palette ---------- */
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f5f5f0;
+  --color-surface-dark: #1a1a1a;
+  --color-border: #1a1a1a;
+  --color-border-light: #d4d4d4;
+
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #525252;
+  --color-text-muted: #a3a3a3;
+  --color-text-inverse: #ffffff;
+
+  --color-accent-red: #ef4444;
+  --color-accent-yellow: #f59e0b;
+  --color-accent-green: #22c55e;
+  --color-accent-blue: #3b82f6;
+  --color-accent-purple: #8b5cf6;
+
+  --color-status-open: #f59e0b;
+  --color-status-assigned: #3b82f6;
+  --color-status-approved: #22c55e;
+  --color-status-rejected: #ef4444;
+  --color-status-pending: #a3a3a3;
+
+  /* ---------- Typography Scale ---------- */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --font-size-h1: 2.5rem;       /* 40px */
+  --font-size-h2: 1.75rem;      /* 28px */
+  --font-size-h3: 1.375rem;     /* 22px */
+  --font-size-body: 1.0625rem;  /* 17px */
+  --font-size-caption: 0.9375rem; /* 15px */
+  --font-size-small: 0.8125rem; /* 13px */
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 900;
+
+  /* ---------- Spacing Scale ---------- */
+  --spacing-xs: 0.25rem;    /* 4px */
+  --spacing-sm: 0.5rem;     /* 8px */
+  --spacing-md: 0.75rem;    /* 12px */
+  --spacing-base: 1rem;     /* 16px */
+  --spacing-lg: 1.5rem;     /* 24px */
+  --spacing-xl: 2rem;       /* 32px */
+  --spacing-2xl: 3rem;      /* 48px */
+  --spacing-3xl: 4rem;      /* 64px */
+
+  /* ---------- Neo-Brutalist Borders & Shadows ---------- */
+  --border-width-thin: 1px;
+  --border-width-base: 2px;
+  --border-width-thick: 3px;
+
+  --radius-none: 0;
+  --radius-sm: 4px;
+  --radius-base: 6px;
+  --radius-md: 8px;
+
+  --shadow-brutal-sm: 2px 2px 0 0 #1a1a1a;
+  --shadow-brutal-base: 4px 4px 0 0 #1a1a1a;
+  --shadow-brutal-lg: 6px 6px 0 0 #1a1a1a;
+
+  /* ---------- Layout ---------- */
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 64px;
+  --header-height: 64px;
+  --footer-height: 64px;
+
+  /* ---------- Transitions ---------- */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 350ms ease;
+}
+
+/* ============================================================
+   Global Base Styles
+   ============================================================ */
+
+@layer base {
+  @font-face {
+    font-family: "Inter";
+    font-display: swap;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-normal);
+    color: var(--color-text-primary);
+    background-color: var(--color-surface-secondary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-weight: 500;
+  }
+
+  h1 {
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-black);
+    line-height: var(--line-height-tight);
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-size: var(--font-size-h3);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-surface-secondary);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-light);
+    border-radius: var(--radius-sm);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+  }
+}
+
+/* ============================================================
+   Utility classes for Neo-Brutalist components
+   ============================================================ */
+
+@utility brutal-border {
+  border: var(--border-width-base) solid var(--color-border);
+}
+
+@utility brutal-border-thick {
+  border: var(--border-width-thick) solid var(--color-border);
+}
+
+@utility brutal-shadow {
+  box-shadow: var(--shadow-brutal-base);
+}
+
+@utility brutal-shadow-sm {
+  box-shadow: var(--shadow-brutal-sm);
+}
+
+@utility brutal-shadow-lg {
+  box-shadow: var(--shadow-brutal-lg);
+}
+
+@utility brutal-card {
+  border: var(--border-width-base) solid var(--color-border);
+  box-shadow: var(--shadow-brutal-base);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-base);
+}
+
+@utility brutal-hover {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  &:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-brutal-lg);
+  }
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+}
