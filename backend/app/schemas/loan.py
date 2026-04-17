@@ -120,7 +120,7 @@ class LoanListItem(BaseModel):
 class LoanSimulationRequest(BaseModel):
     """Input parameters for Loan AI Simulation (predict PD Score)."""
     person_age: int = Field(..., ge=18, le=100, description="Age of the applicant")
-    person_income: int = Field(..., ge=0, description="Annual income")
+    person_income: float = Field(..., ge=0, description="Annual income")
     person_home_ownership: str = Field(..., description="RENT, MORTGAGE, OWN, OTHER")
     person_emp_length: int = Field(..., ge=0, description="Employment length in years")
     loan_intent: str = Field(..., description="PERSONAL, EDUCATION, MEDICAL, VENTURE, HOMEIMPROVEMENT, DEBTCONSOLIDATION")

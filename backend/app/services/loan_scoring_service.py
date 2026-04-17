@@ -18,6 +18,7 @@ from pathlib import Path
 
 import joblib
 import numpy as np
+import pandas as pd
 
 from app.core.config import get_settings
 from app.core.exceptions import ModelNotLoadedError
@@ -33,7 +34,7 @@ logger = get_logger(__name__)
 @dataclass
 class LoanSimulationInput:
     person_age: int
-    person_income: int
+    person_income: float
     person_home_ownership: str
     person_emp_length: int
     loan_intent: str
@@ -152,8 +153,6 @@ class LoanScoringService:
             return self._fallback_heuristic(inp)
 
         features = self._build_features(inp)
-
-        import pandas as pd
         df = pd.DataFrame([features])
 
         # Step 1: Preprocess to get transformed features
@@ -249,13 +248,17 @@ class LoanScoringService:
         """
         if self._feature_importances is None or not self._feature_names:
             # Fallback: use metadata from training if available
-            top_keys = list(
+            raw_keys = list(
                 self._metadata.get(
                     "feature_importances_top10",
                     {"loan_percent_income": 0, "loan_int_rate": 0, "loan_grade": 0},
                 ).keys()
             )
-            return top_keys[:n]
+            # Strip transformer prefixes (num__, cat__, eng__) for readability
+            clean_keys = [
+                k.split("__", 1)[-1] if "__" in k else k for k in raw_keys
+            ]
+            return clean_keys[:n]
 
         # Aggregate importances back to original column names
         # Transformed names look like: "num__person_age", "cat__loan_grade_A", etc.
