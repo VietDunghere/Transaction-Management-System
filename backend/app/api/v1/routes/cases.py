@@ -23,6 +23,7 @@ from app.schemas.case import (
 )
 from app.schemas.common import CaseStatus, PagedResponse, PaginationMeta
 from app.services.case_service import CaseService
+from app.core.exceptions import PermissionDeniedError
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
 
@@ -93,6 +94,15 @@ def get_case(
 ) -> CaseResponse:
     svc = CaseService(db)
     case = svc.get_case(case_id)
+
+    # REVIEWER chỉ được xem case được giao cho mình
+    is_reviewer_only = (
+        "REVIEWER" in token.roles
+        and "MANAGER" not in token.roles
+        and "ADMIN" not in token.roles
+    )
+    if is_reviewer_only and case.assigned_to != token.sub:
+        raise PermissionDeniedError("Case này không được giao cho bạn.")
 
     txn_summary = None
     if case.transaction:

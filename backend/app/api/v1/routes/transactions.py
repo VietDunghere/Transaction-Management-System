@@ -28,6 +28,7 @@ from app.schemas.transaction import (
     TxnStateHistoryItem,
 )
 from app.services.transaction_service import TransactionService
+from app.core.exceptions import PermissionDeniedError
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -107,6 +108,16 @@ def get_transaction(
 ) -> TransactionResponse:
     svc = TransactionService(db)
     txn = svc.get_transaction(txn_id)
+
+    # OPERATOR chỉ được xem transaction do mình submit
+    is_operator_only = (
+        "OPERATOR" in token.roles
+        and "MANAGER" not in token.roles
+        and "ADMIN" not in token.roles
+    )
+    if is_operator_only and txn.submitted_by != token.sub:
+        raise PermissionDeniedError("Bạn không có quyền xem giao dịch này.")
+
     response = TransactionResponse.model_validate(txn)
 
     # Đính kèm fraud detail từ scoring result nếu có
