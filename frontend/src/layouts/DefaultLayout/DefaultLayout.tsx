@@ -4,9 +4,11 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { RightBar } from './RightBar';
 import { cn } from '~/utils/cn';
+import { useMe } from '~/hooks/useAuth';
 
 export function DefaultLayout({ children }: PropsWithChildren) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    useMe();
 
     return (
         <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-bg-primary)]">

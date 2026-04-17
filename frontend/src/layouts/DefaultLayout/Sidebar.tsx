@@ -3,17 +3,18 @@ import {
     ArrowLeftRight,
     ShieldAlert,
     BarChart3,
-    GitCompare,
+    Users,
+    CreditCard,
+    ScrollText,
+    Database,
     User,
-    FileText,
-    Target,
-    Zap,
-    CheckSquare,
     ChevronRight,
     Component,
 } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { cn } from '~/utils/cn';
+import type { Role } from '~/types/api';
+import { useAuthStore } from '~/stores/useAuthStore';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -24,33 +25,40 @@ interface NavItem {
     label: string;
     icon: React.ReactNode;
     href: string;
+    roles?: Role[];
 }
 
-const dashboardItems: NavItem[] = [
-    { label: 'Default', icon: <LayoutDashboard size={20} />, href: '/' },
+const mainNavItems: NavItem[] = [
+    { label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/', roles: ['MANAGER', 'ADMIN'] },
     { label: 'Transactions', icon: <ArrowLeftRight size={20} />, href: '/transactions' },
-    { label: 'Cases & Audit', icon: <ShieldAlert size={20} />, href: '/cases' },
+    { label: 'Cases', icon: <ShieldAlert size={20} />, href: '/cases', roles: ['REVIEWER', 'MANAGER', 'ADMIN'] },
+    { label: 'Users', icon: <Users size={20} />, href: '/users', roles: ['MANAGER', 'ADMIN'] },
+    { label: 'Loans', icon: <CreditCard size={20} />, href: '/loans', roles: ['OPERATOR', 'MANAGER', 'ADMIN'] },
 ];
 
-const pageItems: NavItem[] = [
-    { label: 'User Profile', icon: <User size={20} />, href: '/profile' },
-    { label: 'Reports & BI', icon: <BarChart3 size={20} />, href: '/reports' },
-    { label: 'Reconciliation', icon: <GitCompare size={20} />, href: '/reconciliation' },
-    { label: 'Campaigns', icon: <Target size={20} />, href: '/campaigns' },
-    { label: 'Documents', icon: <FileText size={20} />, href: '/documents' },
-    { label: 'Resources', icon: <Zap size={20} />, href: '/resources' },
-    { label: 'Tasks', icon: <CheckSquare size={20} />, href: '/tasks' },
+const secondaryNavItems: NavItem[] = [
+    { label: 'Reports', icon: <BarChart3 size={20} />, href: '/reports', roles: ['MANAGER', 'ADMIN'] },
+    { label: 'Audit Logs', icon: <ScrollText size={20} />, href: '/audit-logs', roles: ['MANAGER', 'ADMIN'] },
+    { label: 'ETL Pipeline', icon: <Database size={20} />, href: '/etl', roles: ['ADMIN'] },
+    { label: 'Profile', icon: <User size={20} />, href: '/profile' },
     { label: 'UI Demo', icon: <Component size={20} />, href: '/ui-demo' },
 ];
 
-const topNavItems = [
-    { label: 'Overview', href: '/' },
-    { label: 'Projects', href: '/projects' },
-];
+function filterByRole(items: NavItem[], role: Role | undefined): NavItem[] {
+    if (!role) return [];
+    return items.filter((item) => !item.roles || item.roles.includes(role));
+}
 
 export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     const routerState = useRouterState();
     const currentPath = routerState.location.pathname;
+    const user = useAuthStore((s) => s.user);
+    const userRole = user?.role;
+
+    const visibleMain = filterByRole(mainNavItems, userRole);
+    const visibleSecondary = filterByRole(secondaryNavItems, userRole);
+
+    const userInitial = user?.full_name?.charAt(0).toUpperCase() ?? '?';
 
     return (
         <>
@@ -73,46 +81,29 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 {/* User row */}
                 <div className="flex items-center gap-3 px-2 py-2 mb-2">
                     <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-accent-purple)]">
-                        <span className="text-[10px] font-semibold text-[var(--color-text-on-accent)]">B</span>
+                        <span className="text-[10px] font-semibold text-[var(--color-text-on-accent)]">
+                            {userInitial}
+                        </span>
                     </div>
-                    {isOpen && <span className="text-sm font-normal text-[var(--color-text-primary)]">ByeWind</span>}
+                    {isOpen && (
+                        <span className="text-sm font-normal text-[var(--color-text-primary)] truncate">
+                            {user?.full_name ?? 'Loading...'}
+                        </span>
+                    )}
                 </div>
-
-                {/* Top nav (Overview, Projects) */}
-                <nav className="flex flex-col gap-1 mb-2">
-                    {topNavItems.map((item) => {
-                        const isActive = currentPath === item.href;
-                        return (
-                            <Link
-                                key={item.href}
-                                to={item.href}
-                                className={cn(
-                                    'flex items-center gap-2 px-2 py-2 rounded-sm',
-                                    'text-sm transition-colors duration-150',
-                                    isActive
-                                        ? 'text-[var(--color-text-primary)] font-semibold'
-                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
-                                )}
-                            >
-                                <span className="size-1.5 rounded-full bg-current shrink-0" />
-                                {isOpen && <span>{item.label}</span>}
-                            </Link>
-                        );
-                    })}
-                </nav>
 
                 {/* Scrollable nav area */}
                 <nav className="flex-1 overflow-y-auto">
-                    {/* DASHBOARDS section */}
+                    {/* MAIN section */}
                     {isOpen && (
                         <div className="px-3 py-1 mb-1">
                             <span className="text-xs font-normal text-[var(--color-text-secondary)] uppercase tracking-wider">
-                                Dashboards
+                                Main
                             </span>
                         </div>
                     )}
                     <ul className="flex flex-col gap-0.5">
-                        {dashboardItems.map((item) => {
+                        {visibleMain.map((item) => {
                             const isActive =
                                 currentPath === item.href ||
                                 (item.href !== '/' && currentPath.startsWith(item.href + '/'));
@@ -140,16 +131,16 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                         })}
                     </ul>
 
-                    {/* PAGES section */}
+                    {/* SECONDARY section */}
                     {isOpen && (
                         <div className="px-3 py-1 mt-4 mb-1">
                             <span className="text-xs font-normal text-[var(--color-text-secondary)] uppercase tracking-wider">
-                                Pages
+                                Management
                             </span>
                         </div>
                     )}
                     <ul className="flex flex-col gap-0.5">
-                        {pageItems.map((item) => {
+                        {visibleSecondary.map((item) => {
                             const isActive = currentPath === item.href || currentPath.startsWith(item.href + '/');
                             return (
                                 <li key={item.href}>
@@ -176,13 +167,13 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     </ul>
                 </nav>
 
-                {/* Footer — SnowUI logo */}
+                {/* Footer — HuzAdmin logo */}
                 {isOpen && (
                     <div className="flex items-center gap-2 px-2 py-2 mt-2">
                         <div className="flex size-5 items-center justify-center rounded-sm bg-[var(--color-accent-indigo)]">
-                            <span className="text-[8px] font-semibold text-white">S</span>
+                            <span className="text-[8px] font-semibold text-white">H</span>
                         </div>
-                        <span className="text-xs text-[var(--color-text-secondary)]">SnowUI</span>
+                        <span className="text-xs text-[var(--color-text-secondary)]">HuzAdmin</span>
                     </div>
                 )}
             </aside>

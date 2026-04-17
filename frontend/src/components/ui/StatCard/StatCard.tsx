@@ -17,7 +17,7 @@ export function StatCard({ label, value, change, changeType = 'neutral', accent 
             )}
             style={{ padding: 24 }}
         >
-            <span className="text-base font-normal text-[var(--color-text-on-accent)]">{label}</span>
+            <span className="text-sm font-normal text-[var(--color-text-on-accent)] truncate">{label}</span>
             <span className="text-2xl font-semibold leading-8 text-[var(--color-text-on-accent)]">{value}</span>
             {change && (
                 <span

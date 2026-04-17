@@ -1,0 +1,1 @@
+export { TransactionSubmitPage } from './TransactionSubmitPage';

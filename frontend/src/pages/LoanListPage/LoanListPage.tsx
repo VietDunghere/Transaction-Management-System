@@ -1,0 +1,146 @@
+import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { useLoans } from '~/hooks/useLoans';
+import { useAuthStore } from '~/stores/useAuthStore';
+import type { LoanSearchParams } from '~/types/searchParams';
+import type { LoanStatus, RiskLevel } from '~/types/api';
+import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
+import { ListPageTemplate } from '~/components/templates/ListPageTemplate/ListPageTemplate';
+import { TableShell } from '~/components/ui/TableShell/TableShell';
+import { FilterBar } from '~/components/ui/FilterBar/FilterBar';
+import { Select } from '~/components/ui/Select/Select';
+import { Pagination } from '~/components/ui/Pagination/Pagination';
+import { Badge } from '~/components/ui/Badge/Badge';
+import { Button } from '~/components/ui/Button/Button';
+import { LoadingSkeleton } from '~/components/ui/LoadingSkeleton/LoadingSkeleton';
+import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
+import { EmptyState } from '~/components/ui/EmptyState/EmptyState';
+
+const statusVariant: Record<LoanStatus, 'success' | 'danger' | 'warning' | 'info' | 'muted'> = {
+    APPROVED: 'success',
+    REJECTED: 'danger',
+    MANUAL_REVIEW: 'warning',
+    PENDING: 'info',
+    SCORING: 'muted',
+};
+
+const riskVariant: Record<RiskLevel, 'success' | 'warning' | 'danger'> = {
+    'LOW RISK': 'success',
+    'MEDIUM RISK': 'warning',
+    'HIGH RISK': 'danger',
+};
+
+const statusOptions = [
+    { label: 'All Status', value: '' },
+    { label: 'Pending', value: 'PENDING' },
+    { label: 'Scoring', value: 'SCORING' },
+    { label: 'Approved', value: 'APPROVED' },
+    { label: 'Rejected', value: 'REJECTED' },
+    { label: 'Manual Review', value: 'MANUAL_REVIEW' },
+];
+
+const columns = [
+    { key: 'loan_id', label: 'Loan ID', width: '180px' },
+    { key: 'customer_id', label: 'Customer', width: '150px' },
+    { key: 'amount', label: 'Principal', align: 'right' as const },
+    { key: 'term', label: 'Term' },
+    { key: 'risk', label: 'Risk Level' },
+    { key: 'status', label: 'Status' },
+    { key: 'created_at', label: 'Created' },
+];
+
+export function LoanListPage() {
+    const navigate = useNavigate();
+    const userRole = useAuthStore((s) => s.user?.role);
+
+    const [params, setParams] = useState<LoanSearchParams>({
+        page: 1,
+        limit: 20,
+    });
+
+    const { data, isLoading, isError, refetch } = useLoans(params);
+
+    const rows = (data?.data ?? []).map((loan) => ({
+        loan_id: <span className="text-xs font-mono">{loan.loan_id.slice(0, 8)}...</span>,
+        customer_id: <span className="text-xs font-mono">{loan.customer_id.slice(0, 8)}...</span>,
+        amount: (
+            <span className="text-sm font-medium">
+                {loan.principal_amount.toLocaleString()} {loan.currency_code}
+            </span>
+        ),
+        term: <span className="text-sm">{loan.term_months} months</span>,
+        risk: loan.risk_level ? (
+            <Badge variant={riskVariant[loan.risk_level]}>{loan.risk_level}</Badge>
+        ) : (
+            <span className="text-xs text-[var(--color-text-tertiary)]">—</span>
+        ),
+        status: <Badge variant={statusVariant[loan.status]}>{loan.status}</Badge>,
+        created_at: (
+            <span className="text-xs text-[var(--color-text-secondary)]">
+                {new Date(loan.created_at).toLocaleDateString()}
+            </span>
+        ),
+    }));
+
+    const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
+    const canCreate = userRole === 'OPERATOR' || userRole === 'MANAGER' || userRole === 'ADMIN';
+
+    return (
+        <ListPageTemplate
+            header={
+                <PageHeader
+                    title="Loans"
+                    subtitle={data ? `${data.total} total loans` : undefined}
+                    actions={
+                        canCreate ? (
+                            <Button onClick={() => navigate({ to: '/loans/create' })}>Create Loan</Button>
+                        ) : undefined
+                    }
+                />
+            }
+            filterBar={
+                <FilterBar>
+                    <Select
+                        options={statusOptions}
+                        value={params.status ?? ''}
+                        onChange={(e) =>
+                            setParams((p) => ({
+                                ...p,
+                                status: (e.target.value || undefined) as LoanStatus | undefined,
+                                page: 1,
+                            }))
+                        }
+                        placeholder="All Status"
+                    />
+                </FilterBar>
+            }
+            table={
+                isLoading ? (
+                    <LoadingSkeleton variant="table" rows={8} />
+                ) : isError ? (
+                    <ErrorState onRetry={refetch} />
+                ) : rows.length === 0 ? (
+                    <EmptyState title="No loans found" description="Try adjusting your filters." />
+                ) : (
+                    <TableShell
+                        columns={columns}
+                        data={rows}
+                        onRowClick={(_row, idx) => {
+                            const loan = data!.data[idx];
+                            navigate({ to: '/loans/$loanId', params: { loanId: loan.loan_id } });
+                        }}
+                    />
+                )
+            }
+            pagination={
+                totalPages > 1 ? (
+                    <Pagination
+                        currentPage={params.page}
+                        totalPages={totalPages}
+                        onPageChange={(page) => setParams((p) => ({ ...p, page }))}
+                    />
+                ) : undefined
+            }
+        />
+    );
+}
