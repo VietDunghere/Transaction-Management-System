@@ -31,14 +31,14 @@ export function Select({ label, error, options, placeholder, className, id, ...r
                         'w-full appearance-none',
                         'px-4 py-3 pr-10',
                         'text-base',
-                        'bg-[var(--color-bg-primary)]',
+                        'bg-primary',
                         'border border-[var(--color-border-default)]',
                         'rounded-lg',
                         'outline-none transition-all duration-150',
                         'focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]',
                         'cursor-pointer',
                         error && 'border-[var(--color-status-danger)]',
-                        rest.disabled && 'opacity-50 cursor-not-allowed bg-[var(--color-surface-card)]',
+                        rest.disabled && 'opacity-50 cursor-not-allowed bg-surface-card',
                         className,
                     )}
                     {...rest}

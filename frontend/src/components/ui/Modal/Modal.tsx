@@ -23,7 +23,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/30" onClick={onClose}>
             <div
-                className="relative w-full flex flex-col bg-[var(--color-bg-primary)] border border-[var(--color-border-default)] rounded-xl overflow-hidden"
+                className="relative w-full flex flex-col bg-primary border border-[var(--color-border-default)] rounded-xl overflow-hidden"
                 style={{ maxWidth: sizeMap[size], maxHeight: '85vh' }}
                 onClick={(e) => e.stopPropagation()}
             >
@@ -34,7 +34,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
                             onClick={onClose}
                             className={cn(
                                 'flex items-center justify-center size-8',
-                                'rounded-lg hover:bg-[var(--color-bg-subtle)] transition-colors cursor-pointer',
+                                'rounded-lg hover:bg-subtle transition-colors cursor-pointer',
                             )}
                             style={{ border: 'none', background: 'transparent' }}
                         >

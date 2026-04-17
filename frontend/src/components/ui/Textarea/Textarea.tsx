@@ -22,14 +22,14 @@ export function Textarea({ label, error, hint, className, id, ...rest }: Textare
                 className={cn(
                     'w-full px-4 py-3',
                     'text-base min-h-[140px] resize-y',
-                    'bg-[var(--color-bg-primary)]',
+                    'bg-primary',
                     'border border-[var(--color-border-default)]',
                     'rounded-lg',
                     'outline-none transition-all duration-150',
                     'focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]',
                     'placeholder:text-[var(--color-text-tertiary)]',
                     error && 'border-[var(--color-status-danger)]',
-                    rest.disabled && 'opacity-50 cursor-not-allowed bg-[var(--color-surface-card)]',
+                    rest.disabled && 'opacity-50 cursor-not-allowed bg-surface-card',
                     className,
                 )}
                 {...rest}

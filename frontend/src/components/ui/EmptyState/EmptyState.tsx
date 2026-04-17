@@ -19,7 +19,7 @@ export function EmptyState({
 }: EmptyStateProps) {
     return (
         <div className={cn('flex flex-col items-center justify-center py-16 px-8', 'text-center', className)}>
-            <div className="mb-5 flex size-16 items-center justify-center rounded-full bg-[var(--color-surface-card)] text-[var(--color-text-secondary)]">
+            <div className="mb-5 flex size-16 items-center justify-center rounded-full bg-surface-card text-[var(--color-text-secondary)]">
                 {icon || <Inbox size={28} />}
             </div>
             <h3 className="text-base font-semibold mb-2 text-[var(--color-text-primary)]">{title}</h3>

@@ -6,25 +6,25 @@ import { cn } from '~/utils/cn';
 const notifications = [
     {
         icon: <Bug size={16} />,
-        iconBg: 'bg-[var(--color-bg-accent-purple)]',
+        iconBg: 'bg-accent-purple',
         text: 'You fixed a bug.',
         time: 'Just now',
     },
     {
         icon: <User size={16} />,
-        iconBg: 'bg-[var(--color-bg-accent-blue)]',
+        iconBg: 'bg-accent-blue',
         text: 'New user registered.',
         time: '59 minutes ago',
     },
     {
         icon: <Bug size={16} />,
-        iconBg: 'bg-[var(--color-bg-accent-purple)]',
+        iconBg: 'bg-accent-purple',
         text: 'You fixed a bug.',
         time: '12 hours ago',
     },
     {
         icon: <Radio size={16} />,
-        iconBg: 'bg-[var(--color-bg-accent-blue)]',
+        iconBg: 'bg-accent-blue',
         text: 'Andi Lane subscribed to you.',
         time: 'Today, 11:59 AM',
     },
@@ -52,7 +52,7 @@ export function RightBar() {
         <aside
             className={cn(
                 'hidden lg:flex flex-col shrink-0',
-                'bg-[var(--color-bg-primary)]',
+                'bg-primary',
                 'border-l border-[var(--color-border-default)]',
                 'overflow-y-auto',
             )}
@@ -101,10 +101,10 @@ export function RightBar() {
                         <li key={idx} className="flex items-start gap-2 px-2 py-2 relative">
                             {/* Timeline line */}
                             {idx < activities.length - 1 && (
-                                <div className="absolute left-[23px] top-10 bottom-0 w-px bg-[var(--color-border-default)]" />
+                                <div className="absolute left-[23px] top-10 bottom-0 w-px bg-border-default" />
                             )}
                             {/* Avatar */}
-                            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] relative z-10">
+                            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary relative z-10">
                                 <span className="text-[9px] font-semibold text-[var(--color-text-secondary)]">
                                     {item.avatar}
                                 </span>
@@ -133,9 +133,9 @@ export function RightBar() {
                     {contacts.map((item) => (
                         <li
                             key={item.name}
-                            className="flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-[var(--color-bg-subtle)] rounded-sm transition-colors"
+                            className="flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-subtle rounded-sm transition-colors"
                         >
-                            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-accent-purple)]">
+                            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-purple">
                                 <span className="text-[9px] font-semibold text-[var(--color-text-on-accent)]">
                                     {item.avatar}
                                 </span>

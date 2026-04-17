@@ -127,7 +127,7 @@ export function TransactionSubmitPage() {
                         </div>
 
                         {submitTxn.isSuccess && (
-                            <div className="flex items-center gap-2 p-3 rounded-sm bg-[var(--color-bg-secondary)]">
+                            <div className="flex items-center gap-2 p-3 rounded-sm bg-secondary">
                                 <span className="text-sm">Result:</span>
                                 <Badge
                                     variant={

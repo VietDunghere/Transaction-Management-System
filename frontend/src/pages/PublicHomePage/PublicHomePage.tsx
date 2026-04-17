@@ -14,7 +14,7 @@ function ContentBlock({
 }) {
     return (
         <div
-            className={`bg-[var(--color-surface-card)] rounded-xl flex flex-col gap-4 ${className ?? ''}`}
+            className={`bg-surface-card rounded-xl flex flex-col gap-4 ${className ?? ''}`}
             style={{ padding: 24 }}
         >
             <div className="flex items-center justify-between">
@@ -29,13 +29,13 @@ function ContentBlock({
 function ChartPlaceholder({ height = 200 }: { height?: number }) {
     return (
         <div
-            className="w-full rounded-lg bg-[var(--color-bg-subtle)] flex items-end justify-center gap-1.5 px-4 pb-4"
+            className="w-full rounded-lg bg-subtle flex items-end justify-center gap-1.5 px-4 pb-4"
             style={{ height }}
         >
             {Array.from({ length: 12 }).map((_, i) => (
                 <div
                     key={i}
-                    className="flex-1 rounded-t-sm bg-[var(--color-accent-indigo)] opacity-20"
+                    className="flex-1 rounded-t-sm bg-accent-indigo opacity-20"
                     style={{ height: `${20 + Math.sin(i * 0.8) * 30 + Math.random() * 20}%` }}
                 />
             ))}
@@ -46,10 +46,10 @@ function ChartPlaceholder({ height = 200 }: { height?: number }) {
 function TabSelector() {
     return (
         <div className="flex items-center gap-1">
-            <button className="px-3 py-1 text-xs rounded-md bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] cursor-pointer">
+            <button className="px-3 py-1 text-xs rounded-md bg-text-primary text-[var(--color-bg-primary)] cursor-pointer">
                 This year
             </button>
-            <button className="px-3 py-1 text-xs rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-subtle)] cursor-pointer transition-colors">
+            <button className="px-3 py-1 text-xs rounded-md text-[var(--color-text-secondary)] hover:bg-subtle cursor-pointer transition-colors">
                 Last year
             </button>
         </div>
@@ -112,7 +112,7 @@ export function PublicHomePage() {
                 <ContentBlock title="Traffic by Location">
                     {/* Map placeholder */}
                     <div
-                        className="w-full rounded-lg bg-[var(--color-bg-subtle)] flex items-center justify-center"
+                        className="w-full rounded-lg bg-subtle flex items-center justify-center"
                         style={{ height: 220 }}
                     >
                         <span className="text-xs text-[var(--color-text-tertiary)]">Map visualization</span>

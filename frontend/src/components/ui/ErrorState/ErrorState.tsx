@@ -37,7 +37,7 @@ export function ErrorState({ type = 'unknown', title, description, onRetry, clas
     return (
         <div
             className={cn(
-                'p-8 rounded-xl bg-[var(--color-surface-card)]',
+                'p-8 rounded-xl bg-surface-card',
                 'flex flex-col items-center justify-center text-center',
                 className,
             )}

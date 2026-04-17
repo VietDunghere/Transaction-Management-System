@@ -11,8 +11,8 @@ export function Card({ children, hover = false, noPadding = false, className, ..
     return (
         <div
             className={cn(
-                'bg-[var(--color-surface-card)] rounded-xl',
-                hover && 'cursor-pointer transition-colors duration-150 hover:bg-[var(--color-bg-subtle)]',
+                'bg-surface-card rounded-xl',
+                hover && 'cursor-pointer transition-colors duration-150 hover:bg-subtle',
                 noPadding ? '' : 'p-8',
                 className,
             )}

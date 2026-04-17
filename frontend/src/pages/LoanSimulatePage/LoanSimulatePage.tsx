@@ -218,7 +218,7 @@ export function LoanSimulatePage() {
                                 value={`${(simulateLoan.data.confidence * 100).toFixed(1)}%`}
                             />
                         </div>
-                        <div className="mt-4 p-3 rounded-sm bg-[var(--color-bg-secondary)]">
+                        <div className="mt-4 p-3 rounded-sm bg-secondary">
                             <Badge variant={riskVariant[simulateLoan.data.risk_level]}>
                                 {simulateLoan.data.risk_level}
                             </Badge>

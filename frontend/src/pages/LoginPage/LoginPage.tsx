@@ -36,13 +36,13 @@ export function LoginPage() {
 
     return (
         <div className="w-full max-w-md">
-            <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border-default)] rounded-md p-8">
+            <div className="bg-primary border border-[var(--color-border-default)] rounded-md p-8">
                 <div className="text-center mb-8">
                     <div className="flex items-center justify-center gap-2 mb-4">
-                        <div className="flex size-8 items-center justify-center rounded-sm bg-[var(--color-accent-indigo)]">
+                        <div className="flex size-8 items-center justify-center rounded-sm bg-accent-indigo">
                             <span className="text-sm font-semibold text-white">H</span>
                         </div>
-                        <span className="text-lg font-semibold text-[var(--color-text-primary)]">HuzAdmin</span>
+                        <span className="text-lg font-semibold text-[var(--color-text-primary)]">HuzaFraud</span>
                     </div>
                     <p className="text-sm text-[var(--color-text-secondary)]">Transaction Management System</p>
                 </div>

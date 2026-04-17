@@ -26,7 +26,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                     'flex items-center justify-center size-10',
                     'rounded-lg border border-[var(--color-border-default)]',
                     'text-base',
-                    'hover:bg-[var(--color-bg-subtle)] transition-colors cursor-pointer',
+                    'hover:bg-subtle transition-colors cursor-pointer',
                     currentPage <= 1 && 'opacity-50 pointer-events-none',
                 )}
             >
@@ -52,8 +52,8 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                                 'text-base cursor-pointer',
                                 'transition-colors',
                                 page === currentPage
-                                    ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-primary)]'
-                                    : 'border border-[var(--color-border-default)] hover:bg-[var(--color-bg-subtle)]',
+                                    ? 'bg-text-primary text-[var(--color-bg-primary)]'
+                                    : 'border border-[var(--color-border-default)] hover:bg-subtle',
                             )}
                         >
                             {page}
@@ -69,7 +69,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                     'flex items-center justify-center size-10',
                     'rounded-lg border border-[var(--color-border-default)]',
                     'text-base',
-                    'hover:bg-[var(--color-bg-subtle)] transition-colors cursor-pointer',
+                    'hover:bg-subtle transition-colors cursor-pointer',
                     currentPage >= totalPages && 'opacity-50 pointer-events-none',
                 )}
             >

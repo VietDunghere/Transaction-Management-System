@@ -10,10 +10,10 @@ interface TimelineItemProps {
 }
 
 const timelineDotStyles = {
-    default: 'bg-[var(--color-text-primary)]',
-    success: 'bg-[var(--color-status-success)]',
-    warning: 'bg-[var(--color-status-warning)]',
-    danger: 'bg-[var(--color-status-danger)]',
+    default: 'bg-text-primary',
+    success: 'bg-status-success',
+    warning: 'bg-status-warning',
+    danger: 'bg-status-danger',
 };
 
 export function TimelineItem({ title, description, timestamp, icon, variant = 'default' }: TimelineItemProps) {
@@ -29,7 +29,7 @@ export function TimelineItem({ title, description, timestamp, icon, variant = 'd
                 >
                     {icon || <span className="size-2 rounded-full bg-current" />}
                 </div>
-                <div className="w-px flex-1 bg-[var(--color-border-default)]" />
+                <div className="w-px flex-1 bg-border-default" />
             </div>
             <div className="flex-1 pt-1">
                 <p className="text-base font-semibold text-[var(--color-text-primary)]">{title}</p>

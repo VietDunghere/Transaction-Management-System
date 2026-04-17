@@ -7,11 +7,11 @@ interface LoadingSkeletonProps {
 }
 
 function SkeletonLine({ width = '100%', height = '1rem' }: { width?: string; height?: string }) {
-    return <div className="animate-pulse rounded-md bg-[var(--color-border-default)]" style={{ width, height }} />;
+    return <div className="animate-pulse rounded-md bg-border-default" style={{ width, height }} />;
 }
 
 export function LoadingSkeleton({ variant = 'table', rows = 5, className }: LoadingSkeletonProps) {
-    const cardClass = 'bg-[var(--color-surface-card)] rounded-xl';
+    const cardClass = 'bg-surface-card rounded-xl';
 
     if (variant === 'card') {
         return (
@@ -31,7 +31,7 @@ export function LoadingSkeleton({ variant = 'table', rows = 5, className }: Load
                     {Array.from({ length: 8 }).map((_, i) => (
                         <div
                             key={i}
-                            className="flex-1 animate-pulse rounded-t-md bg-[var(--color-border-default)]"
+                            className="flex-1 animate-pulse rounded-t-md bg-border-default"
                             style={{ height: `${30 + Math.random() * 70}%` }}
                         />
                     ))}

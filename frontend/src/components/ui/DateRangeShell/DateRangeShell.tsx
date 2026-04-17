@@ -27,7 +27,7 @@ export function DateRangeShell({
                     type="date"
                     value={startValue}
                     onChange={(e) => onStartChange?.(e.target.value)}
-                    className="px-4 py-3 text-base bg-[var(--color-bg-primary)] border border-[var(--color-border-default)] rounded-lg outline-none focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]"
+                    className="px-4 py-3 text-base bg-primary border border-[var(--color-border-default)] rounded-lg outline-none focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]"
                 />
             </div>
             <span className="pb-3 text-[var(--color-text-tertiary)]">&mdash;</span>
@@ -37,7 +37,7 @@ export function DateRangeShell({
                     type="date"
                     value={endValue}
                     onChange={(e) => onEndChange?.(e.target.value)}
-                    className="px-4 py-3 text-base bg-[var(--color-bg-primary)] border border-[var(--color-border-default)] rounded-lg outline-none focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]"
+                    className="px-4 py-3 text-base bg-primary border border-[var(--color-border-default)] rounded-lg outline-none focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]"
                 />
             </div>
         </div>

@@ -11,8 +11,8 @@ export function ListPageTemplate({ header, filterBar, table, pagination }: ListP
     return (
         <div className="flex flex-col gap-6">
             {header}
-            {filterBar && <div className="p-6 bg-[var(--color-surface-card)] rounded-xl">{filterBar}</div>}
-            <div className="bg-[var(--color-surface-card)] rounded-xl overflow-hidden">{table}</div>
+            {filterBar && <div className="p-6 bg-surface-card rounded-xl">{filterBar}</div>}
+            <div className="bg-surface-card rounded-xl overflow-hidden">{table}</div>
             {pagination && <div className="flex justify-center">{pagination}</div>}
         </div>
     );

@@ -1,70 +1,77 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* ============================================================
-   HUZA FRAUD — SnowUI Design Tokens (Figma: HuzAdmin)
+   HUZA FRAUD — SnowUI Design Tokens (Figma: HuzaFraud)
    ============================================================ */
 
 @theme {
-  /* ---------- Color Palette (Light) ---------- */
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F9F9FA;
-  --color-bg-subtle: rgba(0, 0, 0, 0.04);
-  --color-bg-accent-purple: #EDEEFC;
-  --color-bg-accent-blue: #E6F1FD;
+    /* ---------- Color Palette (Light) ---------- */
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f9f9fa;
+    --color-bg-subtle: rgba(0, 0, 0, 0.04);
+    --color-bg-accent-purple: #edeefc;
+    --color-bg-accent-blue: #e6f1fd;
 
-  --color-text-primary: #000000;
-  --color-text-secondary: rgba(0, 0, 0, 0.4);
-  --color-text-tertiary: rgba(0, 0, 0, 0.2);
-  --color-text-disabled: rgba(0, 0, 0, 0.1);
-  --color-text-on-accent: #000000;
+    /* Tailwind v4 utility aliases (bg-primary, bg-secondary, bg-subtle, etc.) */
+    --color-primary: var(--color-bg-primary);
+    --color-secondary: var(--color-bg-secondary);
+    --color-subtle: var(--color-bg-subtle);
+    --color-accent-purple: var(--color-bg-accent-purple);
+    --color-accent-blue: var(--color-bg-accent-blue);
 
-  --color-border-default: rgba(0, 0, 0, 0.1);
-  --color-border-strong: #000000;
+    --color-text-primary: #000000;
+    --color-text-secondary: rgba(0, 0, 0, 0.4);
+    --color-text-tertiary: rgba(0, 0, 0, 0.2);
+    --color-text-disabled: rgba(0, 0, 0, 0.1);
+    --color-text-on-accent: #000000;
 
-  --color-accent-indigo: #4F507F;
+    --color-border-default: rgba(0, 0, 0, 0.1);
+    --color-border-strong: #000000;
 
-  --color-surface-card: #F9F9FA;
-  --color-surface-input: rgba(0, 0, 0, 0.04);
+    --color-accent-indigo: #4f507f;
 
-  /* Status colors */
-  --color-status-success: #22c55e;
-  --color-status-warning: #f59e0b;
-  --color-status-danger: #ef4444;
-  --color-status-info: #3b82f6;
+    --color-surface-card: #f9f9fa;
+    --color-surface-input: rgba(0, 0, 0, 0.04);
 
-  /* ---------- Typography (base 16px → 1rem) ---------- */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    /* Status colors */
+    --color-status-success: #22c55e;
+    --color-status-warning: #f59e0b;
+    --color-status-danger: #ef4444;
+    --color-status-info: #3b82f6;
 
-  --font-size-xl: 1.5rem;      /* 24px — stat numbers, headings */
-  --font-size-lg: 1.125rem;    /* 18px — section titles */
-  --font-size-base: 1rem;      /* 16px — body text */
-  --font-size-sm: 0.875rem;    /* 14px — secondary text, labels */
-  --font-size-xs: 0.75rem;     /* 12px — captions, timestamps */
+    /* ---------- Typography (base 16px → 1rem) ---------- */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  /* ---------- Spacing (4px base grid — Tailwind multiplies this) ---------- */
-  --spacing: 0.25rem;  /* p-1=4px, p-2=8px, p-4=16px, p-6=24px, p-8=32px */
+    --font-size-xl: 1.5rem; /* 24px — stat numbers, headings */
+    --font-size-lg: 1.125rem; /* 18px — section titles */
+    --font-size-base: 1rem; /* 16px — body text */
+    --font-size-sm: 0.875rem; /* 14px — secondary text, labels */
+    --font-size-xs: 0.75rem; /* 12px — captions, timestamps */
 
-  /* ---------- Border Radius ---------- */
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
-  --radius-full: 80px;
+    /* ---------- Spacing (4px base grid — Tailwind multiplies this) ---------- */
+    --spacing: 0.25rem; /* p-1=4px, p-2=8px, p-4=16px, p-6=24px, p-8=32px */
 
-  /* ---------- Layout ---------- */
-  --sidebar-width: 212px;
-  --sidebar-collapsed: 64px;
-  --header-height: 68px;
-  --right-bar-width: 280px;
-  --content-gap: 28px;
-  --card-padding: 24px;
+    /* ---------- Border Radius ---------- */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    --radius-full: 80px;
 
-  /* ---------- Transitions ---------- */
-  --transition-fast: 150ms ease;
-  --transition-base: 250ms ease;
-  --transition-slow: 350ms ease;
+    /* ---------- Layout ---------- */
+    --sidebar-width: 212px;
+    --sidebar-collapsed: 64px;
+    --header-height: 68px;
+    --right-bar-width: 280px;
+    --content-gap: 28px;
+    --card-padding: 24px;
+
+    /* ---------- Transitions ---------- */
+    --transition-fast: 150ms ease;
+    --transition-base: 250ms ease;
+    --transition-slow: 350ms ease;
 }
 
 /* ============================================================
@@ -72,79 +79,79 @@
    ============================================================ */
 
 @layer base {
-  @font-face {
-    font-family: "Inter";
-    font-display: swap;
-  }
+    @font-face {
+        font-family: 'Inter';
+        font-display: swap;
+    }
 
-  html {
-    font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.5;
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-primary);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    font-weight: 400;
-  }
+    html {
+        font-family: var(--font-sans);
+        font-size: 16px;
+        line-height: 1.5;
+        color: var(--color-text-primary);
+        background-color: var(--color-bg-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-weight: 400;
+    }
 
-  h1 {
-    font-size: var(--font-size-xl);
-    font-weight: 600;
-    line-height: 1.35;
-  }
+    h1 {
+        font-size: var(--font-size-xl);
+        font-weight: 600;
+        line-height: 1.35;
+    }
 
-  h2 {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    line-height: 1.4;
-  }
+    h2 {
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+        line-height: 1.4;
+    }
 
-  h3 {
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    line-height: 1.5;
-  }
+    h3 {
+        font-size: var(--font-size-base);
+        font-weight: 600;
+        line-height: 1.5;
+    }
 
-  /* Scrollbar styling */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
 
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
 
-  ::-webkit-scrollbar-thumb {
-    background: var(--color-border-default);
-    border-radius: var(--radius-full);
-  }
+    ::-webkit-scrollbar-thumb {
+        background: var(--color-border-default);
+        border-radius: var(--radius-full);
+    }
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-text-secondary);
-  }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--color-text-secondary);
+    }
 }
 
 /* ============================================================
    Dark Theme
    ============================================================ */
 
-[data-theme="dark"] {
-  --color-bg-primary: #333333;
-  --color-bg-secondary: rgba(255, 255, 255, 0.04);
-  --color-bg-subtle: rgba(255, 255, 255, 0.1);
-  --color-bg-accent-purple: #EDEEFC;
-  --color-bg-accent-blue: #E6F1FD;
+[data-theme='dark'] {
+    --color-bg-primary: #333333;
+    --color-bg-secondary: rgba(255, 255, 255, 0.04);
+    --color-bg-subtle: rgba(255, 255, 255, 0.1);
+    --color-bg-accent-purple: #edeefc;
+    --color-bg-accent-blue: #e6f1fd;
 
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: rgba(255, 255, 255, 0.4);
-  --color-text-tertiary: rgba(255, 255, 255, 0.2);
-  --color-text-disabled: rgba(255, 255, 255, 0.15);
-  --color-text-on-accent: #000000;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: rgba(255, 255, 255, 0.4);
+    --color-text-tertiary: rgba(255, 255, 255, 0.2);
+    --color-text-disabled: rgba(255, 255, 255, 0.15);
+    --color-text-on-accent: #000000;
 
-  --color-border-default: rgba(255, 255, 255, 0.15);
+    --color-border-default: rgba(255, 255, 255, 0.15);
 
-  --color-surface-card: rgba(255, 255, 255, 0.04);
-  --color-surface-input: rgba(255, 255, 255, 0.1);
+    --color-surface-card: rgba(255, 255, 255, 0.04);
+    --color-surface-input: rgba(255, 255, 255, 0.1);
 }

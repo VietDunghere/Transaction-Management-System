@@ -67,7 +67,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
             <aside
                 className={cn(
-                    'flex flex-col bg-[var(--color-bg-primary)]',
+                    'flex flex-col bg-primary',
                     'border-r border-[var(--color-border-default)]',
                     'transition-all duration-300',
                     'z-50 shrink-0',
@@ -80,7 +80,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             >
                 {/* User row */}
                 <div className="flex items-center gap-3 px-2 py-2 mb-2">
-                    <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-accent-purple)]">
+                    <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-purple">
                         <span className="text-[10px] font-semibold text-[var(--color-text-on-accent)]">
                             {userInitial}
                         </span>
@@ -167,13 +167,13 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     </ul>
                 </nav>
 
-                {/* Footer — HuzAdmin logo */}
+                {/* Footer — HuzaFraud logo */}
                 {isOpen && (
                     <div className="flex items-center gap-2 px-2 py-2 mt-2">
-                        <div className="flex size-5 items-center justify-center rounded-sm bg-[var(--color-accent-indigo)]">
+                        <div className="flex size-5 items-center justify-center rounded-sm bg-accent-indigo">
                             <span className="text-[8px] font-semibold text-white">H</span>
                         </div>
-                        <span className="text-xs text-[var(--color-text-secondary)]">HuzAdmin</span>
+                        <span className="text-xs text-[var(--color-text-secondary)]">HuzaFraud</span>
                     </div>
                 )}
             </aside>

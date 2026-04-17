@@ -20,7 +20,7 @@ export function SearchBox({ value, onChange, placeholder = 'Search...', classNam
                 className={cn(
                     'w-full pl-10 pr-4 py-3',
                     'text-base',
-                    'bg-[var(--color-bg-primary)]',
+                    'bg-primary',
                     'border border-[var(--color-border-default)]',
                     'rounded-lg',
                     'outline-none transition-all duration-150',

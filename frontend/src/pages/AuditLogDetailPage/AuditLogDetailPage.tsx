@@ -68,7 +68,7 @@ export function AuditLogDetailPage() {
                     </div>
 
                     <SectionHeader title="Detail JSON" className="mt-6" />
-                    <pre className="mt-4 p-4 rounded-sm bg-[var(--color-bg-secondary)] text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all">
+                    <pre className="mt-4 p-4 rounded-sm bg-secondary text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all">
                         {detailJson}
                     </pre>
                 </Card>

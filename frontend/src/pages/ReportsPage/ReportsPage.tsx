@@ -105,8 +105,8 @@ export function ReportsPage() {
                             onClick={() => setActiveTab('transactions')}
                             className={`px-3 py-1.5 rounded-sm text-sm transition-colors ${
                                 activeTab === 'transactions'
-                                    ? 'bg-[var(--color-accent-indigo)] text-white'
-                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-subtle)]'
+                                    ? 'bg-accent-indigo text-white'
+                                    : 'text-[var(--color-text-secondary)] hover:bg-subtle'
                             }`}
                         >
                             Transaction Report
@@ -115,8 +115,8 @@ export function ReportsPage() {
                             onClick={() => setActiveTab('fraud')}
                             className={`px-3 py-1.5 rounded-sm text-sm transition-colors ${
                                 activeTab === 'fraud'
-                                    ? 'bg-[var(--color-accent-indigo)] text-white'
-                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-subtle)]'
+                                    ? 'bg-accent-indigo text-white'
+                                    : 'text-[var(--color-text-secondary)] hover:bg-subtle'
                             }`}
                         >
                             Fraud Report

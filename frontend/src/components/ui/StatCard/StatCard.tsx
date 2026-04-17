@@ -13,7 +13,7 @@ export function StatCard({ label, value, change, changeType = 'neutral', accent 
         <div
             className={cn(
                 'flex flex-col gap-2 rounded-xl',
-                accent === 'purple' ? 'bg-[var(--color-bg-accent-purple)]' : 'bg-[var(--color-bg-accent-blue)]',
+                accent === 'purple' ? 'bg-accent-purple' : 'bg-accent-blue',
             )}
             style={{ padding: 24 }}
         >

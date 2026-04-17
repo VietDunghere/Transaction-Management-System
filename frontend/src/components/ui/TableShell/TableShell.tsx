@@ -46,7 +46,7 @@ export function TableShell({ columns, data, onRowClick, className }: TableShellP
                             className={cn(
                                 'border-b border-[var(--color-border-default)]',
                                 'transition-colors duration-150',
-                                'hover:bg-[var(--color-bg-subtle)]',
+                                'hover:bg-subtle',
                                 onRowClick && 'cursor-pointer',
                             )}
                             onClick={() => onRowClick?.(row, idx)}

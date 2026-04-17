@@ -11,7 +11,7 @@ export function DefaultLayout({ children }: PropsWithChildren) {
     useMe();
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-bg-primary)]">
+        <div className="flex h-screen w-screen overflow-hidden bg-primary">
             {/* Sidebar */}
             <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
 
@@ -20,7 +20,7 @@ export function DefaultLayout({ children }: PropsWithChildren) {
                 <Header isSidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
                 <main
-                    className={cn('flex-1 overflow-y-auto overflow-x-hidden', 'bg-[var(--color-bg-primary)]')}
+                    className={cn('flex-1 overflow-y-auto overflow-x-hidden', 'bg-primary')}
                     style={{ padding: 28 }}
                 >
                     {children}
