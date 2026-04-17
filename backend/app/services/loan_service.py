@@ -19,6 +19,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ConflictError, NotFoundError, OptimisticLockError
+from app.services.loan_scoring_service import LoanScoringService, LoanSimulationInput
 from app.core.logging import get_logger
 from app.models.loan import Loan
 from app.models.scoring import AuditLog
@@ -62,6 +63,36 @@ def _calculate_monthly_payment(
     p = float(principal)
     pmt = p * r * (1 + r) ** n / ((1 + r) ** n - 1)
     return Decimal(str(round(pmt, 2)))
+
+
+def _try_score_loan(loan: "Loan") -> None:  # noqa: F821
+    """Gọi LoanScoringService nếu loan có đủ AI input features; no-op nếu thiếu."""
+    if not all([
+        loan.person_age, loan.person_income, loan.person_home_ownership,
+        loan.person_emp_length is not None, loan.loan_grade, loan.loan_intent,
+        loan.cb_person_default_on_file, loan.cb_person_cred_hist_length is not None,
+    ]):
+        return
+
+    svc = LoanScoringService.get_instance()
+    if not svc.is_ready:
+        return
+
+    inp = LoanSimulationInput(
+        person_age=loan.person_age,
+        person_income=float(loan.person_income),
+        person_home_ownership=loan.person_home_ownership,
+        person_emp_length=loan.person_emp_length,
+        loan_intent=loan.loan_intent,
+        loan_grade=loan.loan_grade,
+        loan_amnt=float(loan.principal_amount),
+        loan_int_rate=float(loan.interest_rate) * 100,  # model expects %, e.g. 12.0 not 0.12
+        cb_person_default_on_file=loan.cb_person_default_on_file,
+        cb_person_cred_hist_length=loan.cb_person_cred_hist_length,
+    )
+    result = svc.simulate(inp)
+    loan.pd_score = result.pd_score
+    loan.risk_level = result.risk_level
 
 
 class LoanService:
@@ -171,6 +202,9 @@ class LoanService:
             loan.outstanding_balance = loan.principal_amount
             loan.disbursed_at = now
             loan.maturity_date = _add_months(now.date(), loan.term_months)
+
+            # Populate pd_score / risk_level nếu loan có đủ AI features
+            _try_score_loan(loan)
         else:
             loan.status = LoanStatus.REJECTED.value
 

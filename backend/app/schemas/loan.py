@@ -6,7 +6,7 @@ Request/Response cho loan application và approval workflow.
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -120,15 +120,15 @@ class LoanListItem(BaseModel):
 class LoanSimulationRequest(BaseModel):
     """Input parameters for Loan AI Simulation (predict PD Score)."""
     person_age: int = Field(..., ge=18, le=100, description="Age of the applicant")
-    person_income: float = Field(..., ge=0, description="Annual income")
-    person_home_ownership: str = Field(..., description="RENT, MORTGAGE, OWN, OTHER")
-    person_emp_length: int = Field(..., ge=0, description="Employment length in years")
-    loan_intent: str = Field(..., description="PERSONAL, EDUCATION, MEDICAL, VENTURE, HOMEIMPROVEMENT, DEBTCONSOLIDATION")
-    loan_grade: str = Field(..., description="A, B, C, D, E, F, G")
-    loan_amnt: float = Field(..., gt=0, description="Loan amount requested")
-    loan_int_rate: float = Field(..., ge=0, description="Interest rate")
-    cb_person_default_on_file: str = Field(..., description="Y or N for historical default")
-    cb_person_cred_hist_length: int = Field(..., ge=0, description="Credit history length in years")
+    person_income: float = Field(..., ge=1_000, le=10_000_000, description="Annual income")
+    person_home_ownership: Literal["RENT", "MORTGAGE", "OWN", "OTHER"]
+    person_emp_length: int = Field(..., ge=0, le=60, description="Employment length in years")
+    loan_intent: Literal["PERSONAL", "EDUCATION", "MEDICAL", "VENTURE", "HOMEIMPROVEMENT", "DEBTCONSOLIDATION"]
+    loan_grade: Literal["A", "B", "C", "D", "E", "F", "G"]
+    loan_amnt: float = Field(..., gt=100, le=50_000, description="Loan amount requested")
+    loan_int_rate: float = Field(..., ge=0, le=30, description="Interest rate (%)")
+    cb_person_default_on_file: Literal["Y", "N"]
+    cb_person_cred_hist_length: int = Field(..., ge=0, le=60, description="Credit history length in years")
 
 
 class LoanSimulationResponse(BaseModel):

@@ -161,13 +161,10 @@ class LoanScoringService:
         # Step 2: Predict probability class 1 (Default)
         pd_score = float(self._classifier.predict_proba(X_trans)[:, 1][0])
 
-        # Step 3: Compare against optimized decision threshold found during training
-        is_high_risk = pd_score >= self._decision_threshold
-        
-        # Risk classification (Can blend optimal threshold with business rules)
-        if is_high_risk:
+        # Step 3: Risk classification using config thresholds
+        if pd_score >= settings.loan_high_risk_threshold:
             risk_level = "HIGH RISK"
-        elif pd_score >= self._decision_threshold * 0.5: # Example intermediate warning
+        elif pd_score >= settings.loan_medium_risk_threshold:
             risk_level = "MEDIUM RISK"
         else:
             risk_level = "LOW RISK"
@@ -229,11 +226,11 @@ class LoanScoringService:
             "loan_int_rate": rate,
             "loan_percent_income": inp.loan_amnt / max(income, 1),
             "cb_person_cred_hist_length": inp.cb_person_cred_hist_length,
-            # Categorical
-            "person_home_ownership": inp.person_home_ownership,
-            "loan_intent": inp.loan_intent,
-            "loan_grade": inp.loan_grade,
-            "cb_person_default_on_file": inp.cb_person_default_on_file,
+            # Categorical — normalize to uppercase to match training data
+            "person_home_ownership": inp.person_home_ownership.upper(),
+            "loan_intent": inp.loan_intent.upper(),
+            "loan_grade": inp.loan_grade.upper(),
+            "cb_person_default_on_file": inp.cb_person_default_on_file.upper(),
             # Engineered (v4)
             "age_group": age_group,
             "income_bin": income_bin,

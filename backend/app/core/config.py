@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     loan_model_path: str = "./ml_models/loan_model.pkl"
     loan_high_risk_threshold: float = 0.50
     loan_medium_risk_threshold: float = 0.20
-    loan_model_version: str = "loan_v1"
+    loan_model_version: str = "loan_v4_xgboost"
 
     # ---- API ----
     api_prefix: str = "/api/v1"
