@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Service: FraudScoringService
 Core ML integration — load model, build features, predict fraud score.
@@ -13,13 +12,14 @@ Pipeline features (khớp với training trong fraud_detection_final.py):
   Passthrough:                     txn_hour, txn_dow, txn_month, is_weekend, is_night, is_sus_dist
 """
 
-import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import List
 
 import joblib
 import numpy as np
+import pandas as pd
 
 from app.core.config import get_settings
 from app.core.exceptions import ModelNotLoadedError
@@ -147,7 +147,6 @@ class FraudScoringService:
         features = self._build_features(inp)
 
         # ---- Predict ----
-        import pandas as pd
         df = pd.DataFrame([features])
         fraud_prob = float(self._pipeline.predict_proba(df)[:, 1][0])
 

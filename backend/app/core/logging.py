@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Structured logging với structlog.
 Mọi log đều ở dạng JSON trong production để dễ index vào ELK/CloudWatch.

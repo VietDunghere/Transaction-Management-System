@@ -19,12 +19,12 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ConflictError, NotFoundError, OptimisticLockError
-from app.services.loan_scoring_service import LoanScoringService, LoanSimulationInput
 from app.core.logging import get_logger
 from app.models.loan import Loan
 from app.models.scoring import AuditLog
 from app.repositories.loan_repo import LoanRepository
 from app.repositories.velocity_repo import CustomerRepository
+from app.services.loan_scoring_service import LoanScoringService, LoanSimulationInput
 from app.schemas.common import LoanDecision, LoanStatus
 from app.schemas.loan import LoanApplyRequest, LoanDecisionRequest
 
@@ -86,7 +86,7 @@ def _try_score_loan(loan: "Loan") -> None:  # noqa: F821
         loan_intent=loan.loan_intent,
         loan_grade=loan.loan_grade,
         loan_amnt=float(loan.principal_amount),
-        loan_int_rate=float(loan.interest_rate) * 100,  # model expects %, e.g. 12.0 not 0.12
+        loan_int_rate=float(loan.interest_rate) * 100,  # model nhận %, ví dụ 12.0 thay vì 0.12
         cb_person_default_on_file=loan.cb_person_default_on_file,
         cb_person_cred_hist_length=loan.cb_person_cred_hist_length,
     )
@@ -129,7 +129,7 @@ class LoanService:
             purpose=request.purpose,
             status=LoanStatus.PENDING.value,
             version=1,
-            # AI input features — optional, used for scoring on APPROVE
+            # Features AI — tùy chọn, dùng khi APPROVE để tính PD score
             person_age=request.person_age,
             person_income=request.person_income,
             person_home_ownership=request.person_home_ownership,

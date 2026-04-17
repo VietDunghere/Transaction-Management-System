@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Router: Health Check
 GET /health — kiểm tra trạng thái hệ thống cho load balancer và monitoring.
 """
 
 from datetime import datetime, timezone
+from typing import Dict
 
 from fastapi import APIRouter
 from pydantic import BaseModel

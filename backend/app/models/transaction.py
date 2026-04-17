@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List
 """
 ORM Model: Transaction, TxnState, TxnStateHistory, TxnIdempotency
 Vòng đời giao dịch: PENDING → APPROVED | REJECTED | MANUAL_REVIEW
@@ -7,6 +6,7 @@ Vòng đời giao dịch: PENDING → APPROVED | REJECTED | MANUAL_REVIEW
 
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship

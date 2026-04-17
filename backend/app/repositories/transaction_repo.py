@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Repository: Transaction
 Data access layer cho transactions_live và các bảng liên quan.
 """
 
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import and_, desc
 from sqlalchemy.orm import Session, joinedload

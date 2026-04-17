@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Định nghĩa các HTTP exception chuẩn dùng toàn ứng dụng.
 Tập trung ở đây để dễ maintain — thay đổi error format 1 chỗ, áp dụng toàn bộ.

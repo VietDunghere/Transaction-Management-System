@@ -5,7 +5,7 @@ FastAPI dependency injection cho database session.
 """
 
 from collections.abc import Generator
-from typing import Optional, Annotated
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.orm import Session

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List
 """
 ORM Model: Customer
 Thông tin khách hàng sở hữu thẻ tín dụng.
@@ -13,6 +12,7 @@ Bao gồm các trường cần thiết để model ML tính features:
 
 import uuid
 from datetime import date, datetime
+from typing import Optional
 
 from sqlalchemy import Date, DateTime, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship

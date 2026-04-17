@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Router: Transactions
 POST /transactions       — submit giao dịch mới (OPERATOR)
@@ -7,28 +6,27 @@ GET  /transactions       — danh sách giao dịch (OPERATOR, MANAGER)
 GET  /transactions/{id}  — chi tiết giao dịch (OPERATOR, MANAGER)
 """
 
+import json
 import math
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
 
 from app.api.v1.deps import require_roles
-from app.schemas.auth import TokenPayload
+from app.core.exceptions import PermissionDeniedError
 from app.db.deps import DbSession
 from app.repositories.transaction_repo import TransactionRepository
+from app.schemas.auth import TokenPayload
 from app.schemas.common import PagedResponse, PaginationMeta, TransactionStatus
 from app.schemas.transaction import (
     FraudScoreDetail,
-    TransactionListFilter,
     TransactionResponse,
     TransactionSubmitRequest,
     TransactionSubmitResponse,
     TxnStateHistoryItem,
 )
 from app.services.transaction_service import TransactionService
-from app.core.exceptions import PermissionDeniedError
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -123,7 +121,6 @@ def get_transaction(
     # Đính kèm fraud detail từ scoring result nếu có
     if txn.scoring_results:
         latest = txn.scoring_results[-1]
-        import json
         reasons = json.loads(latest.reason_json or "{}") if latest.reason_json else {}
         response.fraud_detail = FraudScoreDetail(
             fraud_score=float(latest.fraud_score),

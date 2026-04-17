@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List
 """
 ORM Model: RiskScoringResult, RuleHit, AuditLog
 Kết quả chấm điểm fraud detection và audit trail.
@@ -7,6 +6,7 @@ Kết quả chấm điểm fraud detection và audit trail.
 
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship

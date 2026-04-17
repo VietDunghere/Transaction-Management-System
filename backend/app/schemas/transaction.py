@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Pydantic schemas: Transaction
 Request/Response cho submit và query giao dịch.
@@ -7,6 +6,7 @@ Request/Response cho submit và query giao dịch.
 
 from datetime import datetime
 from decimal import Decimal
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional
 """
 ORM Model: Loan
 Vòng đời khoản vay: PENDING → APPROVED | REJECTED
@@ -8,6 +7,7 @@ Sau khi approved: DISBURSED → CLOSED | DEFAULTED (Phase E)
 
 import uuid
 from datetime import date, datetime
+from typing import Optional
 
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -69,9 +69,9 @@ class Loan(Base):
     maturity_date: Mapped[Optional[date]] = mapped_column(Date)
 
     # ---- Loan AI input features (snapshot tại thời điểm nộp đơn) ----
-    # Matching: train_loan_model.py v4 feature contract
-    # (loan_amnt = principal_amount, loan_int_rate = interest_rate * 100,
-    #  loan_percent_income = principal_amount / person_income — computed at scoring time)
+    # Khớp với feature contract của train_loan_model.py v6:
+    # loan_amnt = principal_amount, loan_int_rate = interest_rate × 100,
+    # loan_percent_income = principal_amount / person_income — tính lúc scoring
     person_age: Mapped[Optional[int]] = mapped_column(Integer)
     person_income: Mapped[Optional[float]] = mapped_column(Numeric(18, 2))
     person_home_ownership: Mapped[Optional[str]] = mapped_column(String(20))   # RENT|MORTGAGE|OWN|OTHER
@@ -81,10 +81,10 @@ class Loan(Base):
     cb_person_default_on_file: Mapped[Optional[str]] = mapped_column(String(1)) # Y|N
     cb_person_cred_hist_length: Mapped[Optional[int]] = mapped_column(Integer)
 
-    # ---- Loan AI output (filled by LoanScoringService) ----
-    # Probability of default: 0.0 – 1.0
+    # ---- Kết quả AI (điền bởi LoanScoringService khi APPROVE) ----
+    # Xác suất vỡ nợ: 0.0 – 1.0
     pd_score: Mapped[Optional[float]] = mapped_column(Numeric(6, 4))
-    # LOW | MEDIUM | HIGH
+    # LOW RISK | MEDIUM RISK | HIGH RISK
     risk_level: Mapped[Optional[str]] = mapped_column(String(20))
 
     # ---- Metadata ----

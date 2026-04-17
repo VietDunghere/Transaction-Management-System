@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Router: Cases (Manual Review)
 GET  /cases              — danh sách case (REVIEWER, MANAGER)
@@ -9,10 +8,12 @@ POST /cases/{id}/decide  — quyết định (REVIEWER)
 """
 
 import math
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.v1.deps import get_current_token, require_roles
+from app.api.v1.deps import require_roles
+from app.core.exceptions import PermissionDeniedError
 from app.db.deps import DbSession
 from app.schemas.auth import TokenPayload
 from app.schemas.case import (
@@ -23,7 +24,6 @@ from app.schemas.case import (
 )
 from app.schemas.common import CaseStatus, PagedResponse, PaginationMeta
 from app.services.case_service import CaseService
-from app.core.exceptions import PermissionDeniedError
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
 

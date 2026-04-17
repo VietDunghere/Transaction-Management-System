@@ -5,7 +5,7 @@ FastAPI dependencies cho xác thực và phân quyền.
 Inject vào route handlers để bảo vệ endpoints.
 """
 
-from typing import Optional, Annotated
+from typing import Annotated
 
 from fastapi import Depends, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer

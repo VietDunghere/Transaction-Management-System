@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import Optional, List
 """
 Service: AuthService
 Xử lý đăng nhập và refresh token.
 """
+
+from typing import Optional
 
 from jose import JWTError
 

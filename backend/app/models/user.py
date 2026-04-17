@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List
 """
 ORM Model: User & Role
 Quản lý tài khoản nhân viên và phân quyền theo role.
@@ -7,6 +6,7 @@ Quản lý tài khoản nhân viên và phân quyền theo role.
 
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Identity, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship

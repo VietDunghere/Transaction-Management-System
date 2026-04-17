@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Service: CaseService
 Xử lý business logic cho manual review cases.
@@ -8,6 +7,7 @@ Xử lý business logic cho manual review cases.
 import json
 import uuid
 from datetime import datetime, timezone
+from typing import List
 
 from sqlalchemy.orm import Session
 

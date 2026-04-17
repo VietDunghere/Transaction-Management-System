@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Service: TransactionService
 Orchestrate toàn bộ luồng submit giao dịch:
@@ -15,6 +14,7 @@ Orchestrate toàn bộ luồng submit giao dịch:
 import json
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -24,7 +24,6 @@ from app.models.scoring import AuditLog, RiskScoringResult
 from app.models.transaction import Transaction, TxnIdempotency, TxnState, TxnStateHistory
 from app.models.case import ReviewCase, ReviewCaseAction
 from app.repositories.transaction_repo import TransactionRepository
-from app.repositories.user_repo import UserRepository
 from app.repositories.velocity_repo import CustomerRepository, MerchantRepository, VelocityRepository
 from app.schemas.transaction import TransactionSubmitRequest, TransactionSubmitResponse
 from app.services.fraud_scoring_service import FraudScoringInput, FraudScoringService

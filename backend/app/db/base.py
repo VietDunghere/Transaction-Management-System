@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 SQLAlchemy engine và SessionLocal.
 Target: Oracle Database 19c với python-oracledb (Thin mode).

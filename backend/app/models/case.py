@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Optional, List
 """
 ORM Model: ReviewCase, ReviewCaseAction
 Case manual review — nhân viên REVIEWER xem xét quyết định.
@@ -7,6 +6,7 @@ Case manual review — nhân viên REVIEWER xem xét quyết định.
 
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship

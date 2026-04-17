@@ -1,9 +1,10 @@
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
 """
 Pydantic schemas: Auth
 Request/Response cho đăng nhập và refresh token.
 """
+
+from typing import List
 
 from pydantic import BaseModel, Field
 
