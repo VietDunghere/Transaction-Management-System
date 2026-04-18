@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { caseService } from '~/services/caseService';
+import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { CaseSearchParams } from '~/types/searchParams';
 import type { CaseDecisionRequest } from '~/types/api';
 
@@ -33,7 +34,7 @@ export function useAssignCase() {
         onSuccess: (_data, caseId) => {
             queryClient.invalidateQueries({ queryKey: caseKeys.detail(caseId) });
             queryClient.invalidateQueries({ queryKey: caseKeys.all });
-            toast.success('Case assigned to you');
+            toastSuccessWithActivity('Case assigned to you');
         },
         onError: (error: unknown) => {
             const apiMsg = (error as any)?.response?.data?.message;
@@ -51,7 +52,7 @@ export function useDecideCase() {
         onSuccess: (_data, vars) => {
             queryClient.invalidateQueries({ queryKey: caseKeys.detail(vars.caseId) });
             queryClient.invalidateQueries({ queryKey: caseKeys.all });
-            toast.success('Case decision submitted');
+            toastSuccessWithActivity('Case decision submitted');
         },
         onError: (error: unknown) => {
             const apiMsg = (error as any)?.response?.data?.message;

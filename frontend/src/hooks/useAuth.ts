@@ -3,7 +3,9 @@ import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { authService } from '~/services/authService';
 import { useAuthStore } from '~/stores/useAuthStore';
+import { useActivityStore } from '~/stores/useActivityStore';
 import { setAccessToken, setRefreshToken, clearTokens } from '~/utils/localStorage';
+import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { LoginRequest, ChangePasswordRequest } from '~/types/api';
 
 export const authKeys = {
@@ -55,7 +57,7 @@ export function useLogin() {
             });
             navigate({ to: '/' });
         },
-        onError: (error: unknown) => {
+        onError: () => {
             toast.error('Login failed. Please check your credentials.');
         },
     });
@@ -63,6 +65,7 @@ export function useLogin() {
 
 export function useLogout() {
     const clearAuth = useAuthStore((s) => s.clearAuth);
+    const clearActivities = useActivityStore((s) => s.clearActivities);
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
@@ -71,6 +74,7 @@ export function useLogout() {
         onSettled: () => {
             clearTokens();
             clearAuth();
+            clearActivities();
             queryClient.clear();
             navigate({ to: '/login' });
         },
@@ -81,7 +85,7 @@ export function useChangePassword() {
     return useMutation({
         mutationFn: (data: ChangePasswordRequest) => authService.changePassword(data),
         onSuccess: () => {
-            toast.success('Password changed successfully');
+            toastSuccessWithActivity('Password changed successfully');
         },
         onError: (error: unknown) => {
             const apiMsg = (error as any)?.response?.data?.message;

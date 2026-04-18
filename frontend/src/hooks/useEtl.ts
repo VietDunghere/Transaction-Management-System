@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { etlService } from '~/services/etlService';
+import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { EtlLogSearchParams } from '~/types/searchParams';
 import type { TriggerEtlRequest } from '~/types/api';
 
@@ -23,7 +24,7 @@ export function useTriggerEtl() {
         mutationFn: (data: TriggerEtlRequest) => etlService.triggerEtl(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: etlKeys.all });
-            toast.success('ETL job triggered successfully');
+            toastSuccessWithActivity('ETL job triggered successfully');
         },
         onError: (error: unknown) => {
             const apiMsg = (error as any)?.response?.data?.message;
