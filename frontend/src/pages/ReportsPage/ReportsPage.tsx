@@ -70,8 +70,8 @@ export function ReportsPage() {
     const fraudRows = (fraudReport.data ?? []).map((r) => ({
         date: <span className="text-sm">{r.date}</span>,
         total_txn: <span className="text-sm">{r.total_txn}</span>,
-        approved: <span className="text-sm text-[var(--color-status-success)]">{r.approved}</span>,
-        rejected: <span className="text-sm text-[var(--color-status-danger)]">{r.rejected}</span>,
+        approved: <span className="text-sm text-status-success">{r.approved}</span>,
+        rejected: <span className="text-sm text-status-danger">{r.rejected}</span>,
         fraud_count: <span className="text-sm font-medium">{r.fraud_count}</span>,
         fraud_rate: <span className="text-sm">{(r.fraud_rate * 100).toFixed(2)}%</span>,
     }));
@@ -106,7 +106,7 @@ export function ReportsPage() {
                             className={`px-3 py-1.5 rounded-sm text-sm transition-colors ${
                                 activeTab === 'transactions'
                                     ? 'bg-accent-indigo text-white'
-                                    : 'text-[var(--color-text-secondary)] hover:bg-subtle'
+                                    : 'text-text-secondary hover:bg-subtle'
                             }`}
                         >
                             Transaction Report
@@ -116,7 +116,7 @@ export function ReportsPage() {
                             className={`px-3 py-1.5 rounded-sm text-sm transition-colors ${
                                 activeTab === 'fraud'
                                     ? 'bg-accent-indigo text-white'
-                                    : 'text-[var(--color-text-secondary)] hover:bg-subtle'
+                                    : 'text-text-secondary hover:bg-subtle'
                             }`}
                         >
                             Fraud Report

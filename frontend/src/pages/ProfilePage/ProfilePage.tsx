@@ -83,12 +83,12 @@ export function ProfilePage() {
                             />
 
                             {changePassword.isSuccess && (
-                                <p className="text-xs text-[var(--color-status-success)]">
+                                <p className="text-xs text-status-success">
                                     Password changed successfully.
                                 </p>
                             )}
                             {changePassword.isError && (
-                                <p className="text-xs text-[var(--color-status-danger)]">
+                                <p className="text-xs text-status-danger">
                                     Failed to change password. Check your current password.
                                 </p>
                             )}

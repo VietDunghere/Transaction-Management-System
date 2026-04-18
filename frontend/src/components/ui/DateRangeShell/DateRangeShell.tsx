@@ -22,22 +22,22 @@ export function DateRangeShell({
     return (
         <div className={cn('flex items-end gap-3', className)}>
             <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-[var(--color-text-primary)]">{startLabel}</label>
+                <label className="text-sm font-semibold text-text-primary">{startLabel}</label>
                 <input
                     type="date"
                     value={startValue}
                     onChange={(e) => onStartChange?.(e.target.value)}
-                    className="px-4 py-3 text-base bg-primary border border-[var(--color-border-default)] rounded-lg outline-none focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]"
+                    className="px-4 py-3 text-base bg-primary border border-border-default rounded-lg outline-none focus:border-accent-indigo focus:ring-1 focus:ring-accent-indigo"
                 />
             </div>
-            <span className="pb-3 text-[var(--color-text-tertiary)]">&mdash;</span>
+            <span className="pb-3 text-text-tertiary">&mdash;</span>
             <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-[var(--color-text-primary)]">{endLabel}</label>
+                <label className="text-sm font-semibold text-text-primary">{endLabel}</label>
                 <input
                     type="date"
                     value={endValue}
                     onChange={(e) => onEndChange?.(e.target.value)}
-                    className="px-4 py-3 text-base bg-primary border border-[var(--color-border-default)] rounded-lg outline-none focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]"
+                    className="px-4 py-3 text-base bg-primary border border-border-default rounded-lg outline-none focus:border-accent-indigo focus:ring-1 focus:ring-accent-indigo"
                 />
             </div>
         </div>

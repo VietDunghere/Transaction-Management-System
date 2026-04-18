@@ -114,7 +114,7 @@ export function LoanCreatePage() {
                         </div>
 
                         {createLoan.isError && (
-                            <p className="text-xs text-[var(--color-status-danger)]">
+                            <p className="text-xs text-status-danger">
                                 Failed to create loan. Please try again.
                             </p>
                         )}

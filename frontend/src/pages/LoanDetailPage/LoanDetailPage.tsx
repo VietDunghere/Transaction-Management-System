@@ -9,7 +9,6 @@ import { Card } from '~/components/ui/Card/Card';
 import { KeyValueRow } from '~/components/ui/KeyValueRow/KeyValueRow';
 import { Badge } from '~/components/ui/Badge/Badge';
 import { SectionHeader } from '~/components/ui/SectionHeader/SectionHeader';
-import { StatCard } from '~/components/ui/StatCard/StatCard';
 import { Button } from '~/components/ui/Button/Button';
 import { Modal } from '~/components/ui/Modal/Modal';
 import { Textarea } from '~/components/ui/Textarea/Textarea';
@@ -101,17 +100,29 @@ export function LoanDetailPage() {
                     />
                 }
                 summary={
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard
-                            label="Principal"
-                            value={`${loan.principal_amount.toLocaleString()} ${loan.currency_code}`}
-                        />
-                        <StatCard label="Interest Rate" value={`${loan.interest_rate}%`} />
-                        <StatCard label="Term" value={`${loan.term_months} months`} />
-                        <StatCard
-                            label="PD Score"
-                            value={loan.pd_score !== null ? `${(loan.pd_score * 100).toFixed(1)}%` : '—'}
-                        />
+                    <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">Principal</span>
+                            <span className="text-lg font-semibold">
+                                {loan.principal_amount.toLocaleString()} {loan.currency_code}
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">
+                                Interest Rate
+                            </span>
+                            <span className="text-lg font-semibold">{loan.interest_rate}%</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">Term</span>
+                            <span className="text-lg font-semibold">{loan.term_months} months</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">PD Score</span>
+                            <span className="text-lg font-semibold">
+                                {loan.pd_score !== null ? `${(loan.pd_score * 100).toFixed(1)}%` : '—'}
+                            </span>
+                        </div>
                     </div>
                 }
                 info={
@@ -161,28 +172,14 @@ export function LoanDetailPage() {
                             />
                             <KeyValueRow
                                 label="Maturity Date"
-                                value={
-                                    loan.maturity_date
-                                        ? new Date(loan.maturity_date).toLocaleDateString()
-                                        : '—'
-                                }
+                                value={loan.maturity_date ? new Date(loan.maturity_date).toLocaleDateString() : '—'}
                             />
-                            <KeyValueRow
-                                label="Reviewed By"
-                                value={loan.reviewed_by ?? '—'}
-                            />
+                            <KeyValueRow label="Reviewed By" value={loan.reviewed_by ?? '—'} />
                             <KeyValueRow
                                 label="Reviewed At"
-                                value={
-                                    loan.reviewed_at
-                                        ? new Date(loan.reviewed_at).toLocaleString()
-                                        : '—'
-                                }
+                                value={loan.reviewed_at ? new Date(loan.reviewed_at).toLocaleString() : '—'}
                             />
-                            <KeyValueRow
-                                label="Created At"
-                                value={new Date(loan.created_at).toLocaleString()}
-                            />
+                            <KeyValueRow label="Created At" value={new Date(loan.created_at).toLocaleString()} />
                         </div>
                     </Card>
                 }
@@ -215,7 +212,7 @@ export function LoanDetailPage() {
                     onChange={(e) => setReviewNote(e.target.value)}
                 />
                 {decideLoan.isError && (
-                    <p className="text-xs text-[var(--color-status-danger)] mt-2">
+                    <p className="text-xs text-status-danger mt-2">
                         Failed to submit decision. Please try again.
                     </p>
                 )}

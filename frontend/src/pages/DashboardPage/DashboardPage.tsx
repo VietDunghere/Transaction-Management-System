@@ -59,13 +59,13 @@ export function DashboardPage() {
                                     date: <span className="text-xs">{d.period_label}</span>,
                                     total_txn: <span className="text-sm">{d.total_txn}</span>,
                                     approved: (
-                                        <span className="text-sm text-[var(--color-status-success)]">{d.approved}</span>
+                                        <span className="text-sm text-status-success">{d.approved}</span>
                                     ),
                                     rejected: (
-                                        <span className="text-sm text-[var(--color-status-danger)]">{d.rejected}</span>
+                                        <span className="text-sm text-status-danger">{d.rejected}</span>
                                     ),
                                     manual_review: (
-                                        <span className="text-sm text-[var(--color-status-warning)]">
+                                        <span className="text-sm text-status-warning">
                                             {d.manual_review}
                                         </span>
                                     ),
@@ -74,7 +74,7 @@ export function DashboardPage() {
                             />
                         </div>
                     ) : (
-                        <p className="text-sm text-[var(--color-text-secondary)] mt-4">No trend data available.</p>
+                        <p className="text-sm text-text-secondary mt-4">No trend data available.</p>
                     )}
                 </Card>
             }
@@ -90,7 +90,7 @@ export function DashboardPage() {
                                 { label: 'Pending', value: transactions.pending },
                             ].map((item) => (
                                 <div key={item.label} className="flex items-center justify-between py-1">
-                                    <span className="text-sm text-[var(--color-text-secondary)]">{item.label}</span>
+                                    <span className="text-sm text-text-secondary">{item.label}</span>
                                     <span className="text-sm font-medium">{item.value.toLocaleString()}</span>
                                 </div>
                             ))}
@@ -105,12 +105,12 @@ export function DashboardPage() {
                                 { label: 'Loans Rejected', value: loans.total_rejected },
                             ].map((item) => (
                                 <div key={item.label} className="flex items-center justify-between py-1">
-                                    <span className="text-sm text-[var(--color-text-secondary)]">{item.label}</span>
+                                    <span className="text-sm text-text-secondary">{item.label}</span>
                                     <span className="text-sm font-medium">{item.value.toLocaleString()}</span>
                                 </div>
                             ))}
-                            <div className="flex items-center justify-between py-1 border-t border-[var(--color-border-default)]">
-                                <span className="text-sm text-[var(--color-text-secondary)]">Cases Assigned</span>
+                            <div className="flex items-center justify-between py-1 border-t border-border-default">
+                                <span className="text-sm text-text-secondary">Cases Assigned</span>
                                 <span className="text-sm font-medium">{cases.total_assigned}</span>
                             </div>
                         </div>

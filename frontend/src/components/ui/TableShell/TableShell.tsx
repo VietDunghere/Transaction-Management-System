@@ -20,14 +20,14 @@ export function TableShell({ columns, data, onRowClick, className }: TableShellP
         <div className={cn('overflow-x-auto', className)}>
             <table className="w-full border-collapse text-base">
                 <thead>
-                    <tr className="border-b border-[var(--color-border-default)]">
+                    <tr className="border-b border-border-default">
                         {columns.map((col) => (
                             <th
                                 key={col.key}
                                 className={cn(
                                     'px-6 py-4',
                                     'text-sm font-semibold',
-                                    'text-[var(--color-text-secondary)] uppercase tracking-wider',
+                                    'text-text-secondary uppercase tracking-wider',
                                     col.align === 'center' && 'text-center',
                                     col.align === 'right' && 'text-right',
                                     !col.align && 'text-left',
@@ -44,7 +44,7 @@ export function TableShell({ columns, data, onRowClick, className }: TableShellP
                         <tr
                             key={idx}
                             className={cn(
-                                'border-b border-[var(--color-border-default)]',
+                                'border-b border-border-default',
                                 'transition-colors duration-150',
                                 'hover:bg-subtle',
                                 onRowClick && 'cursor-pointer',

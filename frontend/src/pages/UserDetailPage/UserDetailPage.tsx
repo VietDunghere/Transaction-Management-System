@@ -9,7 +9,6 @@ import { Card } from '~/components/ui/Card/Card';
 import { KeyValueRow } from '~/components/ui/KeyValueRow/KeyValueRow';
 import { Badge } from '~/components/ui/Badge/Badge';
 import { SectionHeader } from '~/components/ui/SectionHeader/SectionHeader';
-import { StatCard } from '~/components/ui/StatCard/StatCard';
 import { Button } from '~/components/ui/Button/Button';
 import { Modal } from '~/components/ui/Modal/Modal';
 import { Select } from '~/components/ui/Select/Select';
@@ -85,7 +84,9 @@ export function UserDetailPage() {
                                         <Button
                                             onClick={() => {
                                                 setSelectedRole(
-                                                    userData.role === 'ADMIN' ? 'OPERATOR' : (userData.role as Exclude<Role, 'ADMIN'>),
+                                                    userData.role === 'ADMIN'
+                                                        ? 'OPERATOR'
+                                                        : (userData.role as Exclude<Role, 'ADMIN'>),
                                                 );
                                                 setRoleModal(true);
                                             }}
@@ -102,11 +103,25 @@ export function UserDetailPage() {
                     />
                 }
                 summary={
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard label="Role" value={userData.role} />
-                        <StatCard label="Status" value={userData.is_active ? 'Active' : 'Disabled'} />
-                        <StatCard label="Email" value={userData.email} />
-                        <StatCard label="Joined" value={new Date(userData.created_at).toLocaleDateString()} />
+                    <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">Role</span>
+                            <Badge variant={roleVariant[userData.role]}>{userData.role}</Badge>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">Status</span>
+                            <Badge variant={userData.is_active ? 'success' : 'muted'} dot>
+                                {userData.is_active ? 'Active' : 'Disabled'}
+                            </Badge>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">Email</span>
+                            <span className="text-sm break-all">{userData.email}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">Joined</span>
+                            <span className="text-sm">{new Date(userData.created_at).toLocaleDateString()}</span>
+                        </div>
                     </div>
                 }
                 info={
@@ -132,10 +147,7 @@ export function UserDetailPage() {
                                     </Badge>
                                 }
                             />
-                            <KeyValueRow
-                                label="Created At"
-                                value={new Date(userData.created_at).toLocaleString()}
-                            />
+                            <KeyValueRow label="Created At" value={new Date(userData.created_at).toLocaleString()} />
                         </div>
                     </Card>
                 }
@@ -164,7 +176,7 @@ export function UserDetailPage() {
                     onChange={(e) => setSelectedRole(e.target.value as Exclude<Role, 'ADMIN'>)}
                 />
                 {updateRole.isError && (
-                    <p className="text-xs text-[var(--color-status-danger)] mt-2">
+                    <p className="text-xs text-status-danger mt-2">
                         Failed to update role. Please try again.
                     </p>
                 )}

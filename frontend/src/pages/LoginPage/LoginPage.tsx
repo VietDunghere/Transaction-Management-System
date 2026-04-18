@@ -36,15 +36,15 @@ export function LoginPage() {
 
     return (
         <div className="w-full max-w-md">
-            <div className="bg-primary border border-[var(--color-border-default)] rounded-md p-8">
+            <div className="bg-primary border border-border-default rounded-md p-8">
                 <div className="text-center mb-8">
                     <div className="flex items-center justify-center gap-2 mb-4">
                         <div className="flex size-8 items-center justify-center rounded-sm bg-accent-indigo">
                             <span className="text-sm font-semibold text-white">H</span>
                         </div>
-                        <span className="text-lg font-semibold text-[var(--color-text-primary)]">HuzaFraud</span>
+                        <span className="text-lg font-semibold text-text-primary">HuzaFraud</span>
                     </div>
-                    <p className="text-sm text-[var(--color-text-secondary)]">Transaction Management System</p>
+                    <p className="text-sm text-text-secondary">Transaction Management System</p>
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -63,7 +63,7 @@ export function LoginPage() {
                     />
 
                     {login.isError && (
-                        <p className="text-xs text-[var(--color-status-danger)]">
+                        <p className="text-xs text-status-danger">
                             {(login.error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
                                 'Login failed. Please try again.'}
                         </p>

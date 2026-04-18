@@ -186,7 +186,7 @@ export function LoanSimulatePage() {
                         </div>
 
                         {simulateLoan.isError && (
-                            <p className="text-xs text-[var(--color-status-danger)]">
+                            <p className="text-xs text-status-danger">
                                 Simulation failed. Please check your inputs and try again.
                             </p>
                         )}

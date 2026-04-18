@@ -95,7 +95,7 @@ export function UserCreatePage() {
                         </div>
 
                         {createUser.isError && (
-                            <p className="text-xs text-[var(--color-status-danger)]">
+                            <p className="text-xs text-status-danger">
                                 Failed to create user. Please try again.
                             </p>
                         )}

@@ -56,12 +56,12 @@ export function CaseListPage() {
         fraud_score: <span className="text-sm">{(c.transaction.fraud_score * 100).toFixed(1)}%</span>,
         case_status: <Badge variant={statusVariant[c.case_status]}>{c.case_status}</Badge>,
         assigned_to: (
-            <span className="text-xs text-[var(--color-text-secondary)]">
+            <span className="text-xs text-text-secondary">
                 {c.assigned_to ? c.assigned_to.slice(0, 8) + '...' : 'Unassigned'}
             </span>
         ),
         created_at: (
-            <span className="text-xs text-[var(--color-text-secondary)]">
+            <span className="text-xs text-text-secondary">
                 {new Date(c.created_at).toLocaleString()}
             </span>
         ),

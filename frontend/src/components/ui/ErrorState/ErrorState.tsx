@@ -42,11 +42,11 @@ export function ErrorState({ type = 'unknown', title, description, onRetry, clas
                 className,
             )}
         >
-            <div className="mb-5 flex size-16 items-center justify-center rounded-full bg-red-50 text-[var(--color-status-danger)]">
+            <div className="mb-5 flex size-16 items-center justify-center rounded-full bg-red-50 text-status-danger">
                 {config.icon}
             </div>
-            <h3 className="text-base font-semibold mb-2 text-[var(--color-text-primary)]">{title || config.title}</h3>
-            <p className="text-sm text-[var(--color-text-secondary)] max-w-sm leading-relaxed">
+            <h3 className="text-base font-semibold mb-2 text-text-primary">{title || config.title}</h3>
+            <p className="text-sm text-text-secondary max-w-sm leading-relaxed">
                 {description || config.description}
             </p>
             {onRetry && (

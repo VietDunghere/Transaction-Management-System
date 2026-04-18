@@ -149,7 +149,7 @@ export function UIDemoPage() {
                             </>
                         }
                     >
-                        <p className="text-base text-[var(--color-text-secondary)]">
+                        <p className="text-base text-text-secondary">
                             Are you sure you want to reject this transaction? This action cannot be undone.
                         </p>
                     </Modal>
@@ -350,19 +350,19 @@ export function UIDemoPage() {
                 <h3 className="text-sm font-semibold mb-4">Loading Skeletons</h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                     <div>
-                        <p className="text-xs text-[var(--color-text-secondary)] mb-3">Table variant</p>
+                        <p className="text-xs text-text-secondary mb-3">Table variant</p>
                         <LoadingSkeleton variant="table" rows={3} />
                     </div>
                     <div>
-                        <p className="text-xs text-[var(--color-text-secondary)] mb-3">Chart variant</p>
+                        <p className="text-xs text-text-secondary mb-3">Chart variant</p>
                         <LoadingSkeleton variant="chart" />
                     </div>
                     <div>
-                        <p className="text-xs text-[var(--color-text-secondary)] mb-3">Card variant</p>
+                        <p className="text-xs text-text-secondary mb-3">Card variant</p>
                         <LoadingSkeleton variant="card" />
                     </div>
                     <div>
-                        <p className="text-xs text-[var(--color-text-secondary)] mb-3">Form variant</p>
+                        <p className="text-xs text-text-secondary mb-3">Form variant</p>
                         <LoadingSkeleton variant="form" rows={3} />
                     </div>
                 </div>
@@ -395,7 +395,7 @@ export function UIDemoPage() {
                 <div className="space-y-6">
                     <Card>
                         <h3 className="text-sm font-semibold mb-4">Dashboard Template</h3>
-                        <div className="border border-dashed border-[var(--color-border-default)] p-4 rounded-lg">
+                        <div className="border border-dashed border-border-default p-4 rounded-lg">
                             <DashboardTemplate
                                 header={<PageHeader title="Dashboard Overview" subtitle="Real-time fraud monitoring" />}
                                 kpiRow={
@@ -442,7 +442,7 @@ export function UIDemoPage() {
 
                     <Card>
                         <h3 className="text-sm font-semibold mb-4">List Page Template</h3>
-                        <div className="border border-dashed border-[var(--color-border-default)] p-4 rounded-lg">
+                        <div className="border border-dashed border-border-default p-4 rounded-lg">
                             <ListPageTemplate
                                 header={
                                     <PageHeader

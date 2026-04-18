@@ -18,7 +18,7 @@ function ContentBlock({
             style={{ padding: 24 }}
         >
             <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-[var(--color-text-primary)]">{title}</span>
+                <span className="text-sm font-semibold text-text-primary">{title}</span>
                 {tabs}
             </div>
             {children}
@@ -46,10 +46,10 @@ function ChartPlaceholder({ height = 200 }: { height?: number }) {
 function TabSelector() {
     return (
         <div className="flex items-center gap-1">
-            <button className="px-3 py-1 text-xs rounded-md bg-text-primary text-[var(--color-bg-primary)] cursor-pointer">
+            <button className="px-3 py-1 text-xs rounded-md bg-text-primary text-bg-primary cursor-pointer">
                 This year
             </button>
-            <button className="px-3 py-1 text-xs rounded-md text-[var(--color-text-secondary)] hover:bg-subtle cursor-pointer transition-colors">
+            <button className="px-3 py-1 text-xs rounded-md text-text-secondary hover:bg-subtle cursor-pointer transition-colors">
                 Last year
             </button>
         </div>
@@ -62,9 +62,9 @@ function TrafficSource({ name, percent, color }: { name: string; percent: number
         <div className="flex items-center justify-between py-1.5">
             <div className="flex items-center gap-2">
                 <div className="size-2 rounded-full" style={{ backgroundColor: color }} />
-                <span className="text-sm text-[var(--color-text-primary)]">{name}</span>
+                <span className="text-sm text-text-primary">{name}</span>
             </div>
-            <span className="text-sm text-[var(--color-text-secondary)]">{percent}%</span>
+            <span className="text-sm text-text-secondary">{percent}%</span>
         </div>
     );
 }
@@ -91,7 +91,7 @@ export function PublicHomePage() {
                 <ContentBlock title="Traffic by Website" className="lg:col-span-1">
                     {/* Donut placeholder */}
                     <div className="flex justify-center py-2">
-                        <div className="size-[100px] rounded-full border-[12px] border-[var(--color-accent-indigo)] border-t-[var(--color-status-info)] border-r-[var(--color-status-success)] opacity-60" />
+                        <div className="size-25 rounded-full border-[0.75rem] border-accent-indigo border-t-status-info border-r-status-success opacity-60" />
                     </div>
                     <div className="flex flex-col">
                         <TrafficSource name="Google" percent={42} color="#4F507F" />
@@ -115,7 +115,7 @@ export function PublicHomePage() {
                         className="w-full rounded-lg bg-subtle flex items-center justify-center"
                         style={{ height: 220 }}
                     >
-                        <span className="text-xs text-[var(--color-text-tertiary)]">Map visualization</span>
+                        <span className="text-xs text-text-tertiary">Map visualization</span>
                     </div>
                 </ContentBlock>
             </div>

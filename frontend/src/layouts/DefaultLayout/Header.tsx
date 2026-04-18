@@ -52,7 +52,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
             className={cn(
                 'flex items-center justify-between shrink-0',
                 'bg-primary',
-                'border-b border-[var(--color-border-default)]',
+                'border-b border-border-default',
             )}
             style={{ height: 'var(--header-height)', padding: '20px 28px' }}
         >
@@ -70,13 +70,13 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 <nav className="flex items-center gap-1 ml-1" aria-label="Breadcrumb">
                     {breadcrumbs.map((crumb, idx) => (
                         <span key={idx} className="flex items-center gap-1">
-                            {idx > 0 && <span className="text-xs text-[var(--color-text-tertiary)]">/</span>}
+                            {idx > 0 && <span className="text-xs text-text-tertiary">/</span>}
                             <span
                                 className={cn(
                                     'text-xs px-2 py-1 rounded-sm',
                                     idx === breadcrumbs.length - 1
-                                        ? 'text-[var(--color-text-primary)] font-medium'
-                                        : 'text-[var(--color-text-secondary)]',
+                                        ? 'text-text-primary font-medium'
+                                        : 'text-text-secondary',
                                 )}
                             >
                                 {crumb}
@@ -93,9 +93,9 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                     className="hidden sm:flex items-center gap-2 rounded-sm bg-surface-input cursor-pointer"
                     style={{ padding: '4px 8px', width: 160, height: 28 }}
                 >
-                    <Search size={14} className="text-[var(--color-text-tertiary)] shrink-0" />
-                    <span className="flex-1 text-xs text-[var(--color-text-tertiary)]">Search</span>
-                    <span className="text-xs text-[var(--color-text-tertiary)] bg-primary px-1.5 py-0.5 rounded-sm border border-[var(--color-border-default)]">
+                    <Search size={14} className="text-text-tertiary shrink-0" />
+                    <span className="flex-1 text-xs text-text-tertiary">Search</span>
+                    <span className="text-xs text-text-tertiary bg-primary px-1.5 py-0.5 rounded-sm border border-border-default">
                         /
                     </span>
                 </div>
@@ -106,7 +106,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                     style={{ border: 'none', background: 'transparent' }}
                     aria-label="Notifications"
                 >
-                    <Bell size={16} className="text-[var(--color-text-primary)]" />
+                    <Bell size={16} className="text-text-primary" />
                 </button>
 
                 {/* User menu */}
@@ -117,11 +117,11 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                         style={{ border: 'none', background: 'transparent' }}
                     >
                         <div className="flex size-6 items-center justify-center rounded-full bg-accent-purple">
-                            <span className="text-[10px] font-semibold text-[var(--color-text-on-accent)]">
+                            <span className="text-[0.625rem] font-semibold text-text-on-accent">
                                 {user?.full_name?.charAt(0).toUpperCase() ?? '?'}
                             </span>
                         </div>
-                        <span className="hidden sm:block text-xs text-[var(--color-text-primary)]">
+                        <span className="hidden sm:block text-xs text-text-primary">
                             {user?.full_name ?? 'User'}
                         </span>
                     </button>
@@ -132,20 +132,20 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                             <div
                                 className={cn(
                                     'absolute right-0 top-full mt-1 z-50',
-                                    'bg-primary border border-[var(--color-border-default)]',
-                                    'rounded-sm shadow-lg min-w-[180px]',
+                                    'bg-primary border border-border-default',
+                                    'rounded-sm shadow-lg min-w-45',
                                 )}
                             >
-                                <div className="px-3 py-2 border-b border-[var(--color-border-default)]">
-                                    <p className="text-xs font-medium text-[var(--color-text-primary)]">
+                                <div className="px-3 py-2 border-b border-border-default">
+                                    <p className="text-xs font-medium text-text-primary">
                                         {user?.full_name}
                                     </p>
-                                    <p className="text-xs text-[var(--color-text-secondary)]">{user?.role}</p>
+                                    <p className="text-xs text-text-secondary">{user?.role}</p>
                                 </div>
                                 <Link
                                     to="/profile"
                                     onClick={() => setUserMenuOpen(false)}
-                                    className="flex items-center gap-2 px-3 py-2 text-xs text-[var(--color-text-secondary)] hover:bg-subtle transition-colors"
+                                    className="flex items-center gap-2 px-3 py-2 text-xs text-text-secondary hover:bg-subtle transition-colors"
                                 >
                                     <User size={14} /> Profile
                                 </Link>
@@ -154,7 +154,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                                         setUserMenuOpen(false);
                                         logout.mutate();
                                     }}
-                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--color-status-danger)] hover:bg-subtle transition-colors cursor-pointer"
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-status-danger hover:bg-subtle transition-colors cursor-pointer"
                                     style={{ border: 'none', background: 'transparent' }}
                                 >
                                     <LogOut size={14} /> Sign Out

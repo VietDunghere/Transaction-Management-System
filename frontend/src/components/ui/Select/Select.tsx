@@ -20,7 +20,7 @@ export function Select({ label, error, options, placeholder, className, id, ...r
     return (
         <div className="flex flex-col gap-2">
             {label && (
-                <label htmlFor={selectId} className="text-sm font-semibold text-[var(--color-text-primary)]">
+                <label htmlFor={selectId} className="text-sm font-semibold text-text-primary">
                     {label}
                 </label>
             )}
@@ -32,12 +32,12 @@ export function Select({ label, error, options, placeholder, className, id, ...r
                         'px-4 py-3 pr-10',
                         'text-base',
                         'bg-primary',
-                        'border border-[var(--color-border-default)]',
+                        'border border-border-default',
                         'rounded-lg',
                         'outline-none transition-all duration-150',
-                        'focus:border-[var(--color-accent-indigo)] focus:ring-1 focus:ring-[var(--color-accent-indigo)]',
+                        'focus:border-accent-indigo focus:ring-1 focus:ring-accent-indigo',
                         'cursor-pointer',
-                        error && 'border-[var(--color-status-danger)]',
+                        error && 'border-status-danger',
                         rest.disabled && 'opacity-50 cursor-not-allowed bg-surface-card',
                         className,
                     )}
@@ -56,10 +56,10 @@ export function Select({ label, error, options, placeholder, className, id, ...r
                 </select>
                 <ChevronDown
                     size={16}
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]"
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary"
                 />
             </div>
-            {error && <p className="text-sm text-[var(--color-status-danger)] font-semibold">{error}</p>}
+            {error && <p className="text-sm text-status-danger font-semibold">{error}</p>}
         </div>
     );
 }

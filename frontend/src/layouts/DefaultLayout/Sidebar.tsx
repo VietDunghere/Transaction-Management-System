@@ -68,7 +68,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
             <aside
                 className={cn(
                     'flex flex-col bg-primary',
-                    'border-r border-[var(--color-border-default)]',
+                    'border-r border-border-default',
                     'transition-all duration-300',
                     'z-50 shrink-0',
                     'fixed inset-y-0 left-0 md:relative',
@@ -81,12 +81,12 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 {/* User row */}
                 <div className="flex items-center gap-3 px-2 py-2 mb-2">
                     <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-purple">
-                        <span className="text-[10px] font-semibold text-[var(--color-text-on-accent)]">
+                        <span className="text-[0.625rem] font-semibold text-text-on-accent">
                             {userInitial}
                         </span>
                     </div>
                     {isOpen && (
-                        <span className="text-sm font-normal text-[var(--color-text-primary)] truncate">
+                        <span className="text-sm font-normal text-text-primary truncate">
                             {user?.full_name ?? 'Loading...'}
                         </span>
                     )}
@@ -97,7 +97,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     {/* MAIN section */}
                     {isOpen && (
                         <div className="px-3 py-1 mb-1">
-                            <span className="text-xs font-normal text-[var(--color-text-secondary)] uppercase tracking-wider">
+                            <span className="text-xs font-normal text-text-secondary uppercase tracking-wider">
                                 Main
                             </span>
                         </div>
@@ -115,13 +115,13 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                                             'flex items-center gap-2 px-2 py-2',
                                             'rounded-sm text-sm transition-colors duration-150',
                                             isActive
-                                                ? 'text-[var(--color-text-primary)] font-semibold'
-                                                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
+                                                ? 'text-text-primary font-semibold'
+                                                : 'text-text-secondary hover:text-text-primary',
                                         )}
                                     >
                                         <ChevronRight
                                             size={16}
-                                            className="shrink-0 text-[var(--color-text-tertiary)]"
+                                            className="shrink-0 text-text-tertiary"
                                         />
                                         <span className="shrink-0">{item.icon}</span>
                                         {isOpen && <span className="truncate">{item.label}</span>}
@@ -134,7 +134,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     {/* SECONDARY section */}
                     {isOpen && (
                         <div className="px-3 py-1 mt-4 mb-1">
-                            <span className="text-xs font-normal text-[var(--color-text-secondary)] uppercase tracking-wider">
+                            <span className="text-xs font-normal text-text-secondary uppercase tracking-wider">
                                 Management
                             </span>
                         </div>
@@ -150,13 +150,13 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                                             'flex items-center gap-2 px-2 py-2',
                                             'rounded-sm text-sm transition-colors duration-150',
                                             isActive
-                                                ? 'text-[var(--color-text-primary)] font-semibold'
-                                                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
+                                                ? 'text-text-primary font-semibold'
+                                                : 'text-text-secondary hover:text-text-primary',
                                         )}
                                     >
                                         <ChevronRight
                                             size={16}
-                                            className="shrink-0 text-[var(--color-text-tertiary)]"
+                                            className="shrink-0 text-text-tertiary"
                                         />
                                         <span className="shrink-0">{item.icon}</span>
                                         {isOpen && <span className="truncate">{item.label}</span>}
@@ -171,9 +171,9 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 {isOpen && (
                     <div className="flex items-center gap-2 px-2 py-2 mt-2">
                         <div className="flex size-5 items-center justify-center rounded-sm bg-accent-indigo">
-                            <span className="text-[8px] font-semibold text-white">H</span>
+                            <span className="text-[0.5rem] font-semibold text-white">H</span>
                         </div>
-                        <span className="text-xs text-[var(--color-text-secondary)]">HuzaFraud</span>
+                        <span className="text-xs text-text-secondary">HuzaFraud</span>
                     </div>
                 )}
             </aside>

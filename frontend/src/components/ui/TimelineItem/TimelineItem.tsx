@@ -32,9 +32,9 @@ export function TimelineItem({ title, description, timestamp, icon, variant = 'd
                 <div className="w-px flex-1 bg-border-default" />
             </div>
             <div className="flex-1 pt-1">
-                <p className="text-base font-semibold text-[var(--color-text-primary)]">{title}</p>
-                {description && <p className="mt-1 text-base text-[var(--color-text-secondary)]">{description}</p>}
-                <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{timestamp}</p>
+                <p className="text-base font-semibold text-text-primary">{title}</p>
+                {description && <p className="mt-1 text-base text-text-secondary">{description}</p>}
+                <p className="mt-1 text-sm text-text-secondary">{timestamp}</p>
             </div>
         </div>
     );

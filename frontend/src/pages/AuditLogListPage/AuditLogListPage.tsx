@@ -55,13 +55,13 @@ export function AuditLogListPage() {
         actor: (
             <span className="text-sm">
                 {log.actor_name}{' '}
-                <span className="text-xs text-[var(--color-text-tertiary)]">
+                <span className="text-xs text-text-tertiary">
                     ({log.actor_user_id.slice(0, 8)}...)
                 </span>
             </span>
         ),
         timestamp: (
-            <span className="text-xs text-[var(--color-text-secondary)]">
+            <span className="text-xs text-text-secondary">
                 {new Date(log.event_ts).toLocaleString()}
             </span>
         ),

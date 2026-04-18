@@ -61,7 +61,7 @@ export function TransactionListPage() {
         status: <Badge variant={statusVariant[txn.status]}>{txn.status}</Badge>,
         fraud_score: <span className="text-sm">{(txn.fraud_score * 100).toFixed(1)}%</span>,
         txn_time: (
-            <span className="text-xs text-[var(--color-text-secondary)]">
+            <span className="text-xs text-text-secondary">
                 {new Date(txn.txn_time).toLocaleString()}
             </span>
         ),

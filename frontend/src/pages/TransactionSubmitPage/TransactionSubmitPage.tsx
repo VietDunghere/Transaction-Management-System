@@ -140,14 +140,14 @@ export function TransactionSubmitPage() {
                                 >
                                     {submitTxn.data.status}
                                 </Badge>
-                                <span className="text-xs text-[var(--color-text-secondary)]">
+                                <span className="text-xs text-text-secondary">
                                     Fraud Score: {(submitTxn.data.fraud_score * 100).toFixed(1)}%
                                 </span>
                             </div>
                         )}
 
                         {submitTxn.isError && (
-                            <p className="text-xs text-[var(--color-status-danger)]">
+                            <p className="text-xs text-status-danger">
                                 Failed to submit transaction. Please try again.
                             </p>
                         )}

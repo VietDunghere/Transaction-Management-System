@@ -11,12 +11,12 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-    default: 'bg-text-primary text-[var(--color-bg-primary)]',
+    default: 'bg-text-primary text-bg-primary',
     success: 'bg-emerald-50 text-emerald-700',
     warning: 'bg-amber-50 text-amber-700',
     danger: 'bg-red-50 text-red-700',
     info: 'bg-blue-50 text-blue-700',
-    muted: 'bg-surface-card text-[var(--color-text-secondary)]',
+    muted: 'bg-surface-card text-text-secondary',
 };
 
 const dotStyles: Record<BadgeVariant, string> = {

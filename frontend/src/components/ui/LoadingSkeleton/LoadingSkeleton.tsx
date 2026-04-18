@@ -27,7 +27,7 @@ export function LoadingSkeleton({ variant = 'table', rows = 5, className }: Load
         return (
             <div className={cn('p-8', cardClass, className)}>
                 <SkeletonLine width="30%" height="1rem" />
-                <div className="mt-8 flex items-end gap-2 h-[200px]">
+                <div className="mt-8 flex items-end gap-2 h-50">
                     {Array.from({ length: 8 }).map((_, i) => (
                         <div
                             key={i}
@@ -61,7 +61,7 @@ export function LoadingSkeleton({ variant = 'table', rows = 5, className }: Load
                 ))}
             </div>
             {Array.from({ length: rows }).map((_, i) => (
-                <div key={i} className="flex gap-6 border-t border-[var(--color-border-default)] px-6 py-4">
+                <div key={i} className="flex gap-6 border-t border-border-default px-6 py-4">
                     {Array.from({ length: 4 }).map((_, j) => (
                         <SkeletonLine key={j} width={`${30 + j * 10}%`} height="1rem" />
                     ))}

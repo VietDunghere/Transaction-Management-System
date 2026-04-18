@@ -72,11 +72,11 @@ export function LoanListPage() {
         risk: loan.risk_level ? (
             <Badge variant={riskVariant[loan.risk_level]}>{loan.risk_level}</Badge>
         ) : (
-            <span className="text-xs text-[var(--color-text-tertiary)]">—</span>
+            <span className="text-xs text-text-tertiary">—</span>
         ),
         status: <Badge variant={statusVariant[loan.status]}>{loan.status}</Badge>,
         created_at: (
-            <span className="text-xs text-[var(--color-text-secondary)]">
+            <span className="text-xs text-text-secondary">
                 {new Date(loan.created_at).toLocaleDateString()}
             </span>
         ),

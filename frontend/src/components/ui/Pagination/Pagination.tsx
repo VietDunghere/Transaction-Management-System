@@ -24,7 +24,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                 disabled={currentPage <= 1}
                 className={cn(
                     'flex items-center justify-center size-10',
-                    'rounded-lg border border-[var(--color-border-default)]',
+                    'rounded-lg border border-border-default',
                     'text-base',
                     'hover:bg-subtle transition-colors cursor-pointer',
                     currentPage <= 1 && 'opacity-50 pointer-events-none',
@@ -40,7 +40,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                 return (
                     <span key={page} className="contents">
                         {hasGap && (
-                            <span className="flex items-center justify-center size-10 text-sm text-[var(--color-text-tertiary)]">
+                            <span className="flex items-center justify-center size-10 text-sm text-text-tertiary">
                                 ...
                             </span>
                         )}
@@ -52,8 +52,8 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                                 'text-base cursor-pointer',
                                 'transition-colors',
                                 page === currentPage
-                                    ? 'bg-text-primary text-[var(--color-bg-primary)]'
-                                    : 'border border-[var(--color-border-default)] hover:bg-subtle',
+                                    ? 'bg-text-primary text-bg-primary'
+                                    : 'border border-border-default hover:bg-subtle',
                             )}
                         >
                             {page}
@@ -67,7 +67,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                 disabled={currentPage >= totalPages}
                 className={cn(
                     'flex items-center justify-center size-10',
-                    'rounded-lg border border-[var(--color-border-default)]',
+                    'rounded-lg border border-border-default',
                     'text-base',
                     'hover:bg-subtle transition-colors cursor-pointer',
                     currentPage >= totalPages && 'opacity-50 pointer-events-none',

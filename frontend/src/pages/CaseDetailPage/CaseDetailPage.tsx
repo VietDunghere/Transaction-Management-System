@@ -9,7 +9,6 @@ import { Card } from '~/components/ui/Card/Card';
 import { KeyValueRow } from '~/components/ui/KeyValueRow/KeyValueRow';
 import { Badge } from '~/components/ui/Badge/Badge';
 import { SectionHeader } from '~/components/ui/SectionHeader/SectionHeader';
-import { StatCard } from '~/components/ui/StatCard/StatCard';
 import { Button } from '~/components/ui/Button/Button';
 import { Modal } from '~/components/ui/Modal/Modal';
 import { Textarea } from '~/components/ui/Textarea/Textarea';
@@ -105,14 +104,29 @@ export function CaseDetailPage() {
                     />
                 }
                 summary={
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard label="Transaction Amount" value={caseData.transaction.amount.toLocaleString()} />
-                        <StatCard
-                            label="Fraud Score"
-                            value={`${(caseData.transaction.fraud_score * 100).toFixed(1)}%`}
-                        />
-                        <StatCard label="Case Status" value={caseData.case_status} />
-                        <StatCard label="Decision" value={caseData.decision ?? 'Pending'} />
+                    <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">
+                                Transaction Amount
+                            </span>
+                            <span className="text-lg font-semibold">
+                                {caseData.transaction.amount.toLocaleString()}
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">Fraud Score</span>
+                            <span className="text-lg font-semibold">
+                                {(caseData.transaction.fraud_score * 100).toFixed(1)}%
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">Case Status</span>
+                            <Badge variant={statusVariant[caseData.case_status]}>{caseData.case_status}</Badge>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium text-text-secondary">Decision</span>
+                            <span className="text-sm font-medium">{caseData.decision ?? 'Pending'}</span>
+                        </div>
                     </div>
                 }
                 info={
@@ -194,7 +208,7 @@ export function CaseDetailPage() {
                     onChange={(e) => setDecisionNote(e.target.value)}
                 />
                 {decideCase.isError && (
-                    <p className="text-xs text-[var(--color-status-danger)] mt-2">
+                    <p className="text-xs text-status-danger mt-2">
                         Failed to submit decision. This may be a version conflict (409) — please refresh and try again.
                     </p>
                 )}

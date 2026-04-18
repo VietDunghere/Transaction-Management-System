@@ -8,7 +8,6 @@ import { KeyValueRow } from '~/components/ui/KeyValueRow/KeyValueRow';
 import { Badge } from '~/components/ui/Badge/Badge';
 import { SectionHeader } from '~/components/ui/SectionHeader/SectionHeader';
 import { TimelineItem } from '~/components/ui/TimelineItem/TimelineItem';
-import { StatCard } from '~/components/ui/StatCard/StatCard';
 import { Button } from '~/components/ui/Button/Button';
 import { LoadingSkeleton } from '~/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
@@ -49,11 +48,25 @@ export function TransactionDetailPage() {
                 />
             }
             summary={
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatCard label="Amount" value={`${txn.amount.toLocaleString()} ${txn.currency_code}`} />
-                    <StatCard label="Fraud Score" value={`${(txn.fraud_score * 100).toFixed(1)}%`} />
-                    <StatCard label="Status" value={txn.status} />
-                    <StatCard label="Reason" value={txn.reason_code ?? '-'} />
+                <div className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-text-secondary">Amount</span>
+                        <span className="text-lg font-semibold">
+                            {txn.amount.toLocaleString()} {txn.currency_code}
+                        </span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-text-secondary">Fraud Score</span>
+                        <span className="text-lg font-semibold">{(txn.fraud_score * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-text-secondary">Status</span>
+                        <Badge variant={statusVariant[txn.status]}>{txn.status}</Badge>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-text-secondary">Reason</span>
+                        <span className="text-sm">{txn.reason_code ?? '-'}</span>
+                    </div>
                 </div>
             }
             info={

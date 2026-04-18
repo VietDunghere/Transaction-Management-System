@@ -72,12 +72,12 @@ export function EtlLogListPage() {
             </span>
         ),
         started_at: (
-            <span className="text-xs text-[var(--color-text-secondary)]">
+            <span className="text-xs text-text-secondary">
                 {new Date(job.started_at).toLocaleString()}
             </span>
         ),
         completed_at: (
-            <span className="text-xs text-[var(--color-text-secondary)]">
+            <span className="text-xs text-text-secondary">
                 {job.completed_at ? new Date(job.completed_at).toLocaleString() : '—'}
             </span>
         ),
@@ -193,7 +193,7 @@ export function EtlLogListPage() {
                     />
                 </div>
                 {triggerEtl.isError && (
-                    <p className="text-xs text-[var(--color-status-danger)] mt-2">
+                    <p className="text-xs text-status-danger mt-2">
                         Failed to trigger ETL job. Please try again.
                     </p>
                 )}
