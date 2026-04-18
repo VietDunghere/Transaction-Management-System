@@ -104,19 +104,19 @@ const authLayoutRoute = createRoute({
     ),
 });
 
-// -- Dashboard (MANAGER, ADMIN — others redirect) --
+// -- Dashboard (MANAGER, ADMIN — others redirect to their primary page) --
 const dashboardRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/',
-    component: () => {
-        const user = useAuthStore.getState().user;
-        if (user?.role === 'OPERATOR') {
+    component: DashboardPage,
+    beforeLoad: () => {
+        const role = getUserRole();
+        if (role === 'OPERATOR') {
             throw redirect({ to: '/transactions' });
         }
-        if (user?.role === 'REVIEWER') {
+        if (role === 'REVIEWER') {
             throw redirect({ to: '/cases' });
         }
-        return <DashboardPage />;
     },
 });
 

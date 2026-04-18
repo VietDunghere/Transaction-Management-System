@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import { toast } from 'sonner';
 import { authService } from '~/services/authService';
 import { useAuthStore } from '~/stores/useAuthStore';
 import { setAccessToken, setRefreshToken, clearTokens } from '~/utils/localStorage';
@@ -54,6 +55,9 @@ export function useLogin() {
             });
             navigate({ to: '/' });
         },
+        onError: (error: unknown) => {
+            toast.error('Login failed. Please check your credentials.');
+        },
     });
 }
 
@@ -76,5 +80,12 @@ export function useLogout() {
 export function useChangePassword() {
     return useMutation({
         mutationFn: (data: ChangePasswordRequest) => authService.changePassword(data),
+        onSuccess: () => {
+            toast.success('Password changed successfully');
+        },
+        onError: (error: unknown) => {
+            const apiMsg = (error as any)?.response?.data?.message;
+            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+        },
     });
 }

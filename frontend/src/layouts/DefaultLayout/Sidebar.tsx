@@ -8,7 +8,6 @@ import {
     ScrollText,
     Database,
     User,
-    ChevronRight,
     Component,
 } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
@@ -81,9 +80,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 {/* User row */}
                 <div className="flex items-center gap-3 px-2 py-2 mb-2">
                     <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-purple">
-                        <span className="text-[0.625rem] font-semibold text-text-on-accent">
-                            {userInitial}
-                        </span>
+                        <span className="text-[0.625rem] font-semibold text-text-on-accent">{userInitial}</span>
                     </div>
                     {isOpen && (
                         <span className="text-sm font-normal text-text-primary truncate">
@@ -112,17 +109,13 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                                     <Link
                                         to={item.href}
                                         className={cn(
-                                            'flex items-center gap-2 px-2 py-2',
+                                            'flex items-center gap-2 px-5 py-2',
                                             'rounded-sm text-sm transition-colors duration-150',
                                             isActive
                                                 ? 'text-text-primary font-semibold'
                                                 : 'text-text-secondary hover:text-text-primary',
                                         )}
                                     >
-                                        <ChevronRight
-                                            size={16}
-                                            className="shrink-0 text-text-tertiary"
-                                        />
                                         <span className="shrink-0">{item.icon}</span>
                                         {isOpen && <span className="truncate">{item.label}</span>}
                                     </Link>
@@ -147,17 +140,13 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                                     <Link
                                         to={item.href}
                                         className={cn(
-                                            'flex items-center gap-2 px-2 py-2',
+                                            'flex items-center gap-2 px-5 py-2',
                                             'rounded-sm text-sm transition-colors duration-150',
                                             isActive
                                                 ? 'text-text-primary font-semibold'
                                                 : 'text-text-secondary hover:text-text-primary',
                                         )}
                                     >
-                                        <ChevronRight
-                                            size={16}
-                                            className="shrink-0 text-text-tertiary"
-                                        />
                                         <span className="shrink-0">{item.icon}</span>
                                         {isOpen && <span className="truncate">{item.label}</span>}
                                     </Link>

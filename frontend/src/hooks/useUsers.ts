@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { userService } from '~/services/userService';
 import type { UserSearchParams } from '~/types/searchParams';
 import type { CreateUserRequest, UpdateRoleRequest, Role } from '~/types/api';
@@ -31,6 +32,11 @@ export function useCreateUser() {
         mutationFn: (data: CreateUserRequest) => userService.createUser(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: userKeys.all });
+            toast.success('User created successfully');
+        },
+        onError: (error: unknown) => {
+            const apiMsg = (error as any)?.response?.data?.message;
+            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
         },
     });
 }
@@ -43,6 +49,11 @@ export function useDisableUser() {
         onSuccess: (_data, userId) => {
             queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
             queryClient.invalidateQueries({ queryKey: userKeys.all });
+            toast.success('User disabled');
+        },
+        onError: (error: unknown) => {
+            const apiMsg = (error as any)?.response?.data?.message;
+            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
         },
     });
 }
@@ -55,6 +66,11 @@ export function useEnableUser() {
         onSuccess: (_data, userId) => {
             queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });
             queryClient.invalidateQueries({ queryKey: userKeys.all });
+            toast.success('User enabled');
+        },
+        onError: (error: unknown) => {
+            const apiMsg = (error as any)?.response?.data?.message;
+            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
         },
     });
 }
@@ -68,6 +84,11 @@ export function useUpdateUserRole() {
         onSuccess: (_data, vars) => {
             queryClient.invalidateQueries({ queryKey: userKeys.detail(vars.userId) });
             queryClient.invalidateQueries({ queryKey: userKeys.all });
+            toast.success('Role updated successfully');
+        },
+        onError: (error: unknown) => {
+            const apiMsg = (error as any)?.response?.data?.message;
+            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
         },
     });
 }
