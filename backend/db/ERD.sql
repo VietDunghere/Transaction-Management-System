@@ -94,7 +94,8 @@ CREATE TABLE "transactions_live" (
   "created_at"         timestamp NOT NULL,
   "updated_at"         timestamp,
   CONSTRAINT chk_txn_amount      CHECK ("amount" > 0),
-  CONSTRAINT chk_txn_fraud_score CHECK ("fraud_score" IS NULL OR "fraud_score" BETWEEN 0 AND 1)
+  CONSTRAINT chk_txn_fraud_score CHECK ("fraud_score" IS NULL OR "fraud_score" BETWEEN 0 AND 1),
+  CONSTRAINT chk_txn_status      CHECK ("status" IN ('PENDING','APPROVED','REJECTED','MANUAL_REVIEW'))
 );
 
 CREATE TABLE "risk_scoring_results" (
@@ -130,7 +131,8 @@ CREATE TABLE "review_cases" (
   "decision_note" varchar(2000),
   "version"       number DEFAULT 1 NOT NULL,
   "created_at"    timestamp NOT NULL,
-  "decided_at"    timestamp
+  "decided_at"    timestamp,
+  CONSTRAINT chk_case_status CHECK ("case_status" IN ('OPEN','ASSIGNED','APPROVED','REJECTED','CLOSED'))
 );
 
 CREATE TABLE "review_case_actions" (
@@ -149,18 +151,20 @@ CREATE TABLE "txn_idempotency" (
   "status"                varchar(20) NOT NULL,
   "response_snapshot_json" varchar(4000),
   "created_at"            timestamp NOT NULL,
-  "updated_at"            timestamp
+  "updated_at"            timestamp,
+  CONSTRAINT chk_idem_status CHECK ("status" IN ('IN_PROGRESS','SUCCESS','FAILED'))
 );
 
 CREATE TABLE "txn_state" (
   "txn_id"            varchar(36) PRIMARY KEY,
   "status"            varchar(20) NOT NULL,
-  "last_update"       timestamp NOT NULL,
+  "last_update"       timestamp DEFAULT SYSTIMESTAMP NOT NULL,
   "reason_code"       varchar(50),
   "retry_count"       number DEFAULT 0 NOT NULL,
   "last_error_code"   varchar(50),
   "last_error_message" varchar(500),
-  "version"           number DEFAULT 1 NOT NULL
+  "version"           number DEFAULT 1 NOT NULL,
+  CONSTRAINT chk_txn_state_status CHECK ("status" IN ('PENDING','APPROVED','REJECTED','MANUAL_REVIEW'))
 );
 
 CREATE TABLE "txn_state_history" (
@@ -186,7 +190,8 @@ CREATE TABLE "reconciliation_runs" (
   "error_message"           varchar(500),
   "triggered_by"            varchar(36),
   "completed_at"            timestamp,
-  "created_at"              timestamp NOT NULL
+  "created_at"              timestamp NOT NULL,
+  CONSTRAINT chk_recon_run_status CHECK ("status" IN ('RUNNING','COMPLETED','FAILED'))
 );
 
 CREATE TABLE "reconciliation_items" (
@@ -202,7 +207,8 @@ CREATE TABLE "reconciliation_items" (
   "resolution_note" varchar(500),
   "resolved_by"     varchar(36),
   "resolved_at"     timestamp,
-  "created_at"      timestamp NOT NULL
+  "created_at"      timestamp NOT NULL,
+  CONSTRAINT chk_recon_item_status CHECK ("status" IN ('OPEN','RESOLVED'))
 );
 
 CREATE TABLE "datalake_snapshots" (
@@ -215,7 +221,8 @@ CREATE TABLE "datalake_snapshots" (
   "total_amount"  decimal(18,2),
   "data_json"     CLOB,
   "status"        varchar(20) DEFAULT 'ACTIVE' NOT NULL,
-  "created_at"    timestamp NOT NULL
+  "created_at"    timestamp NOT NULL,
+  CONSTRAINT chk_datalake_status CHECK ("status" IN ('ACTIVE','ARCHIVED'))
 );
 
 CREATE TABLE "card_velocity_stats" (
@@ -227,7 +234,7 @@ CREATE TABLE "card_velocity_stats" (
   "m2_amt"         decimal(20,4) DEFAULT 0 NOT NULL,
   "distinct_days"  number DEFAULT 1 NOT NULL,
   "last_txn_date"  varchar(10),
-  "last_updated"   timestamp NOT NULL
+  "last_updated"   timestamp DEFAULT SYSTIMESTAMP NOT NULL
 );
 
 CREATE TABLE "dim_time" (
@@ -313,7 +320,7 @@ CREATE TABLE "audit_logs" (
   "actor_user_id" varchar(36),
   "actor_name"    varchar(150),
   "event_ts"      timestamp NOT NULL,
-  "detail_json"   varchar(4000)
+  "detail_json"   CLOB
 );
 
 CREATE TABLE "etl_logs" (
@@ -325,9 +332,10 @@ CREATE TABLE "etl_logs" (
   "records_out"  number,
   "error_message" varchar(500),
   "triggered_by" varchar(36),
-  "started_at"   timestamp NOT NULL,
+  "started_at"   timestamp DEFAULT SYSTIMESTAMP NOT NULL,
   "completed_at" timestamp,
-  "created_at"   timestamp NOT NULL
+  "created_at"   timestamp NOT NULL,
+  CONSTRAINT chk_etl_status CHECK ("status" IN ('RUNNING','SUCCESS','FAILED'))
 );
 
 -- ============================================================
@@ -366,7 +374,8 @@ CREATE TABLE "loans" (
   "updated_at"                 timestamp,
   CONSTRAINT chk_loan_amount        CHECK ("principal_amount" > 0),
   CONSTRAINT chk_loan_interest_rate CHECK ("interest_rate" > 0 AND "interest_rate" < 100),
-  CONSTRAINT chk_loan_pd_score      CHECK ("pd_score" IS NULL OR "pd_score" BETWEEN 0 AND 1)
+  CONSTRAINT chk_loan_pd_score      CHECK ("pd_score" IS NULL OR "pd_score" BETWEEN 0 AND 1),
+  CONSTRAINT chk_loan_status        CHECK ("status" IN ('PENDING','APPROVED','REJECTED','DISBURSED','CLOSED','DEFAULTED'))
 );
 
 CREATE TABLE "model_configs" (
@@ -376,7 +385,7 @@ CREATE TABLE "model_configs" (
   "param_value" decimal(10,6) NOT NULL,
   "description" varchar(255),
   "updated_by"  varchar(36),
-  "updated_at"  timestamp NOT NULL,
+  "updated_at"  timestamp DEFAULT SYSTIMESTAMP NOT NULL,
   "version"     number DEFAULT 1 NOT NULL,
   CONSTRAINT uq_model_configs_name_param UNIQUE ("model_name", "param_name")
 );
@@ -389,7 +398,8 @@ CREATE TABLE "suppression_rules" (
   "created_by" varchar(36) NOT NULL,
   "expires_at" timestamp,
   "is_active"  number(1) DEFAULT 1 NOT NULL,
-  "created_at" timestamp NOT NULL
+  "created_at" timestamp NOT NULL,
+  CONSTRAINT chk_supp_rule_type CHECK ("rule_type" IN ('MERCHANT','CUSTOMER','CARD_HASH'))
 );
 
 CREATE TABLE "analyst_reports" (
@@ -402,7 +412,8 @@ CREATE TABLE "analyst_reports" (
   "submitted_at"    timestamp NOT NULL,
   "acknowledged_by" varchar(36),
   "acknowledged_at" timestamp,
-  "note"            varchar(1000)
+  "note"            varchar(1000),
+  CONSTRAINT chk_report_status CHECK ("status" IN ('PENDING_REVIEW','ACKNOWLEDGED','ARCHIVED'))
 );
 
 -- ============================================================
@@ -434,6 +445,14 @@ CREATE INDEX idx_suppression_active   ON "suppression_rules" ("is_active");
 CREATE INDEX idx_suppression_type_eid ON "suppression_rules" ("rule_type", "entity_id");
 CREATE INDEX idx_analyst_reports_status ON "analyst_reports" ("status");
 CREATE INDEX idx_analyst_reports_by     ON "analyst_reports" ("submitted_by");
+CREATE INDEX idx_txn_live_submitted     ON "transactions_live" ("submitted_by");
+CREATE INDEX idx_case_status            ON "review_cases" ("case_status");
+CREATE INDEX idx_case_assigned          ON "review_cases" ("assigned_to");
+CREATE INDEX idx_audit_event_type       ON "audit_logs" ("event_type");
+CREATE INDEX idx_audit_entity_id        ON "audit_logs" ("entity_id");
+CREATE INDEX idx_audit_event_ts         ON "audit_logs" ("event_ts");
+CREATE INDEX idx_rule_hits_code         ON "rule_hits" ("rule_code");
+CREATE INDEX idx_supp_expires           ON "suppression_rules" ("expires_at");
 
 -- ============================================================
 -- COMMENTS
