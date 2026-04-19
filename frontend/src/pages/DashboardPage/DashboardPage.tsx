@@ -58,16 +58,10 @@ export function DashboardPage() {
                                 data={trend.data.slice(0, 10).map((d) => ({
                                     date: <span className="text-xs">{d.period_label}</span>,
                                     total_txn: <span className="text-sm">{d.total_txn}</span>,
-                                    approved: (
-                                        <span className="text-sm text-status-success">{d.approved}</span>
-                                    ),
-                                    rejected: (
-                                        <span className="text-sm text-status-danger">{d.rejected}</span>
-                                    ),
+                                    approved: <span className="text-sm text-status-success">{d.approved}</span>,
+                                    rejected: <span className="text-sm text-status-danger">{d.rejected}</span>,
                                     manual_review: (
-                                        <span className="text-sm text-status-warning">
-                                            {d.manual_review}
-                                        </span>
+                                        <span className="text-sm text-status-warning">{d.manual_review}</span>
                                     ),
                                     fraud_rate: <span className="text-sm">{(d.fraud_rate * 100).toFixed(2)}%</span>,
                                 }))}

@@ -165,12 +165,12 @@ export interface CaseListItem {
     txn_id: string;
     case_status: CaseStatus;
     assigned_to: string | null;
-    transaction: {
+    transaction?: {
         txn_id: string;
         amount: number;
         fraud_score: number;
         merchant_id: string;
-    };
+    } | null;
     created_at: string;
 }
 
