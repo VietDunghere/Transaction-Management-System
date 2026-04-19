@@ -11,7 +11,6 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
@@ -51,6 +50,28 @@ class AnalystService:
         return ThresholdListResponse(fraud=fraud_cfgs, loan=loan_cfgs)
 
     def update_thresholds(self, request: ThresholdUpdateRequest, actor_user_id: str) -> ThresholdListResponse:
+        # Apply updates vào dict tạm để cross-validate trước khi commit
+        pending: dict[tuple[str, str], float] = {
+            (item.model_name, item.param_name): item.param_value for item in request.updates
+        }
+
+        def _resolved(model: str, param: str) -> float:
+            """Lấy giá trị mới nếu có trong batch, không thì lấy từ DB."""
+            if (model, param) in pending:
+                return pending[(model, param)]
+            cfg = self._config_repo.get(model, param)
+            return float(cfg.param_value) if cfg else 0.0
+
+        reject_th = _resolved("fraud", "reject_threshold")
+        review_th = _resolved("fraud", "review_threshold")
+        if review_th >= reject_th:
+            raise ValueError(f"review_threshold ({review_th}) phải nhỏ hơn reject_threshold ({reject_th})")
+
+        high_th = _resolved("loan", "high_risk_threshold")
+        medium_th = _resolved("loan", "medium_risk_threshold")
+        if medium_th >= high_th:
+            raise ValueError(f"medium_risk_threshold ({medium_th}) phải nhỏ hơn high_risk_threshold ({high_th})")
+
         for item in request.updates:
             cfg = self._config_repo.update(item.model_name, item.param_name, item.param_value, actor_user_id)
             if cfg is None:
@@ -84,9 +105,11 @@ class AnalystService:
         reject_th = float(reject_cfg.param_value) if reject_cfg else 0.65
         review_th = float(review_cfg.param_value) if review_cfg else 0.35
 
-        approved = sum(1 for t in txns if t.fraud_score is not None and float(t.fraud_score) < review_th)
-        rejected = sum(1 for t in txns if t.fraud_score is not None and float(t.fraud_score) >= reject_th)
-        review = total - approved - rejected
+        scored_txns = [t for t in txns if t.fraud_score is not None]
+        approved = sum(1 for t in scored_txns if float(t.fraud_score) < review_th)
+        rejected = sum(1 for t in scored_txns if float(t.fraud_score) >= reject_th)
+        review = len(scored_txns) - approved - rejected
+        total = len(scored_txns)  # chỉ tính trên txn đã chấm điểm
 
         # False positive: case MANUAL_REVIEW mà reviewer quyết định APPROVED
         fp_count = self._db.query(ReviewCase).filter(

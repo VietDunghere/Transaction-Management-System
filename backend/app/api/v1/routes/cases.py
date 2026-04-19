@@ -180,7 +180,7 @@ def decide_case(
     case_id: str,
     body: CaseDecideRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN", "ANALYST")),
+    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
 ) -> CaseResponse:
     svc = CaseService(db)
     svc.decide(case_id, body, actor_user_id=token.sub, actor_roles=token.roles)

@@ -6,6 +6,7 @@ Repository: ModelConfigRepository + SuppressionRepository
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.analyst import ModelConfig, SuppressionRule
@@ -72,13 +73,19 @@ class SuppressionRepository:
         return rule
 
     def is_suppressed(self, merchant_id: str | None, customer_id: str | None, card_hash: str | None) -> bool:
-        """Kiểm tra nhanh xem giao dịch có bị suppress không."""
-        active = self.list_active()
-        for rule in active:
-            if rule.rule_type == "MERCHANT" and rule.entity_id == merchant_id:
-                return True
-            if rule.rule_type == "CUSTOMER" and rule.entity_id == customer_id:
-                return True
-            if rule.rule_type == "CARD_HASH" and rule.entity_id == card_hash:
-                return True
-        return False
+        """Kiểm tra nhanh xem giao dịch có bị suppress không — targeted OR query, không load toàn bộ rules."""
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        conditions = []
+        if merchant_id:
+            conditions.append((SuppressionRule.rule_type == "MERCHANT") & (SuppressionRule.entity_id == merchant_id))
+        if customer_id:
+            conditions.append((SuppressionRule.rule_type == "CUSTOMER") & (SuppressionRule.entity_id == customer_id))
+        if card_hash:
+            conditions.append((SuppressionRule.rule_type == "CARD_HASH") & (SuppressionRule.entity_id == card_hash))
+        if not conditions:
+            return False
+        return self._db.query(SuppressionRule).filter(
+            SuppressionRule.is_active == True,  # noqa: E712
+            (SuppressionRule.expires_at == None) | (SuppressionRule.expires_at > now),  # noqa: E711
+            or_(*conditions),
+        ).first() is not None

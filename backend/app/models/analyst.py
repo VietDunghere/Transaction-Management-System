@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -19,6 +19,7 @@ class ModelConfig(Base):
     """Bảng model_configs — lưu threshold fraud/loan có thể chỉnh bởi ANALYST."""
 
     __tablename__ = "model_configs"
+    __table_args__ = (UniqueConstraint("model_name", "param_name", name="uq_model_configs_name_param"),)
 
     config_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     model_name: Mapped[str] = mapped_column(String(50), nullable=False)        # "fraud" | "loan"

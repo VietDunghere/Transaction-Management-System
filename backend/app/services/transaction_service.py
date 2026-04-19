@@ -91,7 +91,6 @@ class TransactionService:
             card_hash=card_hash,
         ):
             # Whitelist — bypass fraud scoring, auto APPROVED
-            from app.models.transaction import TxnState, TxnStateHistory
             txn_date_str = request.txn_time.strftime("%Y-%m-%d")
             self._velocity_repo.upsert(card_hash, float(request.amount), txn_date_str)
             txn = Transaction(
