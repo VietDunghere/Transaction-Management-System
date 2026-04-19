@@ -107,7 +107,10 @@ def list_loans(
         "và Phân loại rủi ro (Risk Level) trước khi thực sự quyết định khoản vay."
     ),
 )
-def simulate_loan(body: LoanSimulationRequest) -> LoanSimulationResponse:
+def simulate_loan(
+    body: LoanSimulationRequest,
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+) -> LoanSimulationResponse:
     scoring_svc = LoanScoringService.get_instance()
 
     inp = LoanSimulationInput(
