@@ -716,3 +716,106 @@ INSERT INTO "dim_time" ("time_id", "full_date", "day_num", "month_num", "year_nu
 INSERT INTO "dim_time" ("time_id", "full_date", "day_num", "month_num", "year_num", "quarter_num", "is_weekend") VALUES (100, TO_DATE('2026-01-04', 'YYYY-MM-DD'), 4, 1, 2026, 1, 1);
 
 COMMIT;
+
+-- ============================================================
+-- ANALYST MODULE — FAKE DATA ADDITIONS (v1.3 — 2026-04-19)
+-- ============================================================
+
+-- ---- Thêm roles mới (OPERATOR=4, REVIEWER=5, ANALYST=6) ----
+INSERT INTO "roles" ("role_id", "role_name") VALUES (4, 'OPERATOR');
+INSERT INTO "roles" ("role_id", "role_name") VALUES (5, 'REVIEWER');
+INSERT INTO "roles" ("role_id", "role_name") VALUES (6, 'ANALYST');
+COMMIT;
+
+-- ---- ANALYST users ----
+INSERT INTO "users" ("user_id", "username", "password_hash", "full_name", "email", "is_active", "created_at")
+VALUES ('aa000001-0000-0000-0000-000000000001', 'analyst_1', 'hashed_password_123', 'Trần Thị Analyst 1', 'analyst1@hptrrđgtc.vn', 1, TO_TIMESTAMP('2026-01-10 08:00:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO "user_roles" ("user_id", "role_id", "assigned_at")
+VALUES ('aa000001-0000-0000-0000-000000000001', 6, TO_TIMESTAMP('2026-01-10 08:01:00', 'YYYY-MM-DD HH24:MI:SS'));
+
+INSERT INTO "users" ("user_id", "username", "password_hash", "full_name", "email", "is_active", "created_at")
+VALUES ('aa000002-0000-0000-0000-000000000002', 'analyst_2', 'hashed_password_123', 'Lê Văn Analyst 2', 'analyst2@hptrrđgtc.vn', 1, TO_TIMESTAMP('2026-02-01 09:00:00', 'YYYY-MM-DD HH24:MI:SS'));
+INSERT INTO "user_roles" ("user_id", "role_id", "assigned_at")
+VALUES ('aa000002-0000-0000-0000-000000000002', 6, TO_TIMESTAMP('2026-02-01 09:01:00', 'YYYY-MM-DD HH24:MI:SS'));
+COMMIT;
+
+-- ---- model_configs — ngưỡng mặc định ----
+INSERT INTO "model_configs" ("model_name", "param_name", "param_value", "description", "updated_by", "updated_at", "version")
+VALUES ('fraud', 'reject_threshold', 0.450000, 'Ngưỡng REJECT: fraud_score >= giá trị này → giao dịch bị từ chối', 'aa000001-0000-0000-0000-000000000001', TO_TIMESTAMP('2026-01-10 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), 1);
+
+INSERT INTO "model_configs" ("model_name", "param_name", "param_value", "description", "updated_by", "updated_at", "version")
+VALUES ('fraud', 'review_threshold', 0.050000, 'Ngưỡng MANUAL_REVIEW: fraud_score >= giá trị này → chuyển duyệt tay', 'aa000001-0000-0000-0000-000000000001', TO_TIMESTAMP('2026-01-10 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), 1);
+
+INSERT INTO "model_configs" ("model_name", "param_name", "param_value", "description", "updated_by", "updated_at", "version")
+VALUES ('loan', 'risk_high_threshold', 0.600000, 'Ngưỡng HIGH RISK: pd_score >= giá trị này → phân loại HIGH RISK', 'aa000001-0000-0000-0000-000000000001', TO_TIMESTAMP('2026-01-10 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), 1);
+
+INSERT INTO "model_configs" ("model_name", "param_name", "param_value", "description", "updated_by", "updated_at", "version")
+VALUES ('loan', 'risk_medium_threshold', 0.300000, 'Ngưỡng MEDIUM RISK: pd_score >= giá trị này → phân loại MEDIUM RISK', 'aa000001-0000-0000-0000-000000000001', TO_TIMESTAMP('2026-01-10 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), 1);
+COMMIT;
+
+-- ---- suppression_rules — ví dụ whitelist ----
+INSERT INTO "suppression_rules" ("rule_id", "rule_type", "entity_id", "reason", "created_by", "expires_at", "is_active", "created_at")
+VALUES ('sr000001-0000-0000-0000-000000000001', 'MERCHANT', 'MERCH-INTERNAL-PAYROLL', 'Merchant thanh toán lương nội bộ — không cần fraud check', 'aa000001-0000-0000-0000-000000000001', NULL, 1, TO_TIMESTAMP('2026-02-01 09:00:00', 'YYYY-MM-DD HH24:MI:SS'));
+
+INSERT INTO "suppression_rules" ("rule_id", "rule_type", "entity_id", "reason", "created_by", "expires_at", "is_active", "created_at")
+VALUES ('sr000002-0000-0000-0000-000000000002', 'CUSTOMER', 'cust-vip-00001', 'Khách hàng VIP đã xác minh danh tính đặc biệt — suppress MANUAL_REVIEW', 'aa000002-0000-0000-0000-000000000002', TO_TIMESTAMP('2026-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS'), 1, TO_TIMESTAMP('2026-02-15 14:00:00', 'YYYY-MM-DD HH24:MI:SS'));
+COMMIT;
+
+-- ---- analyst_reports — báo cáo mẫu ----
+INSERT INTO "analyst_reports" ("report_id", "title", "report_type", "content_md", "status", "submitted_by", "submitted_at", "acknowledged_by", "acknowledged_at", "note")
+VALUES (
+  'rpt00001-0000-0000-0000-000000000001',
+  'Báo cáo Phân tích Fraud Q1/2026',
+  'FRAUD_ANALYSIS',
+  '# Báo cáo Phân tích Gian lận Q1/2026
+
+## Tóm tắt điều hành
+Trong Q1/2026, hệ thống xử lý **12.450 giao dịch**, trong đó:
+- APPROVED: 10.820 (86.9%)
+- REJECTED: 845 (6.8%)
+- MANUAL_REVIEW: 785 (6.3%)
+
+## Phát hiện chính
+1. Tỉ lệ false positive tăng 2.1% so với Q4/2025 — đề xuất nâng review_threshold từ 0.05 → 0.08
+2. Merchant category ONLINE_SHOPPING có fraud_score phân bố lệch phải — cần retraining
+3. Suppression rule cho merchant nội bộ hoạt động hiệu quả — giảm 340 case không cần thiết
+
+## Đề xuất
+- Cập nhật review_threshold: 0.05 → 0.08
+- Thu thập thêm labeled data cho ONLINE_SHOPPING trong Q2
+',
+  'ACKNOWLEDGED',
+  'aa000001-0000-0000-0000-000000000001',
+  TO_TIMESTAMP('2026-04-05 10:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+  NULL,  -- acknowledged_by: sẽ điền bằng user_id MANAGER thực tế
+  TO_TIMESTAMP('2026-04-10 15:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+  'Đã review, đồng ý đề xuất cập nhật threshold'
+);
+
+INSERT INTO "analyst_reports" ("report_id", "title", "report_type", "content_md", "status", "submitted_by", "submitted_at", "acknowledged_by", "acknowledged_at", "note")
+VALUES (
+  'rpt00002-0000-0000-0000-000000000002',
+  'Đánh giá Hiệu suất Mô hình PD Score — Tháng 3/2026',
+  'LOAN_ANALYSIS',
+  '# Hiệu suất Mô hình PD Score — Tháng 3/2026
+
+## Số liệu tổng quan
+- Tổng đơn vay tháng 3: **320 đơn**
+- HIGH RISK (pd_score >= 0.6): 48 đơn (15%)
+- MEDIUM RISK (0.3 <= pd_score < 0.6): 89 đơn (27.8%)
+- LOW RISK (pd_score < 0.3): 183 đơn (57.2%)
+
+## Phân tích phân phối
+Mô hình hiện tại có AUC-ROC = 0.82. Tỉ lệ loan_intent = EDUCATION có pd_score cao bất thường — cần điều tra.
+
+## Trạng thái
+PENDING_REVIEW — chờ MANAGER xem xét
+',
+  'PENDING_REVIEW',
+  'aa000002-0000-0000-0000-000000000002',
+  TO_TIMESTAMP('2026-04-15 11:30:00', 'YYYY-MM-DD HH24:MI:SS'),
+  NULL,
+  NULL,
+  NULL
+);
+COMMIT;

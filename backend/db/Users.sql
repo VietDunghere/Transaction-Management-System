@@ -114,3 +114,94 @@ GRANT EXECUTE ON PROC_EXECUTE_RECONCILIATION TO IT_ADMIN;
 GRANT SELECT ON "audit_logs" TO IT_ADMIN;
 
 
+
+-- ============================================================
+-- ANALYST MODULE — ROLE & PERMISSION ADDITIONS (v1.3 — 2026-04-19)
+-- ============================================================
+
+-- Thêm OPERATOR, REVIEWER, ANALYST vào roles nếu chưa có
+-- (Users.sql cũ chỉ có ADMIN, MANAGER, IT_ADMIN)
+
+-- ============================================================
+-- 5. ROLE: OPERATOR (Core Banking System của Ngân hàng đối tác)
+-- ============================================================
+-- Lưu ý: OPERATOR là hệ thống tự động của ngân hàng, không phải nhân viên.
+-- Quyền ở DB level chỉ INSERT giao dịch/đơn vay, không có quyền đọc báo cáo.
+CREATE ROLE OPERATOR_SYS;
+GRANT CONNECT TO OPERATOR_SYS;
+
+GRANT SELECT, INSERT ON "transactions_live"     TO OPERATOR_SYS;
+GRANT SELECT, INSERT ON "txn_idempotency"       TO OPERATOR_SYS;
+GRANT SELECT, INSERT ON "txn_state"             TO OPERATOR_SYS;
+GRANT SELECT, INSERT ON "txn_state_history"     TO OPERATOR_SYS;
+GRANT SELECT, INSERT ON "loans"                 TO OPERATOR_SYS;
+GRANT SELECT         ON "customers"             TO OPERATOR_SYS;
+GRANT SELECT         ON "merchants"             TO OPERATOR_SYS;
+GRANT SELECT         ON "channels"              TO OPERATOR_SYS;
+GRANT SELECT         ON "risk_scoring_results"  TO OPERATOR_SYS;
+GRANT SELECT         ON "rule_hits"             TO OPERATOR_SYS;
+GRANT SELECT         ON "model_configs"         TO OPERATOR_SYS;  -- Đọc ngưỡng để scoring
+GRANT SELECT         ON "suppression_rules"     TO OPERATOR_SYS;  -- Đọc whitelist để bypass
+GRANT EXECUTE ON PROC_SUBMIT_TRANSACTION        TO OPERATOR_SYS;
+
+-- ============================================================
+-- 6. ROLE: REVIEWER (Nhân viên Duyệt Case Thủ công)
+-- ============================================================
+-- Nâng cấp từ tên REVIEWER sang REVIEWER_ROLE để tránh conflict
+CREATE ROLE REVIEWER_ROLE;
+GRANT CONNECT TO REVIEWER_ROLE;
+
+GRANT SELECT, UPDATE ON "review_cases"          TO REVIEWER_ROLE;
+GRANT SELECT, INSERT, UPDATE ON "review_case_actions" TO REVIEWER_ROLE;
+GRANT SELECT, UPDATE ON "transactions_live"     TO REVIEWER_ROLE;
+GRANT SELECT, UPDATE ON "txn_state"             TO REVIEWER_ROLE;
+GRANT SELECT, INSERT ON "txn_state_history"     TO REVIEWER_ROLE;
+GRANT SELECT         ON "customers"             TO REVIEWER_ROLE;
+GRANT SELECT         ON "merchants"             TO REVIEWER_ROLE;
+GRANT SELECT         ON "risk_scoring_results"  TO REVIEWER_ROLE;
+GRANT EXECUTE ON PROC_PROCESS_REVIEW_CASE       TO REVIEWER_ROLE;
+
+-- ============================================================
+-- 7. ROLE: ANALYST (Chuyên viên Phân tích Rủi ro)
+-- ============================================================
+CREATE ROLE ANALYST_ROLE;
+GRANT CONNECT TO ANALYST_ROLE;
+
+-- Đọc dữ liệu nghiệp vụ để phân tích
+GRANT SELECT ON "transactions_live"     TO ANALYST_ROLE;
+GRANT SELECT ON "risk_scoring_results"  TO ANALYST_ROLE;
+GRANT SELECT ON "rule_hits"             TO ANALYST_ROLE;
+GRANT SELECT ON "loans"                 TO ANALYST_ROLE;
+GRANT SELECT ON "review_cases"          TO ANALYST_ROLE;
+GRANT SELECT ON "audit_logs"            TO ANALYST_ROLE;
+GRANT SELECT ON "customers"             TO ANALYST_ROLE;
+GRANT SELECT ON "merchants"             TO ANALYST_ROLE;
+
+-- DWH — đọc để phân tích xu hướng
+GRANT SELECT ON "fact_transactions"     TO ANALYST_ROLE;
+GRANT SELECT ON "fact_loans"            TO ANALYST_ROLE;
+GRANT SELECT ON "dim_time"              TO ANALYST_ROLE;
+GRANT SELECT ON "dim_customer"          TO ANALYST_ROLE;
+GRANT SELECT ON "dim_merchant"          TO ANALYST_ROLE;
+GRANT SELECT ON "dim_channel"           TO ANALYST_ROLE;
+
+-- Analyst Module — toàn quyền trên 3 bảng mới
+GRANT SELECT, INSERT, UPDATE ON "model_configs"     TO ANALYST_ROLE;
+GRANT SELECT, INSERT, UPDATE ON "suppression_rules" TO ANALYST_ROLE;
+GRANT SELECT, INSERT, UPDATE ON "analyst_reports"   TO ANALYST_ROLE;
+
+-- ============================================================
+-- Cập nhật MANAGER — thêm quyền xem 3 bảng Analyst Module
+-- ============================================================
+GRANT SELECT         ON "model_configs"     TO MANAGER;
+GRANT SELECT         ON "suppression_rules" TO MANAGER;
+GRANT SELECT, UPDATE ON "analyst_reports"   TO MANAGER;  -- UPDATE để acknowledge
+GRANT SELECT         ON "loans"             TO MANAGER;
+
+-- ============================================================
+-- Cập nhật IT_ADMIN (= ADMIN trong app) — toàn quyền trên 3 bảng mới
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON "model_configs"     TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "suppression_rules" TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "analyst_reports"   TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "loans"             TO IT_ADMIN;

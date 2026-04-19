@@ -795,3 +795,135 @@ BEGIN
 END;
 /
 
+
+-- ============================================================
+-- ANALYST MODULE — SCHEMA ADDITIONS (v1.3 — 2026-04-19)
+-- ============================================================
+
+-- ---- Cột mới trong risk_scoring_results ----
+ALTER TABLE "risk_scoring_results" ADD (
+  "reject_threshold"       decimal(6,4),        -- Ngưỡng REJECT tại thời điểm score (lấy từ model_configs)
+  "review_threshold"       decimal(6,4),        -- Ngưỡng MANUAL_REVIEW tại thời điểm score
+  "feature_snapshot_json"  CLOB                 -- Feature vector đã dùng — phục vụ audit & retraining
+);
+
+-- reason_json nâng cấp từ varchar(4000) → CLOB (lớn hơn khi có nhiều top_features)
+ALTER TABLE "risk_scoring_results" MODIFY "reason_json" CLOB;
+
+-- ---- Bảng loans (thay thế loan_applications trong OLTP) ----
+-- loan_applications giữ lại cho DWH backward-compat; OLTP mới dùng loans
+CREATE TABLE "loans" (
+  "loan_id"                    varchar(36) PRIMARY KEY,
+  "customer_id"                varchar(36) NOT NULL,
+  "submitted_by"               varchar(36) NOT NULL,    -- OPERATOR gửi đơn vay
+  "reviewed_by"                varchar(36),             -- MANAGER/ADMIN phê duyệt
+  "principal_amount"           decimal(18,2) NOT NULL,
+  "currency_code"              varchar(10) DEFAULT 'USD' NOT NULL,
+  "interest_rate"              decimal(6,4) NOT NULL,   -- Lãi suất năm dạng thập phân (VD: 0.1200 = 12%)
+  "term_months"                number NOT NULL,
+  "purpose"                    varchar(200),
+  -- Trạng thái: PENDING | APPROVED | REJECTED | DISBURSED | CLOSED | DEFAULTED
+  "status"                     varchar(20) NOT NULL,
+  "version"                    number DEFAULT 1 NOT NULL, -- Optimistic Locking
+  "review_note"                varchar(500),
+  "reviewed_at"                timestamp,
+  -- Thông tin giải ngân (điền khi APPROVED)
+  "monthly_payment"            decimal(18,2),
+  "outstanding_balance"        decimal(18,2),
+  "disbursed_at"               timestamp,
+  "maturity_date"              date,
+  -- Loan AI input features (snapshot tại thời điểm nộp đơn — XGBoost model)
+  "person_age"                 number,
+  "person_income"              decimal(18,2),
+  "person_home_ownership"      varchar(20),              -- RENT|MORTGAGE|OWN|OTHER
+  "person_emp_length"          number,
+  "loan_grade"                 varchar(2),               -- A–G
+  "loan_intent"                varchar(30),              -- PERSONAL|EDUCATION|MEDICAL|VENTURE|HOMEIMPROVEMENT|DEBTCONSOLIDATION
+  "cb_person_default_on_file"  varchar(1),               -- Y|N
+  "cb_person_cred_hist_length" number,
+  -- Kết quả AI
+  "pd_score"                   decimal(6,4),             -- Xác suất vỡ nợ 0.0–1.0
+  "risk_level"                 varchar(20),              -- LOW RISK | MEDIUM RISK | HIGH RISK
+  "created_at"                 timestamp NOT NULL,
+  "updated_at"                 timestamp
+);
+
+COMMENT ON TABLE "loans" IS 'Bảng OLTP khoản vay — thay thế loan_applications (v1.3). loan_applications giữ lại cho DWH.';
+COMMENT ON COLUMN "loans"."loan_id" IS 'UUID';
+COMMENT ON COLUMN "loans"."status" IS 'PENDING|APPROVED|REJECTED|DISBURSED|CLOSED|DEFAULTED';
+COMMENT ON COLUMN "loans"."version" IS 'Optimistic Locking — tăng mỗi lần cập nhật trạng thái';
+
+ALTER TABLE "loans" ADD FOREIGN KEY ("customer_id")  REFERENCES "customers" ("customer_id") DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE "loans" ADD FOREIGN KEY ("submitted_by") REFERENCES "users" ("user_id")     DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE "loans" ADD FOREIGN KEY ("reviewed_by")  REFERENCES "users" ("user_id")     DEFERRABLE INITIALLY IMMEDIATE;
+
+CREATE INDEX idx_loans_status      ON "loans" ("status");
+CREATE INDEX idx_loans_customer    ON "loans" ("customer_id");
+CREATE INDEX idx_loans_submitted   ON "loans" ("submitted_by");
+
+-- ---- Bảng model_configs (ngưỡng phân loại do ANALYST điều chỉnh) ----
+CREATE TABLE "model_configs" (
+  "config_id"    number GENERATED AS IDENTITY PRIMARY KEY,
+  "model_name"   varchar(50) NOT NULL,    -- "fraud" | "loan"
+  "param_name"   varchar(100) NOT NULL,   -- "reject_threshold" | "review_threshold" | "risk_high_threshold" | ...
+  "param_value"  decimal(10,6) NOT NULL,
+  "description"  varchar(255),
+  "updated_by"   varchar(36),             -- user_id của ANALYST cập nhật
+  "updated_at"   timestamp NOT NULL,
+  "version"      number DEFAULT 1 NOT NULL,
+  CONSTRAINT uq_model_configs_name_param UNIQUE ("model_name", "param_name")
+);
+
+COMMENT ON TABLE "model_configs" IS 'Ngưỡng phân loại Fraud/PD Score — ANALYST điều chỉnh, không hardcode trong code';
+COMMENT ON COLUMN "model_configs"."model_name" IS '"fraud" | "loan"';
+COMMENT ON COLUMN "model_configs"."param_name" IS '"reject_threshold" | "review_threshold" | "risk_high_threshold" | "risk_medium_threshold"';
+
+ALTER TABLE "model_configs" ADD FOREIGN KEY ("updated_by") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
+
+-- ---- Bảng suppression_rules (whitelist bypass fraud scoring) ----
+CREATE TABLE "suppression_rules" (
+  "rule_id"     varchar(36) PRIMARY KEY,
+  "rule_type"   varchar(20) NOT NULL,    -- MERCHANT | CUSTOMER | CARD_HASH
+  "entity_id"   varchar(255) NOT NULL,   -- merchant_id / customer_id / card_hash
+  "reason"      CLOB NOT NULL,
+  "created_by"  varchar(36) NOT NULL,    -- ANALYST tạo rule
+  "expires_at"  timestamp,               -- NULL = không hết hạn
+  "is_active"   number(1) DEFAULT 1 NOT NULL,
+  "created_at"  timestamp NOT NULL
+);
+
+COMMENT ON TABLE "suppression_rules" IS 'Whitelist giao dịch bypass fraud scoring — ANALYST quản lý';
+COMMENT ON COLUMN "suppression_rules"."rule_id" IS 'UUID';
+COMMENT ON COLUMN "suppression_rules"."rule_type" IS 'MERCHANT | CUSTOMER | CARD_HASH';
+COMMENT ON COLUMN "suppression_rules"."is_active" IS '1 = active, 0 = vô hiệu hóa';
+
+ALTER TABLE "suppression_rules" ADD FOREIGN KEY ("created_by") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
+
+CREATE INDEX idx_suppression_active   ON "suppression_rules" ("is_active");
+CREATE INDEX idx_suppression_type_eid ON "suppression_rules" ("rule_type", "entity_id");
+
+-- ---- Bảng analyst_reports (báo cáo phân tích ANALYST → MANAGER) ----
+CREATE TABLE "analyst_reports" (
+  "report_id"        varchar(36) PRIMARY KEY,
+  "title"            varchar(255) NOT NULL,
+  "report_type"      varchar(50) NOT NULL,   -- FRAUD_ANALYSIS | LOAN_ANALYSIS | THRESHOLD_RECOMMENDATION | SUPPRESSION_REVIEW | GENERAL
+  "content_md"       CLOB NOT NULL,          -- Nội dung Markdown (render PDF bằng fpdf2)
+  -- PENDING_REVIEW | ACKNOWLEDGED | ARCHIVED
+  "status"           varchar(20) NOT NULL,
+  "submitted_by"     varchar(36) NOT NULL,   -- ANALYST tạo báo cáo
+  "submitted_at"     timestamp NOT NULL,
+  "acknowledged_by"  varchar(36),            -- MANAGER/ADMIN xác nhận
+  "acknowledged_at"  timestamp,
+  "note"             varchar(1000)           -- Ghi chú của MANAGER khi acknowledge
+);
+
+COMMENT ON TABLE "analyst_reports" IS 'Báo cáo phân tích rủi ro định kỳ — ANALYST tạo, MANAGER acknowledge';
+COMMENT ON COLUMN "analyst_reports"."report_id" IS 'UUID';
+COMMENT ON COLUMN "analyst_reports"."report_type" IS 'FRAUD_ANALYSIS | LOAN_ANALYSIS | THRESHOLD_RECOMMENDATION | SUPPRESSION_REVIEW | GENERAL';
+COMMENT ON COLUMN "analyst_reports"."status" IS 'PENDING_REVIEW | ACKNOWLEDGED | ARCHIVED';
+
+ALTER TABLE "analyst_reports" ADD FOREIGN KEY ("submitted_by")    REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE "analyst_reports" ADD FOREIGN KEY ("acknowledged_by") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
+
+CREATE INDEX idx_analyst_reports_status ON "analyst_reports" ("status");
+CREATE INDEX idx_analyst_reports_by     ON "analyst_reports" ("submitted_by");
