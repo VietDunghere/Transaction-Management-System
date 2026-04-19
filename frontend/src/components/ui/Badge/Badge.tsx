@@ -12,19 +12,19 @@ interface BadgeProps {
 
 const variantStyles: Record<BadgeVariant, string> = {
     default: 'bg-text-primary text-bg-primary',
-    success: 'bg-emerald-50 text-emerald-700',
-    warning: 'bg-amber-50 text-amber-700',
-    danger: 'bg-red-50 text-red-700',
-    info: 'bg-blue-50 text-blue-700',
+    success: 'bg-badge-success-bg text-badge-success-text',
+    warning: 'bg-badge-warning-bg text-badge-warning-text',
+    danger: 'bg-badge-danger-bg text-badge-danger-text',
+    info: 'bg-badge-info-bg text-badge-info-text',
     muted: 'bg-surface-card text-text-secondary',
 };
 
 const dotStyles: Record<BadgeVariant, string> = {
     default: 'bg-primary',
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    danger: 'bg-red-500',
-    info: 'bg-blue-500',
+    success: 'bg-badge-success-dot',
+    warning: 'bg-badge-warning-dot',
+    danger: 'bg-badge-danger-dot',
+    info: 'bg-badge-info-dot',
     muted: 'bg-text-secondary',
 };
 

@@ -23,8 +23,8 @@ export function StatCard({ label, value, change, changeType = 'neutral', accent 
                 <span
                     className={cn(
                         'text-sm',
-                        changeType === 'positive' && 'text-emerald-600',
-                        changeType === 'negative' && 'text-red-600',
+                        changeType === 'positive' && 'text-feedback-positive',
+                        changeType === 'negative' && 'text-feedback-negative',
                         changeType === 'neutral' && 'text-text-secondary',
                     )}
                 >
