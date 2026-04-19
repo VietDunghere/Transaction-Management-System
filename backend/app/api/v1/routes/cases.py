@@ -3,8 +3,8 @@ from __future__ import annotations
 Router: Cases (Manual Review)
 GET  /cases              — danh sách case (REVIEWER, MANAGER)
 GET  /cases/{id}         — chi tiết case (REVIEWER, MANAGER)
-POST /cases/{id}/assign  — giao case (MANAGER)
-POST /cases/{id}/decide  — quyết định (REVIEWER)
+POST /cases/{id}/assign  — REVIEWER tự nhận case (self-assign)
+POST /cases/{id}/decide  — quyết định (REVIEWER, MANAGER, ADMIN)
 """
 
 import math
@@ -44,14 +44,28 @@ def list_cases(
 ) -> PagedResponse[CaseListItem]:
     svc = CaseService(db)
 
-    # REVIEWER chỉ được xem cases của mình
-    effective_assigned_to = assigned_to
-    if "REVIEWER" in token.roles and "MANAGER" not in token.roles and "ADMIN" not in token.roles:
-        effective_assigned_to = token.sub
+    # REVIEWER có thể thấy:
+    #   - Tất cả OPEN cases (queue chưa ai nhận — để self-assign)
+    #   - Cases được assign cho chính mình
+    # Không cho phép REVIEWER lọc theo reviewer khác.
+    # Chi tiết từng case bị giới hạn thêm ở get_case().
+    is_reviewer_only = (
+        "REVIEWER" in token.roles
+        and "MANAGER" not in token.roles
+        and "ADMIN" not in token.roles
+    )
+
+    if is_reviewer_only and assigned_to is not None and assigned_to != token.sub:
+        raise PermissionDeniedError("Bạn không thể lọc theo reviewer khác.")
+
+    # REVIEWER thấy: tất cả OPEN cases (queue chưa ai nhận) + cases của mình.
+    # Dùng reviewer_queue_for thay vì assigned_to để repo tạo compound OR query.
+    reviewer_queue_for = token.sub if is_reviewer_only else None
 
     items, total = svc.list_cases(
         case_status=case_status,
-        assigned_to=effective_assigned_to,
+        assigned_to=assigned_to if not is_reviewer_only else None,
+        reviewer_queue_for=reviewer_queue_for,
         page=page,
         page_size=limit,
     )

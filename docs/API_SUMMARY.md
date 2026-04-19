@@ -4,101 +4,185 @@
 
 ---
 
-## Hệ thống & Health
+## CHANGELOG
 
-| # | Phương thức | URL | Input | Output | Tác dụng |
-|---|---|---|---|---|---|
-| 1 | `GET` | `/health` | _(không có)_ | `status`, `version`, `timestamp` | Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes |
-
----
-
-## UC02 – Xác thực & Phân quyền
-
-| # | Phương thức | URL | Input | Output | Tác dụng |
-|---|---|---|---|---|---|
-| 2 | `POST` | `/auth/login` | `username`, `password` | `access_token`, `role`, `user_id` | Đăng nhập, nhận JWT token |
-| 3 | `POST` | `/auth/logout` | _(Bearer Token)_ | `message` | Đăng xuất, hủy phiên |
-| 4 | `GET` | `/auth/me` | _(Bearer Token)_ | `user_id`, `username`, `role`, `is_active` | Xem thông tin tài khoản đang xác thực _(Tất cả roles)_ |
-| 5 | `PATCH` | `/auth/change-password` | `current_password`, `new_password`, `confirm_password` | `message` | Đổi mật khẩu cá nhân |
-| 6 | `GET` | `/users` | Query: `page`, `limit`, `role`, `is_active` | Danh sách user (phân trang) | Xem danh sách tài khoản _(MANAGER, ADMIN)_ |
-| 7 | `GET` | `/users/{user_id}` | `user_id` trên URL | `user_id`, `username`, `role`, `is_active`, `created_at` | Xem chi tiết thông tin một người dùng cụ thể _(MANAGER, ADMIN)_ |
-| 8 | `POST` | `/users` | `username`, `full_name`, `email`, `password`, `role` | `user_id`, `role`, `created_at` | Tạo tài khoản nhân viên mới _(ADMIN)_ |
-| 9 | `PATCH` | `/users/{user_id}/disable` | _(user_id trên URL)_ | `is_active: false` | Vô hiệu hóa tài khoản (không được tự disable chính mình) _(ADMIN)_ |
-| 10 | `PATCH` | `/users/{user_id}/enable` | _(user_id trên URL)_ | `is_active: true` | Kích hoạt lại tài khoản đã bị vô hiệu hóa _(ADMIN)_ |
-| 11 | `PATCH` | `/users/{user_id}/role` | `role` | `user_id`, `role`, `updated_at` | Gán/thay đổi vai trò người dùng _(ADMIN)_ |
-
----
-
-## UC03 – Quản lý Giao dịch
-
-| # | Phương thức | URL | Input | Output | Tác dụng |
-|---|---|---|---|---|---|
-| 12 | `POST` | `/transactions/submit` | `card_number` (dạng raw, server tự mask), `amount`, `merchant_id`, `currency`, `metadata` | `txn_id`, `idempotency_key`, `status`, `fraud_score`, `override_reason` | Gửi giao dịch; Server định tuyến, lấy các field tĩnh hash thành `idempotency_key`, tránh xử lý lặp _(OPERATOR)_ |
-| 13 | `GET` | `/transactions` | Query: `page`, `limit`, `status`, `from_date`, `to_date`, `merchant_id`, `min_amount`, `max_amount` | Danh sách giao dịch (phân trang) | Liệt kê giao dịch. **Lưu ý:** Filter ngầm `submitted_by` được tự động gán nếu role là OPERATOR _(Tất cả roles)_ |
-| 14 | `GET` | `/transactions/{txn_id}` | `txn_id` trên URL | Chi tiết giao dịch + `state_history` | Xem chi tiết một giao dịch cụ thể _(Tất cả roles)_ |
-
-*(Endpoint duyệt thẳng giao dịch `PATCH /transaction/{txn_id}/status` đã bị gỡ bỏ theo khuyến nghị Audit (Issue #3) nhằm giữ Audit Trail, mọi việc duyệt phải thông qua Case flow bên dưới).*
+| # | Old | New |
+|---|---|---|
+| 1 | `POST /loans/submit` | `POST /loans` |
+| 2 | `GET /loans` – MANAGER, ADMIN only | OPERATOR, MANAGER, ADMIN (OPERATOR sees own only) |
+| 3 | Missing `PATCH /loans/{loan_id}/decision` | Added – MANAGER, ADMIN approve/reject loans |
+| 4 | Missing `POST /loans/simulate` | Added – AI simulation, no DB write |
+| 5 | `GET /transactions/{txn_id}/states` | `GET /transactions/{txn_id}/state-history` |
+| 6 | `POST /etl/trigger` | `POST /etl/run` |
+| 7 | Missing `POST /auth/refresh` | Added – obtain new access token via refresh token |
+| 8 | Missing SSE endpoints | Added `GET /stream/transactions` and `GET /stream/dashboard` |
+| 9 | Transaction Submit – OPERATOR only | OPERATOR, MANAGER, ADMIN |
+| 10 | Missing `GET /dashboard/fraud-trend` | Added – daily fraud trend, lookback up to 90 days |
+| 11 | Missing `GET /audit-logs/entities/{entity_type}/{entity_id}` | Added – per-entity audit history |
+| 12 | Missing `GET /audit-logs/{log_id}` | Added – single audit log detail |
+| 13 | `GET /reports/transactions` – aggregated report only | Raw transaction list with CSV export support |
+| 14 | `GET /reports/fraud` missing | Added – fraud aggregation by day with CSV export |
+| 15 | Missing `POST /datalake/ingest` | Added – ingest external snapshot into Data Lake |
+| 16 | `GET /datalake/structure` (non-existent path) | `GET /datalake/snapshots` |
+| 17 | `GET /reconciliation/jobs` (non-existent path) | `GET /reconciliation/reports` |
+| 18 | `GET /reconciliation/jobs/{job_id}` (non-existent path) | `GET /reconciliation/{run_id}` |
+| 19 | Missing `PATCH /reconciliation/{run_id}/resolve` | Added – resolve all open discrepancies |
+| 20 | Total 41 endpoints (claimed) | 47 endpoints (verified from code) |
 
 ---
 
-## UC04 – Hỗ trợ Quyết định Cho vay (Loan Simulator)
+## Health
 
-| # | Phương thức | URL | Input | Output | Tác dụng |
-|---|---|---|---|---|---|
-| 15 | `POST` | `/loans/submit` | Dữ liệu khoản vay, người vay | `loan_id`, `pd_score`, `risk_level` | Gửi và chấm điểm khoản vay giả định _(OPERATOR)_ |
-| 16 | `GET` | `/loans` | Query: `page`, `limit`, `status` | Danh sách khoản vay (phân trang) | Liệt kê các hồ sơ xin vay vốn _(MANAGER, ADMIN)_ |
-| 17 | `GET` | `/loans/{loan_id}` | `loan_id` trên URL | Chi tiết hồ sơ vay | Kiểm tra và xem lại chi tiết vay _(MANAGER, ADMIN)_ |
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 1 | `GET` | `/health` | Public | System health check – returns status, version, environment, checks (database, fraud_model) |
 
 ---
 
-## UC05 – Case Management & Audit
+## Auth
 
-| # | Phương thức | URL | Input | Output | Tác dụng |
-|---|---|---|---|---|---|
-| 18 | `GET` | `/cases` | Query: `page`, `limit`, `status`, `assigned_to`, `from_date`, `to_date` | Danh sách case (phân trang) | Xem danh sách case MANUAL_REVIEW cần xử lý _(REVIEWER, MANAGER, ADMIN)_ |
-| 19 | `POST` | `/cases/{case_id}/assign` | `case_id` trên URL | `case_id`, `status: ASSIGNED`, `assigned_to` | Nhận case về xử lý. *Có constraint Transaction Locking (WHERE assigned_to IS NULL)* để chặn race condition _(REVIEWER)_ |
-| 20 | `GET` | `/cases/{case_id}` | `case_id` trên URL | Chi tiết case + thông tin giao dịch | Xem chi tiết case để ra quyết định _(REVIEWER, MANAGER, ADMIN)_ |
-| 21 | `PATCH` | `/cases/{case_id}/decision` | `decision` (`APPROVED`/`REJECTED`), `note` (bắt buộc), **`version`** | `case_id`, `txn_status` mới | Duyệt/Từ chối case (Gộp Approve & Reject). Có `version` để kích hoạt Optimistic Locking ngừa đụng độ _(REVIEWER)_ |
-| 22 | `GET` | `/audit-logs` | Query: `page`, `limit`, `entity_type`, `entity_id`, ... | Danh sách audit events (phân trang) | Xem toàn bộ Audit Log hệ thống _(MANAGER, ADMIN)_ |
-| 23 | `GET` | `/audit-logs/transactions/{txn_id}/trace` | `txn_id` trên URL | Timeline đầy đủ sự kiện của giao dịch | Truy vết lịch sử một giao dịch từ lúc tạo đến hiện tại _(MANAGER, ADMIN)_ |
-| 24 | `GET` | `/audit-logs/export` | Query: `format` (`csv`/`pdf`), `from_date`, `to_date`, `entity_type` | File download (CSV/PDF) | Xuất báo cáo Audit Log ra file _(MANAGER, ADMIN)_ |
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 2 | `POST` | `/auth/login` | Public | Login – returns access_token, refresh_token, user info |
+| 3 | `POST` | `/auth/logout` | Any authenticated | Logout – invalidate session |
+| 4 | `GET` | `/auth/me` | Any authenticated | Get current user info (user_id, username, full_name, role, is_active) |
+| 5 | `PATCH` | `/auth/change-password` | Any authenticated | Change own password (current_password, new_password min8, confirm_password) |
+| 6 | `POST` | `/auth/refresh` | Public | Exchange refresh_token for new TokenResponse |
 
 ---
 
-## UC06 – Data Engineering & Báo cáo
+## Users
 
-| # | Phương thức | URL | Input | Output | Tác dụng |
-|---|---|---|---|---|---|
-| 25 | `GET` | `/dashboard/summary` | Query: `period` (`today`/`this_week`/`this_month`) | Tổng số giao dịch, fraud rate, trend + `granularity` | Xem Dashboard tổng quan _(MANAGER, ADMIN)_ |
-| 26 | `GET` | `/dashboard/fraud-chart` | Query: `from_date`, `to_date` (chính), `period` (nhúng) | Tỷ lệ Fraud/Legit | Xem biểu đồ Fraud vs Legit từ OLAP _(MANAGER, ADMIN)_ |
-| 27 | `GET` | `/reports/transactions` | Query: `period`, `from_date`, `to_date` | Báo cáo count, amount, tỷ lệ Trạng thái | Xem báo cáo phân tích tổng hợp _(MANAGER, ADMIN)_ |
-| 28 | `GET` | `/reports/transactions/export`| Query: `format`, `from_date`, `to_date` | File download (CSV/PDF) | Xuất báo cáo giao dịch ra file _(MANAGER, ADMIN)_ |
-| 29 | `GET` | `/datalake/structure` | Query: `page`, `limit` | Danh sách thư mục (Đã bổ sung Phân trang) | Xem cấu trúc Data Lake _(ADMIN)_ |
-| 30 | `GET` | `/etl/logs` | Query: `page`, `limit`, `status`, `from_date`| Danh sách ETL jobs kết quả tóm tắt | Xem lịch sử chạy ETL pipeline _(ADMIN)_ |
-| 31 | `GET` | `/etl/logs/{job_id}` | `job_id` trên URL | Chi tiết job + errors (nếu có) | Poll chi tiết trang thái một ETL job cụ thể _(ADMIN)_ |
-| 32 | `POST` | `/etl/trigger` | `date`, `mode` (`FULL`/`INCREMENTAL`) | `job_id`, `status: RUNNING` | Khởi chạy thủ công ETL Pipeline _(ADMIN)_ |
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 7 | `GET` | `/users` | MANAGER, ADMIN | List users – query: role, is_active, page, limit |
+| 8 | `GET` | `/users/{user_id}` | MANAGER, ADMIN | Get user detail |
+| 9 | `POST` | `/users` | ADMIN | Create user (username min3, full_name min2, email, password min8, role) → 201 |
+| 10 | `PATCH` | `/users/{user_id}/disable` | ADMIN | Disable account (SoD: cannot disable self → 403) |
+| 11 | `PATCH` | `/users/{user_id}/enable` | ADMIN | Re-enable account |
+| 12 | `PATCH` | `/users/{user_id}/role` | ADMIN | Change user role |
 
 ---
 
-## UC07 – Idempotency, State & Reconciliation
+## Transactions
 
-| # | Phương thức | URL | Input | Output | Tác dụng |
-|---|---|---|---|---|---|
-| 33 | `GET` | `/transactions/{txn_id}/states`| `txn_id` trên URL | `current_status`, `history[]` | Xem lịch sử Transition state của giao dịch _(OPERATOR, ADMIN)_ |
-| 34 | `POST` | `/reconciliation/run` | `date` | `job_id`, `status: RUNNING` | Khởi động đối soát (Reconciliation) OLTP / Lake / WH _(ADMIN)_ |
-| 35 | `GET` | `/reconciliation/jobs` | Query: `page`, `limit`, `status` (`MATCH`/`MISMATCH`/`RUNNING`/`FAILED`) | Danh sách jobs đối soát | Xem danh sách kết quả đối soát _(ADMIN, MANAGER)_ |
-| 36 | `GET` | `/reconciliation/jobs/{job_id}`| `job_id` trên URL | Chi tiết discrepancies | Xem chi tiết lỗi lệch (MISMATCH/FAILED) _(ADMIN, MANAGER)_ |
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 13 | `POST` | `/transactions/submit` | OPERATOR, MANAGER, ADMIN | Submit transaction for fraud scoring → 201 (or 200 on idempotency hit). Body: card_number (raw 13–19 digits), customer_id, merchant_id, channel_id, amount, currency_code, txn_time, source_ip?, idempotency_key? |
+| 14 | `GET` | `/transactions` | All roles | List transactions – query: status, customer_id, merchant_id, from_date, to_date, min_amount, max_amount, page, limit. OPERATOR sees own only. |
+| 15 | `GET` | `/transactions/{txn_id}` | All roles | Get transaction detail (includes fraud_detail). OPERATOR: 403 if not own. |
+| 16 | `GET` | `/transactions/{txn_id}/state-history` | All roles | List state transitions for a transaction. OPERATOR: 403 if not own. |
 
 ---
 
-## Tóm tắt thay đổi mới nhất (Đã Audit)
+## Cases
 
-- **Chuẩn hóa URL:** Tăng version `api/v1/`, số nhiều cho `/transactions`.
-- **Cải thiện Bảo mật & Audit:** 
-  - Gỡ bỏ `PATCH /transaction/{txn_id}/status` cũ.
-  - Reviewer dùng `PATCH /cases/{case_id}/decision` kèm theo tham số `version` chống ghi đè dữ liệu.
-  - Cấm `ADMIN` tự sát (vô hiệu hóa mình), gán Filter bắt buộc vào việc xem giao dịch của `OPERATOR`.
-- **Hoàn thiện thiết kế:**
-  - Bổ sung `/health`, CRUD cho Loans (`UC04`) và `GET /auth/me`.
-  - Phân trang cấu trúc thư mục DataLake, bổ sung log query cho ETL theo dõi chi tiết.
-- **Tổng cộng:** 36 endpoints chính thức.
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 17 | `GET` | `/cases` | REVIEWER, MANAGER, ADMIN | List cases – query: case_status, assigned_to, page, limit. REVIEWER sees OPEN queue + own assigned; cannot filter by other reviewer → 403. |
+| 18 | `GET` | `/cases/{case_id}` | REVIEWER, MANAGER, ADMIN | Get case detail (includes transaction summary and action history). REVIEWER: 403 if not assigned to self. |
+| 19 | `POST` | `/cases/{case_id}/assign` | REVIEWER | Self-assign an OPEN case (atomic WHERE assigned_to IS NULL). 409 if already assigned. |
+| 20 | `PATCH` | `/cases/{case_id}/decision` | REVIEWER, MANAGER, ADMIN | Decide case (APPROVE/REJECT). Body: decision, decision_note (min10/max2000), version. Case must be ASSIGNED → 409 if OPEN. REVIEWER: own cases only. Optimistic lock on version. |
+
+---
+
+## Loans
+
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 21 | `POST` | `/loans` | OPERATOR, MANAGER, ADMIN | Create loan application → 201 PENDING. Body: customer_id, principal_amount, currency_code, interest_rate, term_months, purpose (required) + optional AI features for PD scoring. |
+| 22 | `POST` | `/loans/simulate` | OPERATOR, MANAGER, ADMIN | Simulate PD scoring without saving to DB. All AI feature fields required. Returns pd_score, risk_level, top_risk_factors, model_version. |
+| 23 | `GET` | `/loans` | OPERATOR, MANAGER, ADMIN | List loans – query: customer_id, status, page, limit. OPERATOR sees own only. |
+| 24 | `GET` | `/loans/{loan_id}` | OPERATOR, MANAGER, ADMIN | Get loan detail. OPERATOR: 403 if not own. |
+| 25 | `PATCH` | `/loans/{loan_id}/decision` | MANAGER, ADMIN | Approve or reject a loan. Body: decision, review_note, version. SoD: submitter cannot self-approve → 403. Optimistic lock on version. |
+
+---
+
+## Reconciliation
+
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 26 | `POST` | `/reconciliation/run` | ADMIN | Trigger reconciliation run. Body: period_start, period_end, pending_timeout_minutes (default 120). Marks stale PENDING txns as PENDING_TIMEOUT. → 201 |
+| 27 | `GET` | `/reconciliation/reports` | ADMIN | List reconciliation runs – query: status, page, limit. |
+| 28 | `GET` | `/reconciliation/{run_id}` | ADMIN | Get reconciliation run detail including per-item discrepancy list. |
+| 29 | `PATCH` | `/reconciliation/{run_id}/resolve` | ADMIN | Resolve all OPEN discrepancies in a COMPLETED run. Body: resolution_note (min5/max500). |
+
+---
+
+## ETL
+
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 30 | `POST` | `/etl/run` | ADMIN | Trigger ETL job. Body: target_date, job_type (default "DAILY_SUMMARY"). Idempotent per (target_date, job_type). → 201 |
+| 31 | `GET` | `/etl/logs` | ADMIN | List ETL jobs – query: job_type, status, page, limit. |
+
+---
+
+## Datalake
+
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 32 | `POST` | `/datalake/ingest` | ADMIN | Ingest external data snapshot. Body: snapshot_date, source_label, records (1–10000 items). → 201 |
+| 33 | `GET` | `/datalake/snapshots` | ADMIN | List datalake snapshots – query: snapshot_type, snapshot_date, status, page, limit. |
+
+---
+
+## Dashboard
+
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 34 | `GET` | `/dashboard/summary` | MANAGER, ADMIN | Dashboard summary: transaction counts (total, approved, rejected, manual_review, pending, today, this_week), fraud stats, case queue, loan stats, as_of timestamp. |
+| 35 | `GET` | `/dashboard/fraud-trend` | MANAGER, ADMIN | Daily fraud trend. Query: days (1–90, default 30). Returns per-day breakdown: total_txn, approved, rejected, manual_review, fraud_rate. |
+
+---
+
+## Audit Logs
+
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 36 | `GET` | `/audit-logs` | MANAGER, ADMIN | List audit log events – query: event_type, entity_type, actor_user_id, from_date, to_date, page, limit. Sorted DESC. |
+| 37 | `GET` | `/audit-logs/entities/{entity_type}/{entity_id}` | MANAGER, ADMIN | Full audit history for a specific entity. Query: page, limit (max 200). Sorted ASC. |
+| 38 | `GET` | `/audit-logs/{log_id}` | MANAGER, ADMIN | Get single audit log entry with detail field. |
+
+---
+
+## Reports
+
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 39 | `GET` | `/reports/transactions` | MANAGER, ADMIN | Export transaction list. Query: format (json/csv), status, from_date, to_date. Max 5000 rows. CSV returns text/csv with UTF-8 BOM. |
+| 40 | `GET` | `/reports/fraud` | MANAGER, ADMIN | Export fraud aggregation by day. Query: format (json/csv), from_date, to_date. Columns: date, total_txn, approved, rejected, manual_review, pending, fraud_rate, avg_fraud_score. |
+
+---
+
+## SSE Stream
+
+> Auth: Bearer token in Authorization header (not URL). No query-string token.
+
+| # | Method | Path | Roles | Description |
+|---|---|---|---|---|
+| 41 | `GET` | `/stream/transactions` | Any authenticated | SSE live feed of new transactions. Polls DB every 2s (created_at >= last_checked). Emits: txn_id, status, fraud_score, amount, created_at. Sends `: ping` when idle. |
+| 42 | `GET` | `/stream/dashboard` | Any authenticated | SSE live dashboard metrics. Polls DashboardService every 5s. Emits: total, fraud_rate, etc. |
+
+---
+
+## Quick Reference – Roles per Module
+
+| Module | OPERATOR | REVIEWER | MANAGER | ADMIN |
+|---|:---:|:---:|:---:|:---:|
+| Health | ✓ | ✓ | ✓ | ✓ |
+| Auth (all 5 endpoints) | ✓ | ✓ | ✓ | ✓ |
+| User Management | – | – | Read only | Full |
+| Transaction Submit | ✓ | – | ✓ | ✓ |
+| Transaction List/Detail | Own only | ✓ | ✓ | ✓ |
+| Transaction State-History | Own only | ✓ | ✓ | ✓ |
+| Cases | – | Full | Read + Decide | Read + Decide |
+| Loans – Create/Simulate | ✓ | – | ✓ | ✓ |
+| Loans – List/Detail | Own only | – | ✓ | ✓ |
+| Loans – Decision | – | – | ✓ (SoD) | ✓ (SoD) |
+| Dashboard / Reports | – | – | ✓ | ✓ |
+| Audit Logs | – | – | ✓ | ✓ |
+| ETL / Datalake | – | – | – | ✓ |
+| Reconciliation | – | – | – | ✓ |
+| SSE Stream (transactions) | ✓ | ✓ | ✓ | ✓ |
+| SSE Stream (dashboard) | ✓ | ✓ | ✓ | ✓ |

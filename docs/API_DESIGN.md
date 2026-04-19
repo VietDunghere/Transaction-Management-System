@@ -1,8 +1,34 @@
 # API Design – Transaction Management System
 
 > **Base URL:** `https://api.tms.local/api/v1`
-> **Auth:** JWT Bearer Token (trừ endpoint `/auth/login`)
+> **Auth:** JWT Bearer Token (trừ endpoint `/auth/login` và `/auth/refresh`)
 > **Content-Type:** `application/json`
+
+---
+
+## CHANGELOG – Thay đổi so với phiên bản cũ
+
+| # | Cũ | Mới |
+|---|---|---|
+| 1 | `POST /loans/submit` (body: `applicant_id`, `credit_score`, `employment_type`) | `POST /loans` (body: `customer_id`, `person_age`, `person_income`, `loan_grade`, v.v.) |
+| 2 | Thiếu `PATCH /loans/{loan_id}/decision` | Thêm — MANAGER/ADMIN phê duyệt/từ chối |
+| 3 | Thiếu `POST /loans/simulate` | Thêm — AI scoring không lưu DB |
+| 4 | `GET /loans` — chỉ MANAGER, ADMIN | Thêm OPERATOR (chỉ thấy đơn của mình) |
+| 5 | Thiếu `POST /auth/refresh` | Thêm |
+| 6 | `GET /transactions/{txn_id}/states` | `GET /transactions/{txn_id}/state-history` |
+| 7 | `POST /etl/trigger` | `POST /etl/run` |
+| 8 | Fraud threshold: `≤0.30 → APPROVED`, `>0.70 → REJECTED` | `<0.35 → APPROVED`, `≥0.65 → REJECTED` |
+| 9 | Duplicate `GET /users/{user_id}` section | Removed duplicate |
+| 10 | `POST /transactions/submit` — chỉ OPERATOR | OPERATOR, MANAGER, ADMIN |
+| 11 | Thiếu UC08 SSE Stream section | Thêm |
+| 12 | Permissions table: Loan Submit chỉ OPERATOR; Transaction States chỉ OPERATOR/ADMIN | Cập nhật đúng |
+| 13 | Loan decision: không có SoD check | Thêm: submitter != approver (4-eyes) → 403 |
+| 14 | Case decide: OPEN case có thể bị quyết định trực tiếp | Case phải ASSIGNED trước → 409 nếu OPEN |
+| 15 | Case decide: ADMIN bị chặn như REVIEWER | ADMIN bypass giống MANAGER |
+| 16 | REVIEWER list cases: thấy tất cả hoặc chỉ của mình (sai cả hai) | Thấy OPEN queue + cases của mình (compound OR query) |
+| 17 | Transaction state-history: OPERATOR xem được của ai cũng được | OPERATOR chỉ xem giao dịch do mình submit |
+| 18 | `CaseDecideRequest` body field: `note` | `decision_note` (khớp với Pydantic schema thực tế) |
+| 19 | `TransactionSubmitResponse`: thiếu `amount`, `currency_code`, `message`, `case_id` | Thêm đủ fields |
 
 ---
 
@@ -11,11 +37,12 @@
 1. [Hệ thống & Health](#hệ-thống--health)
 2. [UC02 – Xác thực & Phân quyền](#uc02--xác-thực--phân-quyền)
 3. [UC03 – Quản lý Giao dịch](#uc03--quản-lý-giao-dịch)
-4. [UC04 – Hỗ trợ Quyết định Cho vay](#uc04--hỗ-trợ-quyết-định-cho-vay)
+4. [UC04 – Quản lý Đơn Vay](#uc04--quản-lý-đơn-vay)
 5. [UC05 – Case Management & Audit](#uc05--case-management--audit)
 6. [UC06 – Data Engineering & Báo cáo](#uc06--data-engineering--báo-cáo)
 7. [UC07 – Idempotency, State & Reconciliation](#uc07--idempotency-state--reconciliation)
-8. [Quy ước chung](#quy-ước-chung)
+8. [UC08 – Real-time Stream (SSE)](#uc08--real-time-stream-sse)
+9. [Quy ước chung](#quy-ước-chung)
 
 ---
 
@@ -32,9 +59,14 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 **Response 200**
 ```json
 {
-  "status": "ok",
+  "status": "ok | degraded | down",
   "version": "1.0.0",
-  "timestamp": "ISO8601"
+  "environment": "production | staging | development",
+  "timestamp": "ISO8601",
+  "checks": {
+    "database": "ok | degraded | down",
+    "fraud_model": "ok | degraded | down"
+  }
 }
 ```
 
@@ -62,13 +94,13 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 ```json
 {
   "access_token": "string (JWT)",
+  "refresh_token": "string (JWT)",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "user": {
-    "user_id": "uuid",
-    "username": "string",
-    "role": "OPERATOR | REVIEWER | MANAGER | ADMIN"
-  }
+  "user_id": "uuid",
+  "username": "string",
+  "full_name": "string",
+  "role": "OPERATOR | REVIEWER | MANAGER | ADMIN"
 }
 ```
 
@@ -116,7 +148,6 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
   "user_id": "uuid",
   "username": "string",
   "full_name": "string",
-  "email": "string",
   "role": "OPERATOR | REVIEWER | MANAGER | ADMIN",
   "is_active": true
 }
@@ -132,14 +163,12 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | **Auth** | Bearer Token |
 | **Roles** | Tất cả |
 
-> ⚠️ Dùng `PATCH` (không phải `PUT`) — chỉ cập nhật partial resource.
-
 **Request Body**
 ```json
 {
   "current_password": "string",
-  "new_password": "string",
-  "confirm_password": "string"
+  "new_password": "string (min 8 ký tự)",
+  "confirm_password": "string (phải khớp new_password)"
 }
 ```
 
@@ -148,9 +177,34 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 { "message": "Đổi mật khẩu thành công." }
 ```
 
-**Response 400**
+---
+
+### POST /auth/refresh *(Mới – ~~Cũ: thiếu~~)*
+**UC-AUTH-13** – Lấy access token mới bằng refresh token.
+
+| | |
+|---|---|
+| **Auth** | Không yêu cầu Bearer |
+| **Roles** | Tất cả |
+
+**Request Body**
 ```json
-{ "error": "PASSWORD_MISMATCH", "message": "Mật khẩu xác nhận không khớp." }
+{ "refresh_token": "string (JWT refresh token)" }
+```
+
+**Response 200**
+```json
+{
+  "access_token": "string (JWT)",
+  "refresh_token": "string (JWT – rotated)",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}
+```
+
+**Response 401**
+```json
+{ "error": "INVALID_TOKEN", "message": "Refresh token không hợp lệ hoặc đã hết hạn." }
 ```
 
 ---
@@ -311,30 +365,6 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 ---
 
-### GET /users/{user_id}
-**UC-AUTH-09** – Xem chi tiết 1 người dùng.
-
-| | |
-|---|---|
-| **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
-
-**Response 200**
-```json
-{
-  "user_id": "uuid",
-  "username": "string",
-  "full_name": "string",
-  "email": "string",
-  "role": "REVIEWER",
-  "is_active": true,
-  "created_at": "ISO8601",
-  "updated_at": "ISO8601"
-}
-```
-
----
-
 ## UC03 – Quản lý Giao dịch
 
 ### POST /transactions/submit
@@ -343,7 +373,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR |
+| **Roles** | OPERATOR, MANAGER, ADMIN *(~~Cũ: chỉ OPERATOR~~)* |
 
 > Server tự mask `card_number` — client gửi raw, không được gửi số thẻ đã mask sẵn.
 
@@ -351,14 +381,14 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 ```json
 {
   "card_number": "string (raw — server tự mask và hash)",
-  "amount": 1500000,
-  "merchant_id": "string",
+  "customer_id": "uuid",
+  "merchant_id": "uuid",
+  "channel_id": "integer",
+  "amount": 1500.50,
+  "currency_code": "USD",
   "txn_time": "ISO8601",
-  "currency": "VND",
-  "metadata": {
-    "source_ip": "string",
-    "device_id": "string"
-  }
+  "source_ip": "string",
+  "idempotency_key": "uuid (client tự tạo để dedup)"
 }
 ```
 
@@ -366,11 +396,14 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 ```json
 {
   "txn_id": "uuid",
-  "idempotency_key": "sha256_hash_string",
   "status": "APPROVED | REJECTED | MANUAL_REVIEW",
-  "fraud_score": 0.25,
-  "override_reason": "LOW_RISK | HIGH_RISK | MANUAL_REQUIRED | HIGH_VALUE",
-  "processed_at": "ISO8601"
+  "fraud_score": 0.40,
+  "decision": "APPROVED | REJECTED | MANUAL_REVIEW",
+  "amount": 1500.50,
+  "currency_code": "USD",
+  "created_at": "ISO8601",
+  "message": "string",
+  "case_id": "uuid | null"
 }
 ```
 
@@ -378,11 +411,9 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 ```json
 {
   "txn_id": "uuid",
-  "idempotency_key": "sha256_hash_string",
   "status": "APPROVED",
-  "fraud_score": 0.25,
-  "message": "Giao dịch đã được xử lý trước đó. Trả về kết quả cũ.",
-  "processed_at": "ISO8601"
+  "fraud_score": 0.30,
+  "message": "Giao dịch đã được xử lý trước đó. Trả về kết quả cũ."
 }
 ```
 
@@ -398,9 +429,9 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 ```
 
 > *include* → UC-TXN-02 (Validate input)
-> *include* → UC-TXN-03 (Kiểm tra Idempotency – SHA256 hash payload)
-> *include* → UC-TXN-04 (AI Fraud Scoring)
-> *include* → UC-TXN-05 (Phân luồng: score ≤0.3 → APPROVED, ≤0.7 → MANUAL_REVIEW, >0.7 → REJECTED)
+> *include* → UC-TXN-03 (Kiểm tra Idempotency Key)
+> *include* → UC-TXN-04 (AI Fraud Scoring – Random Forest 10 cây)
+> *include* → UC-TXN-05 (Phân luồng: **score < 0.35 → APPROVED**, **0.35–0.65 → MANUAL_REVIEW**, **≥ 0.65 → REJECTED**) *(~~Cũ: ≤0.3 / ≤0.7 / >0.7~~)*
 > *extend* → UC-TXN-06 (amount > 500,000,000 → override MANUAL_REVIEW)
 > *extend* → UC-TXN-11 (Ghi Audit Log)
 
@@ -415,6 +446,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | **Roles** | OPERATOR, REVIEWER, MANAGER, ADMIN |
 
 > ⚠️ OPERATOR chỉ thấy giao dịch do chính mình gửi (`submitted_by` tự động filter).
+> REVIEWER thấy tất cả giao dịch (không bị lọc).
 
 **Query Params**
 
@@ -422,10 +454,11 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 |---|---|---|
 | `page` | int | Số trang |
 | `limit` | int | Số bản ghi/trang |
-| `status` | string | `PENDING`, `APPROVED`, `REJECTED`, `MANUAL_REVIEW` |
-| `from_date` | ISO8601 | Từ ngày |
-| `to_date` | ISO8601 | Đến ngày |
-| `merchant_id` | string | Lọc theo merchant |
+| `status` | string | `APPROVED`, `REJECTED`, `MANUAL_REVIEW` |
+| `customer_id` | uuid | Lọc theo customer |
+| `merchant_id` | uuid | Lọc theo merchant |
+| `from_date` | ISO8601 | Từ ngày (txn_time) |
+| `to_date` | ISO8601 | Đến ngày (txn_time) |
 | `min_amount` | number | Lọc theo số tiền tối thiểu |
 | `max_amount` | number | Lọc theo số tiền tối đa |
 
@@ -438,13 +471,20 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
   "data": [
     {
       "txn_id": "uuid",
-      "card_number": "4111********1111",
-      "amount": 1500000,
-      "merchant_id": "string",
-      "status": "APPROVED",
-      "fraud_score": 0.12,
+      "customer_id": "uuid",
+      "merchant_id": "uuid",
+      "channel_id": 1,
+      "submitted_by": "uuid",
+      "card_number_masked": "4111********1111",
+      "amount": 1500.50,
+      "currency_code": "USD",
       "txn_time": "ISO8601",
-      "processed_at": "ISO8601"
+      "status": "APPROVED",
+      "fraud_score": 0.30,
+      "reason_code": "HIGH_FRAUD_SCORE | null",
+      "override_reason": "string | null",
+      "created_at": "ISO8601",
+      "fraud_detail": null
     }
   ]
 }
@@ -460,28 +500,33 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | **Auth** | Bearer Token |
 | **Roles** | OPERATOR, REVIEWER, MANAGER, ADMIN |
 
+> ⚠️ **OPERATOR** chỉ xem được giao dịch do **chính mình submit**. Truy cập giao dịch của người khác → 403.
+
 **Response 200**
 ```json
 {
   "txn_id": "uuid",
-  "card_number": "4111********1111",
-  "amount": 1500000,
-  "currency": "VND",
-  "merchant_id": "string",
-  "status": "MANUAL_REVIEW",
-  "fraud_score": 0.55,
-  "reason_code": "MANUAL_REQUIRED",
-  "idempotency_key": "sha256_hash",
+  "customer_id": "uuid",
+  "merchant_id": "uuid",
+  "channel_id": 1,
+  "submitted_by": "uuid",
+  "card_number_masked": "4111********1111",
+  "amount": 1500.50,
+  "currency_code": "USD",
   "txn_time": "ISO8601",
-  "processed_at": "ISO8601",
-  "metadata": {
-    "source_ip": "192.168.1.1",
-    "device_id": "string"
-  },
-  "state_history": [
-    { "status": "PENDING", "changed_at": "ISO8601", "version": 1 },
-    { "status": "MANUAL_REVIEW", "changed_at": "ISO8601", "version": 2 }
-  ]
+  "status": "MANUAL_REVIEW",
+  "fraud_score": 0.50,
+  "reason_code": "HIGH_FRAUD_SCORE | null",
+  "override_reason": "string | null",
+  "created_at": "ISO8601",
+  "fraud_detail": {
+    "fraud_score": 0.50,
+    "decision": "MANUAL_REVIEW",
+    "reject_threshold": 0.65,
+    "review_threshold": 0.35,
+    "model_version": "rf_v1",
+    "top_risk_factors": ["amt_z_score", "geo_distance"]
+  }
 }
 ```
 
@@ -489,37 +534,103 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 ---
 
-## UC04 – Hỗ trợ Quyết định Cho vay (Loan Simulator)
+## UC04 – Quản lý Đơn Vay *(~~Cũ: "Hỗ trợ Quyết định Cho vay (Loan Simulator)"~~)*
 
-### POST /loans/submit
-**UC-LOAN-01** – Gửi đơn vay, nhận PD Score.
+### POST /loans *(~~Cũ: POST /loans/submit~~)*
+**UC-LOAN-01** – Tạo đơn vay mới, trả về trạng thái PENDING kèm PD Score.
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR |
+| **Roles** | OPERATOR, MANAGER, ADMIN *(~~Cũ: chỉ OPERATOR~~)* |
+
+> OPERATOR chỉ thấy đơn do mình tạo khi gọi `GET /loans`.
+> Body cũ (`applicant_id`, `credit_score`, `employment_type`) đã bị thay thế hoàn toàn.
 
 **Request Body**
 ```json
 {
-  "applicant_id": "string",
-  "loan_amount": 50000000,
-  "tenure_months": 24,
-  "annual_income": 180000000,
-  "credit_score": 680,
-  "employment_type": "FULL_TIME | PART_TIME | SELF_EMPLOYED",
-  "loan_purpose": "string"
+  "customer_id": "uuid",
+  "principal_amount": 25000.00,
+  "currency_code": "USD",
+  "interest_rate": 0.12,
+  "term_months": 36,
+  "purpose": "string",
+  "person_age": 30,
+  "person_income": 75000.00,
+  "person_home_ownership": "RENT | MORTGAGE | OWN | OTHER",
+  "person_emp_length": 5,
+  "loan_intent": "PERSONAL | EDUCATION | MEDICAL | VENTURE | HOMEIMPROVEMENT | DEBTCONSOLIDATION",
+  "loan_grade": "A | B | C | D | E | F | G",
+  "cb_person_default_on_file": "Y | N",
+  "cb_person_cred_hist_length": 10
 }
 ```
+
+> Các field AI (`person_age` trở đi) là tùy chọn. Nếu đủ → PD Score được tính ngay.
+> *(~~Cũ: `applicant_id`, `credit_score`, `employment_type`~~)*
 
 **Response 201**
 ```json
 {
   "loan_id": "uuid",
-  "pd_score": 0.13,
-  "risk_grade": "LOW | MEDIUM | HIGH",
-  "status": "APPROVED | REJECTED | MANUAL_REVIEW",
-  "processed_at": "ISO8601"
+  "customer_id": "uuid",
+  "status": "PENDING",
+  "principal_amount": 25000.00,
+  "currency_code": "USD",
+  "interest_rate": 0.12,
+  "term_months": 36,
+  "purpose": "string",
+  "pd_score": 0.18,
+  "risk_level": "LOW | MEDIUM | HIGH",
+  "submitted_by": "uuid",
+  "created_at": "ISO8601",
+  "version": 1
+}
+```
+
+> *include* → Kiểm tra `customer_id` tồn tại trong hệ thống
+> *include* → Tính PD Score nếu đủ AI features (XGBoost model)
+> *extend* → Ghi Audit Log: LOAN_APPLIED
+
+---
+
+### POST /loans/simulate *(Mới)*
+**UC-LOAN-SIM** – Mô phỏng AI Scoring mà **không tạo đơn vay thực**.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | OPERATOR, MANAGER, ADMIN |
+
+**Request Body**
+```json
+{
+  "person_age": 30,
+  "person_income": 75000.00,
+  "person_home_ownership": "RENT",
+  "person_emp_length": 5,
+  "loan_intent": "PERSONAL",
+  "loan_grade": "C",
+  "loan_amnt": 25000.00,
+  "loan_int_rate": 12.0,
+  "cb_person_default_on_file": "N",
+  "cb_person_cred_hist_length": 10
+}
+```
+
+> `loan_int_rate` là % (ví dụ: `12.0` tương đương 12%), khác với `interest_rate` trong `POST /loans` (decimal `0.12`).
+
+**Response 200**
+```json
+{
+  "pd_score": 0.28,
+  "risk_level": "MEDIUM",
+  "top_risk_factors": [
+    { "feature": "debt_burden", "importance": 0.26 },
+    { "feature": "loan_percent_income", "importance": 0.12 }
+  ],
+  "model_version": "loan_v6"
 }
 ```
 
@@ -531,7 +642,9 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
+| **Roles** | OPERATOR, MANAGER, ADMIN *(~~Cũ: chỉ MANAGER, ADMIN~~)* |
+
+> OPERATOR chỉ thấy đơn do mình tạo (`submitted_by` tự động filter).
 
 **Query Params**
 
@@ -539,25 +652,30 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 |---|---|---|
 | `page` | int | Số trang |
 | `limit` | int | Số bản ghi/trang |
-| `status` | string | `PENDING`, `APPROVED`, `REJECTED`, `MANUAL_REVIEW` |
+| `status` | string | `PENDING`, `APPROVED`, `REJECTED` |
+| `customer_id` | uuid | Lọc theo khách hàng |
 
 **Response 200**
 ```json
 {
-  "total": 120,
-  "page": 1,
-  "limit": 20,
   "data": [
     {
       "loan_id": "uuid",
-      "applicant_id": "string",
-      "loan_amount": 50000000,
-      "pd_score": 0.13,
-      "risk_grade": "LOW",
-      "status": "APPROVED",
-      "processed_at": "ISO8601"
+      "customer_id": "uuid",
+      "principal_amount": 25000.00,
+      "status": "PENDING",
+      "pd_score": 0.18,
+      "risk_level": "LOW",
+      "submitted_by": "uuid",
+      "created_at": "ISO8601"
     }
-  ]
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 20,
+    "total_items": 120,
+    "total_pages": 6
+  }
 }
 ```
 
@@ -569,25 +687,89 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
+| **Roles** | OPERATOR (chỉ đơn của mình), MANAGER, ADMIN |
 
 **Response 200**
 ```json
 {
   "loan_id": "uuid",
-  "applicant_id": "string",
-  "loan_amount": 50000000,
-  "tenure_months": 24,
-  "annual_income": 180000000,
-  "credit_score": 680,
-  "employment_type": "FULL_TIME",
-  "loan_purpose": "string",
-  "pd_score": 0.13,
-  "risk_grade": "LOW",
+  "customer_id": "uuid",
+  "principal_amount": 25000.00,
+  "currency_code": "USD",
+  "interest_rate": 0.12,
+  "term_months": 36,
+  "purpose": "string",
   "status": "APPROVED",
-  "processed_at": "ISO8601"
+  "pd_score": 0.18,
+  "risk_level": "LOW",
+  "monthly_payment": 830.05,
+  "outstanding_balance": 25000.00,
+  "maturity_date": "2029-04-19",
+  "disbursed_at": "ISO8601",
+  "reviewed_by": "uuid",
+  "reviewed_at": "ISO8601",
+  "review_note": "string",
+  "submitted_by": "uuid",
+  "created_at": "ISO8601",
+  "version": 2
 }
 ```
+
+---
+
+### PATCH /loans/{loan_id}/decision *(Mới)*
+**UC-LOAN-04** – MANAGER/ADMIN phê duyệt hoặc từ chối đơn vay.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | MANAGER, ADMIN |
+
+> `version` bắt buộc để kích hoạt **Optimistic Locking** — tránh hai người ghi đè nhau.
+> Khi APPROVE: hệ thống tự tính `monthly_payment`, `outstanding_balance`, `maturity_date`.
+> **SoD (4-eyes principle):** Người phê duyệt không được là người đã tạo đơn. Vi phạm → 403. *(Mới – ~~Cũ: không có check~~)*
+
+**Request Body**
+```json
+{
+  "decision": "APPROVE | REJECT",
+  "review_note": "string (bắt buộc)",
+  "version": 1
+}
+```
+
+**Response 200**
+```json
+{
+  "loan_id": "uuid",
+  "status": "APPROVED | REJECTED",
+  "monthly_payment": 830.05,
+  "maturity_date": "2029-04-19",
+  "reviewed_by": "uuid",
+  "reviewed_at": "ISO8601",
+  "version": 2
+}
+```
+
+**Response 403 – SoD vi phạm**
+```json
+{ "error": "FORBIDDEN", "message": "Không thể phê duyệt khoản vay do chính mình tạo ra (nguyên tắc phân tách trách nhiệm – 4-eyes principle)." }
+```
+
+**Response 409 – Loan không ở PENDING**
+```json
+{ "error": "CONFLICT", "message": "Khoản vay đang ở trạng thái 'APPROVED', không thể thay đổi." }
+```
+
+**Response 409 – Optimistic Lock conflict**
+```json
+{ "error": "OPTIMISTIC_LOCK_ERROR", "message": "Dữ liệu đã được cập nhật bởi người khác. Vui lòng tải lại." }
+```
+
+> *include* → **Kiểm tra SoD**: `submitted_by != actor_user_id` → 403 nếu vi phạm
+> *include* → Optimistic Locking: so sánh `version` request với DB
+> *include* → Tính monthly_payment khi APPROVE (công thức amortisation PMT)
+> *extend* → Ghi Audit Log: LOAN_APPROVED / LOAN_REJECTED
 
 ---
 
@@ -600,6 +782,9 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 |---|---|
 | **Auth** | Bearer Token |
 | **Roles** | REVIEWER, MANAGER, ADMIN |
+
+> **REVIEWER** thấy: tất cả OPEN cases (queue chưa ai nhận) + cases được giao cho mình. Compound query: `(assigned_to IS NULL) OR (assigned_to = reviewer_id)`. *(~~Cũ: chỉ thấy cases của mình → không thể nhận việc mới~~)*
+> MANAGER/ADMIN thấy tất cả. Nếu REVIEWER truyền `assigned_to` của reviewer khác → 403.
 
 **Query Params**
 
@@ -701,16 +886,18 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | REVIEWER, MANAGER |
+| **Roles** | REVIEWER, MANAGER, ADMIN *(~~Cũ: REVIEWER, MANAGER — ADMIN bị bỏ sót~~)* |
 
 > Gộp `approve` và `reject` thành một endpoint. Dùng `PATCH` (partial update).
 > Tham số `version` bắt buộc để kích hoạt **Optimistic Locking** — tránh hai reviewer ghi đè nhau.
+> **Case phải ở trạng thái ASSIGNED** trước khi quyết định. Case OPEN → 409. *(Mới – ~~Cũ: không check~~)*
+> REVIEWER: chỉ quyết định case được giao cho mình. MANAGER/ADMIN: override bất kỳ case ASSIGNED nào.
 
 **Request Body**
 ```json
 {
   "decision": "APPROVE | REJECT",
-  "note": "string (bắt buộc – tối thiểu 10 ký tự)",
+  "decision_note": "string (bắt buộc – tối thiểu 10 ký tự)",
   "version": 1
 }
 ```
@@ -728,12 +915,19 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 }
 ```
 
+**Response 409 – Case chưa được assign**
+```json
+{ "error": "CONFLICT", "message": "Case chưa được nhận (status = OPEN). Hãy assign case trước khi đưa ra quyết định." }
+```
+
 **Response 409 – Optimistic Lock conflict**
 ```json
-{
-  "error": "OPTIMISTIC_LOCK_ERROR",
-  "message": "Case đã được cập nhật bởi người khác. Vui lòng tải lại và thử lại."
-}
+{ "error": "OPTIMISTIC_LOCK_ERROR", "message": "Case đã được cập nhật bởi người khác. Vui lòng tải lại và thử lại." }
+```
+
+**Response 403 – REVIEWER quyết định case không phải của mình**
+```json
+{ "error": "FORBIDDEN", "message": "Case này không được giao cho bạn." }
 ```
 
 > *include* → UC-CASE-06 (Ghi chú lý do bắt buộc)
@@ -750,6 +944,8 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | **Auth** | Bearer Token |
 | **Roles** | MANAGER, ADMIN |
 
+> Sorted DESC by event_ts.
+
 **Query Params**
 
 | Param | Type | Mô tả |
@@ -757,8 +953,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | `page` | int | Số trang |
 | `limit` | int | Số bản ghi/trang |
 | `entity_type` | string | `TRANSACTION`, `LOAN`, `USER`, `CASE` |
-| `entity_id` | uuid | ID của entity cụ thể |
-| `actor_id` | uuid | Ai thực hiện |
+| `actor_user_id` | uuid | Ai thực hiện *(~~Cũ: actor_id~~)* |
 | `event_type` | string | Loại sự kiện |
 | `from_date` | ISO8601 | Từ ngày |
 | `to_date` | ISO8601 | Đến ngày |
@@ -775,10 +970,9 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
       "event_type": "CASE_APPROVED",
       "entity_type": "TRANSACTION",
       "entity_id": "uuid",
-      "actor_id": "uuid",
+      "actor_user_id": "uuid",
       "actor_name": "string",
-      "detail": "string",
-      "created_at": "ISO8601"
+      "event_ts": "ISO8601"
     }
   ]
 }
@@ -786,8 +980,55 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 ---
 
-### GET /audit-logs/transactions/{txn_id}/trace
-**UC-AUDIT-03** – Truy vết toàn bộ lịch sử của một giao dịch.
+### GET /audit-logs/entities/{entity_type}/{entity_id} *(Mới – ~~Cũ: /audit-logs/transactions/{txn_id}/trace không tồn tại~~)*
+**UC-AUDIT-03** – Lịch sử audit đầy đủ cho một entity cụ thể (transaction, loan, case, user...).
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | MANAGER, ADMIN |
+
+> Sorted ASC by event_ts.
+
+**Path Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `entity_type` | string | `TRANSACTION`, `LOAN`, `CASE`, `USER` |
+| `entity_id` | uuid | ID của entity |
+
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `page` | int | Số trang (default: 1) |
+| `limit` | int | Số bản ghi/trang (default: 50, max: 200) |
+
+**Response 200**
+```json
+{
+  "total": 4,
+  "page": 1,
+  "limit": 50,
+  "data": [
+    {
+      "log_id": "uuid",
+      "event_type": "TXN_CREATED",
+      "entity_type": "TRANSACTION",
+      "entity_id": "uuid",
+      "actor_user_id": "uuid",
+      "actor_name": "system",
+      "event_ts": "ISO8601",
+      "detail": {}
+    }
+  ]
+}
+```
+
+---
+
+### GET /audit-logs/{log_id} *(Mới)*
+**UC-AUDIT-04** – Xem chi tiết một audit log entry.
 
 | | |
 |---|---|
@@ -797,62 +1038,21 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 **Response 200**
 ```json
 {
-  "txn_id": "uuid",
-  "timeline": [
-    {
-      "event_type": "TXN_CREATED",
-      "status_before": null,
-      "status_after": "PENDING",
-      "actor": "system",
-      "detail": "Giao dịch mới nhận",
-      "occurred_at": "ISO8601"
-    },
-    {
-      "event_type": "FRAUD_SCORED",
-      "fraud_score": 0.61,
-      "actor": "AI_ENGINE",
-      "detail": "fraud_score = 0.61 → MANUAL_REVIEW",
-      "occurred_at": "ISO8601"
-    },
-    {
-      "event_type": "CASE_ASSIGNED",
-      "actor": "reviewer_01",
-      "occurred_at": "ISO8601"
-    },
-    {
-      "event_type": "CASE_APPROVED",
-      "status_before": "MANUAL_REVIEW",
-      "status_after": "APPROVED",
-      "actor": "reviewer_01",
-      "note": "Xác nhận hợp lệ sau xem xét",
-      "occurred_at": "ISO8601"
-    }
-  ]
+  "log_id": "uuid",
+  "event_type": "CASE_APPROVED",
+  "entity_type": "TRANSACTION",
+  "entity_id": "uuid",
+  "actor_user_id": "uuid",
+  "actor_name": "string",
+  "event_ts": "ISO8601",
+  "detail": {}
 }
 ```
 
----
-
-### GET /audit-logs/export
-**UC-AUDIT-05** – Xuất báo cáo Audit Log ra file.
-
-| | |
-|---|---|
-| **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
-
-**Query Params**
-
-| Param | Type | Mô tả |
-|---|---|---|
-| `format` | string | `csv` hoặc `pdf` |
-| `from_date` | ISO8601 | Bắt buộc |
-| `to_date` | ISO8601 | Bắt buộc |
-| `entity_type` | string | Tùy chọn – lọc loại entity |
-
-**Response 200**
-> `Content-Type: text/csv` hoặc `application/pdf`
-> `Content-Disposition: attachment; filename="audit_log_{from}_{to}.csv"`
+**Response 404**
+```json
+{ "error": "NOT_FOUND", "message": "Audit log entry không tồn tại." }
+```
 
 ---
 
@@ -866,73 +1066,43 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | **Auth** | Bearer Token |
 | **Roles** | MANAGER, ADMIN |
 
-**Query Params**
-
-| Param | Type | Mô tả |
-|---|---|---|
-| `period` | string | `today`, `this_week`, `this_month` |
-| `granularity` | string | `hour`, `day`, `week` — độ chi tiết của trend (default: `day`) |
+> No query params. Returns current snapshot as of the moment of request.
 
 **Response 200**
 ```json
 {
-  "total_transactions": 15042,
-  "total_amount": 97500000000,
-  "fraud_rate": 0.08,
-  "cases_pending": 23,
-  "cases_assigned": 7,
-  "period": "today | this_week | this_month",
-  "granularity": "day",
-  "trend": [
-    { "date": "2026-04-01", "total": 320, "fraud": 25, "legit": 295 },
-    { "date": "2026-04-02", "total": 415, "fraud": 31, "legit": 384 }
-  ]
-}
-```
-
----
-
-### GET /dashboard/fraud-chart
-**UC-BI-02** – Biểu đồ tỷ lệ Fraud vs Legit.
-
-| | |
-|---|---|
-| **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
-
-> Dùng `from_date`/`to_date` làm tham số chính. `period` là tham số phụ để nhóm dữ liệu.
-
-**Query Params**
-
-| Param | Type | Mô tả |
-|---|---|---|
-| `from_date` | ISO8601 | Từ ngày (bắt buộc) |
-| `to_date` | ISO8601 | Đến ngày (bắt buộc) |
-| `period` | string | `daily`, `weekly`, `monthly` — nhóm dữ liệu |
-
-**Response 200**
-```json
-{
-  "source": "WAREHOUSE",
-  "period": "daily",
-  "data": {
-    "fraud_count": 210,
-    "fraud_amount": 8500000000,
-    "legit_count": 2350,
-    "legit_amount": 89000000000,
-    "fraud_rate_count": 0.082,
-    "fraud_rate_amount": 0.087
+  "transactions": {
+    "total": 15042,
+    "approved": 10530,
+    "rejected": 4512,
+    "manual_review": 0,
+    "pending": 0,
+    "today": 320,
+    "this_week": 2100
   },
-  "breakdown": [
-    { "date": "2026-04-01", "fraud": 48, "legit": 520 }
-  ]
+  "fraud": {
+    "avg_fraud_score": 0.42,
+    "rejection_rate": 0.30,
+    "manual_review_rate": 0.40
+  },
+  "cases": {
+    "total_open": 23,
+    "total_assigned": 7,
+    "decided_today": 5
+  },
+  "loans": {
+    "total_pending": 12,
+    "total_approved": 80,
+    "total_rejected": 8
+  },
+  "as_of": "ISO8601"
 }
 ```
 
 ---
 
-### GET /reports/transactions
-**UC-BI-03** – Báo cáo giao dịch theo thời gian.
+### GET /dashboard/fraud-trend *(~~Cũ: /dashboard/fraud-chart — không tồn tại trong code~~)*
+**UC-BI-02** – Xu hướng Fraud theo ngày.
 
 | | |
 |---|---|
@@ -943,35 +1113,75 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 | Param | Type | Mô tả |
 |---|---|---|
-| `from_date` | ISO8601 | Bắt buộc |
-| `to_date` | ISO8601 | Bắt buộc |
-| `period` | string | `daily`, `weekly`, `monthly`, `quarterly` |
+| `days` | int | Số ngày nhìn lại (1–90, default: 30) |
 
 **Response 200**
 ```json
 {
-  "period": "monthly",
-  "rows": [
+  "period": "daily",
+  "lookback_days": 30,
+  "data": [
     {
-      "period_label": "2026-03",
-      "total_count": 8240,
-      "total_amount": 45200000000,
-      "approved_count": 7100,
-      "rejected_count": 650,
-      "manual_review_count": 490,
-      "approved_rate": 0.862,
-      "rejected_rate": 0.079
+      "period_label": "2026-04-01",
+      "period_start": "ISO8601",
+      "total_txn": 320,
+      "approved": 224,
+      "rejected": 64,
+      "manual_review": 32,
+      "fraud_rate": 0.30
     }
-  ]
+  ],
+  "as_of": "ISO8601"
 }
 ```
 
-> *extend* → UC-BI-04 (Xuất báo cáo)
+---
+
+### GET /reports/transactions *(~~Cũ: aggregated rows only — replaced with raw transaction export~~)*
+**UC-BI-03** – Xuất danh sách giao dịch thô (JSON hoặc CSV).
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | MANAGER, ADMIN |
+
+> Max 5000 rows. CSV returns `Content-Type: text/csv` with UTF-8 BOM.
+
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `format` | string | `json` (default) hoặc `csv` |
+| `status` | string | Lọc theo trạng thái |
+| `from_date` | ISO8601 | Từ ngày |
+| `to_date` | ISO8601 | Đến ngày |
+
+**CSV columns:** `txn_id`, `customer_id`, `merchant_id`, `channel_id`, `card_number_masked`, `amount`, `currency_code`, `txn_time`, `status`, `fraud_score`, `reason_code`, `created_at`
+
+**Response 200 (JSON)**
+```json
+[
+  {
+    "txn_id": "uuid",
+    "customer_id": "uuid",
+    "merchant_id": "uuid",
+    "channel_id": 1,
+    "card_number_masked": "411111******1111",
+    "amount": 1500.50,
+    "currency_code": "USD",
+    "txn_time": "ISO8601",
+    "status": "APPROVED",
+    "fraud_score": 0.30,
+    "reason_code": null,
+    "created_at": "ISO8601"
+  }
+]
+```
 
 ---
 
-### GET /reports/transactions/export
-**UC-BI-04** – Xuất báo cáo giao dịch ra file PDF/CSV.
+### GET /reports/fraud *(Mới)*
+**UC-BI-04** – Xuất tổng hợp Fraud theo ngày (JSON hoặc CSV).
 
 | | |
 |---|---|
@@ -982,18 +1192,69 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 | Param | Type | Mô tả |
 |---|---|---|
-| `format` | string | `csv` hoặc `pdf` |
-| `from_date` | ISO8601 | Bắt buộc |
-| `to_date` | ISO8601 | Bắt buộc |
-| `period` | string | Tùy chọn gom nhóm: `daily`, `weekly`, `monthly` |
+| `format` | string | `json` (default) hoặc `csv` |
+| `from_date` | ISO8601 | Từ ngày |
+| `to_date` | ISO8601 | Đến ngày |
 
-**Response 200**
-> File download – `Content-Disposition: attachment`
+**CSV columns:** `date`, `total_txn`, `approved`, `rejected`, `manual_review`, `pending`, `fraud_rate`, `avg_fraud_score`
+
+**Response 200 (JSON)**
+```json
+[
+  {
+    "date": "2026-04-01",
+    "total_txn": 320,
+    "approved": 224,
+    "rejected": 64,
+    "manual_review": 32,
+    "pending": 0,
+    "fraud_rate": 0.30,
+    "avg_fraud_score": 0.45
+  }
+]
+```
 
 ---
 
-### GET /datalake/structure
-**UC-DATA-02** – Xem cấu trúc Data Lake.
+### POST /datalake/ingest *(Mới – ~~Cũ: GET /datalake/structure không tồn tại trong code~~)*
+**UC-DATA-02** – Ingest external data snapshot vào Data Lake.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ADMIN |
+
+**Request Body**
+```json
+{
+  "snapshot_date": "2026-04-01",
+  "source_label": "string (min2, max100)",
+  "records": [ {} ]
+}
+```
+
+> `records`: 1–10,000 items.
+
+**Response 201**
+```json
+{
+  "snapshot_id": "uuid",
+  "snapshot_type": "EXTERNAL_INGEST",
+  "snapshot_date": "2026-04-01",
+  "job_id": null,
+  "source_label": "string",
+  "record_count": 500,
+  "total_amount": 125000.00,
+  "status": "ACTIVE | ARCHIVED",
+  "created_at": "ISO8601",
+  "data_summary": {}
+}
+```
+
+---
+
+### GET /datalake/snapshots *(Mới)*
+**UC-DATA-03** – Xem danh sách datalake snapshots.
 
 | | |
 |---|---|
@@ -1004,25 +1265,30 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 | Param | Type | Mô tả |
 |---|---|---|
+| `snapshot_type` | string | `DAILY_TXN_SUMMARY` hoặc `EXTERNAL_INGEST` |
+| `snapshot_date` | date | Lọc theo ngày |
+| `status` | string | `ACTIVE` hoặc `ARCHIVED` |
 | `page` | int | Số trang (default: 1) |
 | `limit` | int | Số bản ghi/trang (default: 20) |
 
 **Response 200**
 ```json
 {
-  "total": 1,
-  "page": 1,
-  "limit": 20,
-  "base_path": "/datalake/raw/transaction_logs/",
   "total": 30,
   "page": 1,
   "limit": 20,
-  "directories": [
+  "data": [
     {
-      "date": "2026-04-01",
-      "path": "/datalake/raw/transaction_logs/2026-04-01/",
-      "file_count": 3,
-      "total_size_mb": 12.4
+      "snapshot_id": "uuid",
+      "snapshot_type": "DAILY_TXN_SUMMARY",
+      "snapshot_date": "2026-04-01",
+      "job_id": "uuid",
+      "source_label": null,
+      "record_count": 1540,
+      "total_amount": 980000.00,
+      "status": "ACTIVE",
+      "created_at": "ISO8601",
+      "data_summary": {}
     }
   ]
 }
@@ -1044,23 +1310,28 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 |---|---|---|
 | `page` | int | Số trang |
 | `limit` | int | Số bản ghi/trang |
-| `status` | string | `SUCCESS`, `FAILED`, `RUNNING` |
-| `from_date` | ISO8601 | Từ ngày |
+| `job_type` | string | Lọc theo job type (e.g. `DAILY_SUMMARY`) |
+| `status` | string | `RUNNING`, `SUCCESS`, `FAILED` |
 
 **Response 200**
 ```json
 {
   "total": 120,
+  "page": 1,
+  "limit": 20,
   "data": [
     {
       "job_id": "uuid",
-      "job_type": "DAILY_ETL",
+      "job_type": "DAILY_SUMMARY",
+      "target_date": "2026-04-01",
       "status": "SUCCESS",
-      "rows_extracted": 1540,
-      "rows_loaded": 1538,
+      "records_in": 1540,
+      "records_out": 1538,
+      "error_message": null,
+      "triggered_by": "uuid",
       "started_at": "ISO8601",
-      "finished_at": "ISO8601",
-      "error_message": null
+      "completed_at": "ISO8601",
+      "created_at": "ISO8601"
     }
   ]
 }
@@ -1068,40 +1339,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 ---
 
-### GET /etl/logs/{job_id}
-**UC-DATA-07** – Xem chi tiết một ETL job.
-
-| | |
-|---|---|
-| **Auth** | Bearer Token |
-| **Roles** | ADMIN |
-
-**Response 200**
-```json
-{
-  "job_id": "uuid",
-  "job_type": "DAILY_ETL",
-  "status": "FAILED",
-  "mode": "INCREMENTAL",
-  "date": "2026-04-01",
-  "rows_extracted": 1540,
-  "rows_transformed": 1538,
-  "rows_loaded": 0,
-  "started_at": "ISO8601",
-  "finished_at": "ISO8601",
-  "error_message": "Connection timeout to Warehouse",
-  "triggered_by": "uuid"
-}
-```
-
-**Response 404**
-```json
-{ "error": "NOT_FOUND", "message": "ETL job không tồn tại." }
-```
-
----
-
-### POST /etl/trigger
+### POST /etl/run *(~~Cũ: POST /etl/trigger~~)*
 **UC-DATA-03/04/05** – Trigger ETL Pipeline thủ công.
 
 | | |
@@ -1109,21 +1347,30 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | **Auth** | Bearer Token |
 | **Roles** | ADMIN |
 
+> Idempotency guard: mỗi `(target_date, job_type)` chỉ SUCCESS 1 lần. Nếu đã thành công → 409.
+
 **Request Body**
 ```json
 {
-  "date": "2026-04-02",
-  "mode": "FULL | INCREMENTAL"
+  "target_date": "2026-04-02",
+  "job_type": "DAILY_SUMMARY"
 }
 ```
 
-**Response 202**
+**Response 201**
 ```json
 {
   "job_id": "uuid",
-  "status": "RUNNING",
-  "message": "ETL job đã được khởi động.",
-  "started_at": "ISO8601"
+  "job_type": "DAILY_SUMMARY",
+  "target_date": "2026-04-02",
+  "status": "RUNNING | SUCCESS | FAILED",
+  "records_in": null,
+  "records_out": null,
+  "error_message": null,
+  "triggered_by": "uuid",
+  "started_at": "ISO8601",
+  "completed_at": null,
+  "created_at": "ISO8601"
 }
 ```
 
@@ -1135,26 +1382,23 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 ## UC07 – Idempotency, State & Reconciliation
 
-### GET /transactions/{txn_id}/states
+### GET /transactions/{txn_id}/state-history *(~~Cũ: /states~~)*
 **UC-STATE-05** – Xem lịch sử trạng thái của giao dịch.
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR, ADMIN |
+| **Roles** | OPERATOR, REVIEWER, MANAGER, ADMIN *(~~Cũ: chỉ OPERATOR, ADMIN~~)* |
 
-**Response 200**
+> ⚠️ **OPERATOR** chỉ xem được state-history của giao dịch do **chính mình submit**. Truy cập giao dịch của người khác → 403. *(~~Cũ: không có check, xem được của tất cả~~)*
+
+**Response 200** – Array các state transitions
 ```json
-{
-  "txn_id": "uuid",
-  "current_status": "APPROVED",
-  "current_version": 3,
-  "history": [
-    { "status": "PENDING",       "version": 1, "changed_at": "ISO8601", "actor": "system" },
-    { "status": "MANUAL_REVIEW", "version": 2, "changed_at": "ISO8601", "actor": "AI_ENGINE" },
-    { "status": "APPROVED",      "version": 3, "changed_at": "ISO8601", "actor": "reviewer_01" }
-  ]
-}
+[
+  { "status": "PENDING",       "version": 1, "changed_at": "ISO8601", "actor": "system" },
+  { "status": "MANUAL_REVIEW", "version": 2, "changed_at": "ISO8601", "actor": "AI_ENGINE" },
+  { "status": "APPROVED",      "version": 3, "changed_at": "ISO8601", "actor": "reviewer_01" }
+]
 ```
 
 > Reflection của UC-STATE-01 (khởi PENDING v1), UC-STATE-02 (chuyển trạng thái), UC-STATE-03 (Optimistic Locking version++)
@@ -1169,34 +1413,50 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | **Auth** | Bearer Token |
 | **Roles** | ADMIN |
 
+> Tìm tất cả giao dịch PENDING quá `pending_timeout_minutes` và đánh dấu `PENDING_TIMEOUT`.
+
 **Request Body**
 ```json
-{ "date": "2026-04-02" }
-```
-
-**Response 202**
-```json
 {
-  "job_id": "uuid",
-  "status": "RUNNING",
-  "date": "2026-04-02",
-  "message": "Reconciliation job đã bắt đầu.",
-  "started_at": "ISO8601"
+  "period_start": "ISO8601",
+  "period_end": "ISO8601",
+  "pending_timeout_minutes": 120
 }
 ```
 
-> *include* → UC-RECON-02 (So khớp COUNT(*) và SUM(amount) giữa OLTP, Data Lake, Warehouse)
-> *extend* → UC-RECON-03 (Tạo báo cáo MISMATCH nếu phát hiện chênh lệch)
+> `pending_timeout_minutes`: 1–10080 (default: 120).
+
+**Response 201**
+```json
+{
+  "run_id": "uuid",
+  "period_start": "ISO8601",
+  "period_end": "ISO8601",
+  "pending_timeout_minutes": 120,
+  "status": "RUNNING | COMPLETED | FAILED",
+  "total_txn_count": null,
+  "matched_count": null,
+  "discrepancy_count": null,
+  "total_amount": null,
+  "error_message": null,
+  "triggered_by": "uuid",
+  "completed_at": null,
+  "created_at": "ISO8601"
+}
+```
+
+> *include* → UC-RECON-02 (Tìm PENDING txns quá timeout, mark PENDING_TIMEOUT)
+> *extend* → UC-RECON-03 (Ghi discrepancy items cho các giao dịch bất thường)
 
 ---
 
-### GET /reconciliation/jobs
-**UC-DATA-09** – Xem danh sách kết quả đối soát.
+### GET /reconciliation/reports *(~~Cũ: GET /reconciliation/jobs — path không tồn tại~~)*
+**UC-DATA-09** – Xem danh sách các lần chạy đối soát.
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | ADMIN, MANAGER |
+| **Roles** | ADMIN |
 
 **Query Params**
 
@@ -1204,34 +1464,29 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 |---|---|---|
 | `page` | int | Số trang |
 | `limit` | int | Số bản ghi |
-| `status` | string | `MATCH`, `MISMATCH`, `RUNNING`, `FAILED` |
-| `from_date` | ISO8601 | Từ ngày |
+| `status` | string | `RUNNING`, `COMPLETED`, `FAILED` |
 
 **Response 200**
 ```json
 {
   "total": 30,
+  "page": 1,
+  "limit": 20,
   "data": [
     {
-      "job_id": "uuid",
-      "date": "2026-04-02",
-      "status": "MISMATCH",
-      "oltp_count": 1540,
-      "lake_count": 1538,
-      "warehouse_count": 1535,
-      "oltp_sum": 9800000000,
-      "lake_sum": 9750000000,
-      "warehouse_sum": 9750000000,
-      "mismatch_detail": "OLTP vs Lake: delta_count=2, delta_amount=50000000",
+      "run_id": "uuid",
+      "period_start": "ISO8601",
+      "period_end": "ISO8601",
+      "pending_timeout_minutes": 120,
+      "status": "COMPLETED",
+      "total_txn_count": 1540,
+      "matched_count": 1535,
+      "discrepancy_count": 5,
+      "total_amount": 980000.00,
       "error_message": null,
-      "run_at": "ISO8601"
-    },
-    {
-      "job_id": "uuid-failed",
-      "date": "2026-04-03",
-      "status": "FAILED",
-      "error_message": "Database connection timeout timeout during extraction.",
-      "run_at": "ISO8601"
+      "triggered_by": "uuid",
+      "completed_at": "ISO8601",
+      "created_at": "ISO8601"
     }
   ]
 }
@@ -1239,41 +1494,130 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 ---
 
-### GET /reconciliation/jobs/{job_id}
-**UC-RECON-03** – Xem chi tiết báo cáo chênh lệch.
+### GET /reconciliation/{run_id} *(~~Cũ: GET /reconciliation/jobs/{job_id} — path không tồn tại~~)*
+**UC-RECON-03** – Xem chi tiết lần chạy đối soát kèm danh sách discrepancy items.
 
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | ADMIN, MANAGER |
+| **Roles** | ADMIN |
 
 **Response 200**
 ```json
 {
-  "job_id": "uuid",
-  "date": "2026-04-02",
-  "status": "MISMATCH | FAILED",
-  "sources": {
-    "oltp":      { "count": 1540, "sum_amount": 9800000000 },
-    "datalake":  { "count": 1538, "sum_amount": 9750000000 },
-    "warehouse": { "count": 1535, "sum_amount": 9750000000 }
-  },
-  "discrepancies": [
+  "run_id": "uuid",
+  "period_start": "ISO8601",
+  "period_end": "ISO8601",
+  "pending_timeout_minutes": 120,
+  "status": "COMPLETED",
+  "total_txn_count": 1540,
+  "matched_count": 1535,
+  "discrepancy_count": 5,
+  "total_amount": 980000.00,
+  "error_message": null,
+  "triggered_by": "uuid",
+  "completed_at": "ISO8601",
+  "created_at": "ISO8601",
+  "items": [
     {
-      "type": "COUNT_MISMATCH",
-      "source_a": "OLTP",
-      "source_b": "DATALAKE",
-      "delta": 2
-    },
-    {
-      "type": "AMOUNT_MISMATCH",
-      "source_a": "OLTP",
-      "source_b": "DATALAKE",
-      "delta": 50000000
+      "item_id": "uuid",
+      "run_id": "uuid",
+      "txn_id": "uuid",
+      "item_type": "string",
+      "txn_status": "PENDING",
+      "txn_amount": 1500.00,
+      "txn_created_at": "ISO8601",
+      "minutes_pending": 180,
+      "status": "OPEN | RESOLVED",
+      "resolution_note": null,
+      "resolved_by": null,
+      "resolved_at": null,
+      "created_at": "ISO8601"
     }
-  ],
-  "run_at": "ISO8601"
+  ]
 }
+```
+
+---
+
+### PATCH /reconciliation/{run_id}/resolve *(Mới)*
+**UC-RECON-04** – Tandánh dấu tất cả discrepancy items OPEN là RESOLVED.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ADMIN |
+
+> Chỉ hoạt động với run ở trạng thái COMPLETED. Run chưa COMPLETED → 409.
+
+**Request Body**
+```json
+{
+  "resolution_note": "string (min5, max500)"
+}
+```
+
+**Response 200**
+> Trả về `ReconciliationDetailResponse` (cùng schema với GET /reconciliation/{run_id}) với tất cả items đã cập nhật sang RESOLVED.
+
+---
+
+## UC08 – Real-time Stream (SSE) *(Mới)*
+
+### GET /stream/transactions
+**UC-STREAM-01** – Server-Sent Events: live feed giao dịch mới.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | OPERATOR, REVIEWER, MANAGER, ADMIN |
+
+> Dùng trong demo: Faker POST liên tục → SSE đẩy từng giao dịch mới về frontend ngay lập tức.
+> Filter dùng `created_at >= last_checked` (không phải `txn_time`) để bắt tất cả bản ghi mới insert.
+
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `interval` | float | Poll interval (0.5–10s, default: 2.0s) |
+
+**Response** – `Content-Type: text/event-stream`
+```
+: heartbeat
+
+data: {"txn_id":"uuid","customer_id":"uuid","merchant_id":"uuid","amount":350.50,"currency_code":"USD","status":"APPROVED","fraud_score":0.30,"txn_time":"ISO8601","created_at":"ISO8601"}
+
+data: {"txn_id":"uuid",...,"status":"MANUAL_REVIEW","fraud_score":0.50,...}
+
+: ping
+```
+
+> `: ping` được gửi khi không có giao dịch mới trong interval.
+> Headers: `Cache-Control: no-cache`, `X-Accel-Buffering: no`.
+
+---
+
+### GET /stream/dashboard
+**UC-STREAM-02** – Server-Sent Events: live dashboard metrics.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | MANAGER, ADMIN |
+
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `interval` | float | Poll interval (1–30s, default: 5.0s) |
+
+**Response** – `Content-Type: text/event-stream`
+```
+: heartbeat
+
+data: {"total_transactions":1540,"fraud_rate":0.08,"cases_pending":12,"cases_assigned":3,"loan_pending":5,...}
+
+data: {...updated metrics...}
 ```
 
 ---
@@ -1304,27 +1648,46 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 
 ### Phân quyền theo Endpoint
 
+*(~~Bảng cũ: Loan Submit chỉ OPERATOR; Transaction States chỉ OPERATOR/ADMIN~~)*
+
 | Module | OPERATOR | REVIEWER | MANAGER | ADMIN |
 |---|:---:|:---:|:---:|:---:|
 | Health | ✓ | ✓ | ✓ | ✓ |
-| Auth (login/logout/change-pw/me) | ✓ | ✓ | ✓ | ✓ |
+| Auth (login/logout/refresh/change-pw/me) | ✓ | ✓ | ✓ | ✓ |
 | User Management | – | – | Chỉ đọc | Full |
-| Transaction Submit | ✓ | – | – | – |
-| Transaction View | ✓ | ✓ | ✓ | ✓ |
-| Transaction States | ✓ | – | – | ✓ |
+| Transaction Submit | ✓ | – | ✓ | ✓ |
+| Transaction View | Chỉ của mình | ✓ | ✓ | ✓ |
+| Transaction State-History | ✓ | ✓ | ✓ | ✓ |
 | Case Management | – | Full | Chỉ đọc | Chỉ đọc |
 | Audit Log | – | – | ✓ | ✓ |
 | Dashboard / BI | – | – | ✓ | ✓ |
-| Loan Submit | ✓ | – | – | – |
-| Loan View | – | – | ✓ | ✓ |
+| Loan Create | ✓ | – | ✓ | ✓ |
+| Loan Simulate | ✓ | – | ✓ | ✓ |
+| Loan View | Chỉ của mình | – | ✓ | ✓ |
+| Loan Decision (Approve/Reject) | – | – | ✓ | ✓ |
 | ETL / Data Lake | – | – | – | ✓ |
 | Reconciliation | – | – | Chỉ đọc | Full |
+| SSE Stream (transactions) | ✓ | ✓ | ✓ | ✓ |
+| SSE Stream (dashboard) | – | – | ✓ | ✓ |
 
 ### Phân luồng Fraud Score (UC-TXN-05)
 
+*(~~Cũ: ≤ 0.30 → APPROVED, > 0.70 → REJECTED~~)*
+> Model Random Forest 10 cây → score ∈ `{0.3, 0.4, 0.5, 0.6, 0.7}`. Ngưỡng calibrate theo dải thực tế.
+
 | `fraud_score` | Kết quả |
 |---|---|
-| `≤ 0.30` | `APPROVED` (tự động) |
-| `0.30 < score ≤ 0.70` | `MANUAL_REVIEW` (tạo case) |
-| `> 0.70` | `REJECTED` (tự động) |
+| `< 0.35` | `APPROVED` (~30% giao dịch) |
+| `0.35 ≤ score < 0.65` | `MANUAL_REVIEW` (~40% giao dịch) |
+| `≥ 0.65` | `REJECTED` (~30% giao dịch) |
 | Bất kỳ, `amount > 500,000,000` | Override → `MANUAL_REVIEW` |
+
+### Phân loại Risk Level – Loan (UC-LOAN)
+
+*(~~Cũ: risk_grade, ngưỡng < 0.3 / 0.3–0.6 / > 0.6~~)*
+
+| `pd_score` | `risk_level` |
+|---|---|
+| `< 0.20` | `LOW` |
+| `0.20 ≤ pd < 0.50` | `MEDIUM` |
+| `≥ 0.50` | `HIGH` |

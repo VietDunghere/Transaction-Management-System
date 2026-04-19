@@ -75,13 +75,15 @@ class TransactionResponse(BaseModel):
     customer_id: str
     merchant_id: str
     channel_id: int
+    submitted_by: str                    # user_id người submit — cần cho display và SoD audit
     card_number_masked: Optional[str]
     amount: Decimal
     currency_code: str
     txn_time: datetime
     status: TransactionStatus
     fraud_score: Optional[float]
-    reason_code: Optional[str]
+    reason_code: Optional[str]           # fraud scoring reason: HIGH_FRAUD_SCORE, etc.
+    override_reason: Optional[str]       # manual override reason: HIGH_VALUE, etc.
     created_at: datetime
     # Đính kèm fraud detail khi có
     fraud_detail: Optional[FraudScoreDetail] = None
@@ -95,6 +97,9 @@ class TransactionSubmitResponse(BaseModel):
     status: TransactionStatus
     fraud_score: Optional[float]
     decision: str
+    amount: Decimal                      # frontend cần cho confirmation screen
+    currency_code: str
+    created_at: datetime                 # timestamp chính xác từ server
     message: str
     case_id: Optional[str] = Field(None, description="Không null nếu MANUAL_REVIEW")
 

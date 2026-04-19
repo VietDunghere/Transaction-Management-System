@@ -46,9 +46,22 @@ class CaseService:
             raise NotFoundError("Case")
         return case
 
-    def list_cases(self, **kwargs) -> tuple[list[ReviewCase], int]:
+    def list_cases(
+        self,
+        case_status=None,
+        assigned_to=None,
+        reviewer_queue_for=None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[ReviewCase], int]:
         """Danh sách cases với filter và pagination."""
-        return self._case_repo.list_cases(**kwargs)
+        return self._case_repo.list_cases(
+            case_status=case_status,
+            assigned_to=assigned_to,
+            reviewer_queue_for=reviewer_queue_for,
+            page=page,
+            page_size=page_size,
+        )
 
     def self_assign(self, case_id: str, reviewer_user_id: str) -> ReviewCase:
         """
@@ -116,8 +129,19 @@ class CaseService:
         """
         case = self._get_open_case(case_id)
 
-        # Chỉ reviewer được assign mới có thể quyết định (MANAGER bypass được)
-        if "MANAGER" not in actor_roles and case.assigned_to != actor_user_id:
+        # Case phải ở trạng thái ASSIGNED trước khi có thể quyết định.
+        # MANAGER/ADMIN có thể override nhưng case vẫn phải qua bước assign
+        # để đảm bảo audit trail đầy đủ.
+        if case.case_status == CaseStatus.OPEN.value:
+            raise ConflictError(
+                "Case chưa được nhận (status = OPEN). "
+                "Hãy assign case trước khi đưa ra quyết định."
+            )
+
+        # REVIEWER chỉ quyết định được case được giao cho mình.
+        # MANAGER và ADMIN có thể quyết định bất kỳ case nào (override/giám sát).
+        is_privileged = "MANAGER" in actor_roles or "ADMIN" in actor_roles
+        if not is_privileged and case.assigned_to != actor_user_id:
             raise PermissionDeniedError("Case này không được giao cho bạn.")
 
         # Optimistic lock check

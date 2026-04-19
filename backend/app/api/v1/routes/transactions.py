@@ -157,8 +157,16 @@ def get_transaction_state_history(
     token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER")),
 ) -> List[TxnStateHistoryItem]:
     svc = TransactionService(db)
-    # Verify transaction exists before returning history
-    svc.get_transaction(txn_id)
+    txn = svc.get_transaction(txn_id)
+
+    # OPERATOR chỉ được xem state-history của giao dịch do mình submit
+    is_operator_only = (
+        "OPERATOR" in token.roles
+        and "MANAGER" not in token.roles
+        and "ADMIN" not in token.roles
+    )
+    if is_operator_only and txn.submitted_by != token.sub:
+        raise PermissionDeniedError("Bạn không có quyền xem lịch sử giao dịch này.")
 
     repo = TransactionRepository(db)
     history = repo.get_state_history(txn_id)

@@ -18,7 +18,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ConflictError, NotFoundError, OptimisticLockError
+from app.core.exceptions import ConflictError, NotFoundError, OptimisticLockError, PermissionDeniedError
 from app.core.logging import get_logger
 from app.models.loan import Loan
 from app.models.scoring import AuditLog
@@ -198,6 +198,13 @@ class LoanService:
         if loan.status != LoanStatus.PENDING.value:
             raise ConflictError(
                 f"Khoản vay đang ở trạng thái '{loan.status}', không thể thay đổi."
+            )
+
+        # Phân tách trách nhiệm (SoD): người tạo đơn không được tự phê duyệt
+        if loan.submitted_by == actor_user_id:
+            raise PermissionDeniedError(
+                "Không thể phê duyệt khoản vay do chính mình tạo ra "
+                "(nguyên tắc phân tách trách nhiệm – 4-eyes principle)."
             )
 
         if loan.version != request.version:

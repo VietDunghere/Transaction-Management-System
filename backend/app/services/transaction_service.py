@@ -199,6 +199,7 @@ class TransactionService:
 
         # ---- Commit ----
         self._db.commit()
+        self._db.refresh(txn)  # reload server-default fields (created_at)
 
         # ---- Cập nhật idempotency response ----
         response = TransactionSubmitResponse(
@@ -206,6 +207,9 @@ class TransactionService:
             status=scoring_result.decision,
             fraud_score=scoring_result.fraud_score,
             decision=scoring_result.decision,
+            amount=txn.amount,
+            currency_code=txn.currency_code,
+            created_at=txn.created_at,
             message=self._decision_message(scoring_result.decision),
             case_id=case_id,
         )
