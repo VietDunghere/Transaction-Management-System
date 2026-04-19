@@ -44,6 +44,7 @@ class TransactionRepository:
         date_to: Optional[datetime] = None,
         min_amount: Optional[float] = None,
         max_amount: Optional[float] = None,
+        created_after: Optional[datetime] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Transaction], int]:
@@ -73,6 +74,8 @@ class TransactionRepository:
             filters.append(Transaction.amount >= min_amount)
         if max_amount is not None:
             filters.append(Transaction.amount <= max_amount)
+        if created_after is not None:
+            filters.append(Transaction.created_at >= created_after)
 
         if filters:
             query = query.filter(and_(*filters))
