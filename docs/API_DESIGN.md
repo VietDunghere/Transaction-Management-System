@@ -13,7 +13,7 @@
 | 1 | `POST /loans/submit` (body: `applicant_id`, `credit_score`, `employment_type`) | `POST /loans` (body: `customer_id`, `person_age`, `person_income`, `loan_grade`, v.v.) |
 | 2 | Thiếu `PATCH /loans/{loan_id}/decision` | Thêm — MANAGER/ADMIN phê duyệt/từ chối |
 | 3 | Thiếu `POST /loans/simulate` | Thêm — AI scoring không lưu DB |
-| 4 | `GET /loans` — chỉ MANAGER, ADMIN | Thêm OPERATOR (chỉ thấy đơn của mình) |
+| 4 | `GET /loans` — chỉ MANAGER, ADMIN | Thêm OPERATOR, ANALYST (tất cả thấy toàn bộ — hệ thống 1 ngân hàng) |
 | 5 | Thiếu `POST /auth/refresh` | Thêm |
 | 6 | `GET /transactions/{txn_id}/states` | `GET /transactions/{txn_id}/state-history` |
 | 7 | `POST /etl/trigger` | `POST /etl/run` |
@@ -26,7 +26,7 @@
 | 14 | Case decide: OPEN case có thể bị quyết định trực tiếp | Case phải ASSIGNED trước → 409 nếu OPEN |
 | 15 | Case decide: ADMIN bị chặn như REVIEWER | ADMIN bypass giống MANAGER |
 | 16 | REVIEWER list cases: thấy tất cả hoặc chỉ của mình (sai cả hai) | Thấy OPEN queue + cases của mình (compound OR query) |
-| 17 | Transaction state-history: OPERATOR xem được của ai cũng được | OPERATOR chỉ xem giao dịch do mình submit |
+| 17 | Transaction state-history: OPERATOR xem được của ai cũng được | OPERATOR xem tất cả — hệ thống 1 ngân hàng, không phân tách dữ liệu theo user |
 | 18 | `CaseDecideRequest` body field: `note` | `decision_note` (khớp với Pydantic schema thực tế) |
 | 19 | `TransactionSubmitResponse`: thiếu `amount`, `currency_code`, `message`, `case_id` | Thêm đủ fields |
 | 20 | Thiếu role ANALYST | Thêm role ANALYST với module phân tích riêng (UC09) |
@@ -451,10 +451,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR, REVIEWER, MANAGER, ADMIN |
-
-> ⚠️ OPERATOR chỉ thấy giao dịch do chính mình gửi (`submitted_by` tự động filter).
-> REVIEWER thấy tất cả giao dịch (không bị lọc).
+| **Roles** | OPERATOR, REVIEWER, ANALYST, MANAGER, ADMIN |
 
 **Query Params**
 
@@ -506,9 +503,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR, REVIEWER, MANAGER, ADMIN |
-
-> ⚠️ **OPERATOR** chỉ xem được giao dịch do **chính mình submit**. Truy cập giao dịch của người khác → 403.
+| **Roles** | OPERATOR, REVIEWER, ANALYST, MANAGER, ADMIN |
 
 **Response 200**
 ```json
@@ -610,7 +605,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR, MANAGER, ADMIN |
+| **Roles** | OPERATOR, ANALYST, MANAGER, ADMIN |
 
 **Request Body**
 ```json
@@ -651,9 +646,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR, MANAGER, ADMIN *(~~Cũ: chỉ MANAGER, ADMIN~~)* |
-
-> OPERATOR chỉ thấy đơn do mình tạo (`submitted_by` tự động filter).
+| **Roles** | OPERATOR, ANALYST, MANAGER, ADMIN *(~~Cũ: chỉ MANAGER, ADMIN~~)* |
 
 **Query Params**
 
@@ -696,7 +689,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR (chỉ đơn của mình), MANAGER, ADMIN |
+| **Roles** | OPERATOR, ANALYST, MANAGER, ADMIN |
 
 **Response 200**
 ```json
@@ -790,7 +783,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | REVIEWER, MANAGER, ADMIN |
+| **Roles** | REVIEWER, ANALYST, MANAGER, ADMIN |
 
 > **REVIEWER** thấy: tất cả OPEN cases (queue chưa ai nhận) + cases được giao cho mình. Compound query: `(assigned_to IS NULL) OR (assigned_to = reviewer_id)`. *(~~Cũ: chỉ thấy cases của mình → không thể nhận việc mới~~)*
 > MANAGER/ADMIN thấy tất cả. Nếu REVIEWER truyền `assigned_to` của reviewer khác → 403.
@@ -863,7 +856,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | REVIEWER, MANAGER, ADMIN |
+| **Roles** | REVIEWER, ANALYST, MANAGER, ADMIN |
 
 **Response 200**
 ```json
@@ -952,7 +945,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
+| **Roles** | ANALYST, MANAGER, ADMIN |
 
 > Sorted DESC by event_ts.
 
@@ -996,7 +989,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
+| **Roles** | ANALYST, MANAGER, ADMIN |
 
 > Sorted ASC by event_ts.
 
@@ -1043,7 +1036,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
+| **Roles** | ANALYST, MANAGER, ADMIN |
 
 **Response 200**
 ```json
@@ -1074,7 +1067,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
+| **Roles** | ANALYST, MANAGER, ADMIN |
 
 > No query params. Returns current snapshot as of the moment of request.
 
@@ -1117,7 +1110,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
+| **Roles** | ANALYST, MANAGER, ADMIN |
 
 **Query Params**
 
@@ -1153,7 +1146,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
+| **Roles** | ANALYST, MANAGER, ADMIN |
 
 > Max 5000 rows. CSV returns `Content-Type: text/csv` with UTF-8 BOM.
 
@@ -1196,7 +1189,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | MANAGER, ADMIN |
+| **Roles** | ANALYST, MANAGER, ADMIN |
 
 **Query Params**
 
@@ -1398,9 +1391,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR, REVIEWER, MANAGER, ADMIN *(~~Cũ: chỉ OPERATOR, ADMIN~~)* |
-
-> ⚠️ **OPERATOR** chỉ xem được state-history của giao dịch do **chính mình submit**. Truy cập giao dịch của người khác → 403. *(~~Cũ: không có check, xem được của tất cả~~)*
+| **Roles** | OPERATOR, REVIEWER, ANALYST, MANAGER, ADMIN *(~~Cũ: chỉ OPERATOR, ADMIN~~)* |
 
 **Response 200** – Array các state transitions
 ```json
@@ -1466,7 +1457,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | ADMIN |
+| **Roles** | ANALYST, ADMIN |
 
 **Query Params**
 
@@ -1510,7 +1501,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | ADMIN |
+| **Roles** | ANALYST, ADMIN |
 
 **Response 200**
 ```json
@@ -2029,17 +2020,21 @@ Content-Disposition: attachment; filename="analyst_report_<id8>.pdf"
 | Auth (login/logout/refresh/change-pw/me) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | User Management | – | – | – | Chỉ đọc | Full |
 | Transaction Submit | ✓ | – | – | – | – |
-| Transaction View | Chỉ của mình | ✓ | – | ✓ | ✓ |
-| Transaction State-History | ✓ | ✓ | – | ✓ | ✓ |
-| Case Management | – | Full | – | Chỉ đọc | Chỉ đọc |
-| Audit Log | – | – | – | ✓ | ✓ |
-| Dashboard / BI | – | – | – | ✓ | ✓ |
+| Transaction View (list/detail) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Transaction State-History | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Case Management (view) | – | ✓ | ✓ | ✓ | ✓ |
+| Case Assign | – | ✓ | – | – | – |
+| Case Decision | – | ✓ | – | ✓ | ✓ |
+| Audit Log | – | – | ✓ | ✓ | ✓ |
+| Dashboard / BI (summary/trend) | – | – | ✓ | ✓ | ✓ |
+| Reports (transactions/fraud export) | – | – | ✓ | ✓ | ✓ |
 | Loan Create | ✓ | – | – | – | – |
-| Loan Simulate | ✓ | – | – | ✓ | ✓ |
-| Loan View | Chỉ của mình | – | – | ✓ | ✓ |
+| Loan Simulate | ✓ | – | ✓ | ✓ | ✓ |
+| Loan View (list/detail) | ✓ | – | ✓ | ✓ | ✓ |
 | Loan Decision (Approve/Reject) | – | – | – | ✓ | ✓ |
 | ETL / Data Lake | – | – | – | – | ✓ |
-| Reconciliation | – | – | – | Chỉ đọc | Full |
+| Reconciliation (run/resolve) | – | – | – | – | ✓ |
+| Reconciliation (view) | – | – | ✓ | – | ✓ |
 | SSE Stream (transactions) | ✓ | ✓ | – | ✓ | ✓ |
 | SSE Stream (dashboard) | – | – | – | ✓ | ✓ |
 | Analyst Thresholds (view) | – | – | ✓ | ✓ | ✓ |
