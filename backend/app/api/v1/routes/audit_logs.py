@@ -42,7 +42,7 @@ router = APIRouter(prefix="/audit-logs", tags=["Audit Logs"])
 )
 def list_audit_logs(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN", "ANALYST")),
     event_type: Optional[str] = Query(
         None,
         description=(
@@ -106,7 +106,7 @@ def list_entity_audit_logs(
     entity_type: str,
     entity_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN", "ANALYST")),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> PagedResponse[AuditLogResponse]:
@@ -140,7 +140,7 @@ def list_entity_audit_logs(
 def get_audit_log(
     log_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN", "ANALYST")),
 ) -> AuditLogResponse:
     svc = AuditService(db)
     log = svc.get_log(log_id)

@@ -127,12 +127,19 @@ class FraudScoringService:
         """Kiểm tra model đã sẵn sàng chưa."""
         return self._is_loaded and self._pipeline is not None
 
-    def score(self, inp: FraudScoringInput) -> FraudScoringOutput:
+    def score(
+        self,
+        inp: FraudScoringInput,
+        reject_threshold: float | None = None,
+        review_threshold: float | None = None,
+    ) -> FraudScoringOutput:
         """
         Tính fraud score cho 1 giao dịch.
 
         Args:
             inp: FraudScoringInput với đầy đủ thông tin
+            reject_threshold: override ngưỡng từ chối (mặc định lấy từ settings)
+            review_threshold: override ngưỡng manual review (mặc định lấy từ settings)
 
         Returns:
             FraudScoringOutput với score, decision, và feature snapshot
@@ -150,9 +157,9 @@ class FraudScoringService:
         df = pd.DataFrame([features])
         fraud_prob = float(self._pipeline.predict_proba(df)[:, 1][0])
 
-        # ---- Apply thresholds ----
-        reject_th = settings.fraud_reject_threshold
-        review_th = settings.fraud_review_threshold
+        # ---- Apply thresholds (DB override nếu có, fallback về settings) ----
+        reject_th = reject_threshold if reject_threshold is not None else settings.fraud_reject_threshold
+        review_th = review_threshold if review_threshold is not None else settings.fraud_review_threshold
 
         if fraud_prob >= reject_th:
             decision = "REJECTED"

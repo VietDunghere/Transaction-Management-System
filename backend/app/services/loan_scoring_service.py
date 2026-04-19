@@ -147,7 +147,12 @@ class LoanScoringService:
         """Kiểm tra model đã load xong và sẵn sàng score."""
         return self._is_loaded and self._classifier is not None and self._preprocessor is not None
 
-    def simulate(self, inp: LoanSimulationInput) -> LoanSimulationOutput:
+    def simulate(
+        self,
+        inp: LoanSimulationInput,
+        high_risk_threshold: float | None = None,
+        medium_risk_threshold: float | None = None,
+    ) -> LoanSimulationOutput:
         """
         Chạy ML inference để dự báo xác suất vỡ nợ (PD Score).
         Fallback sang heuristic nếu model chưa sẵn sàng.
@@ -165,10 +170,12 @@ class LoanScoringService:
         # Bước 2: Dự báo xác suất class 1 (vỡ nợ)
         pd_score = float(self._classifier.predict_proba(X_trans)[:, 1][0])
 
-        # Bước 3: Phân loại mức rủi ro theo ngưỡng trong config
-        if pd_score >= settings.loan_high_risk_threshold:
+        # Bước 3: Phân loại mức rủi ro (DB override nếu có, fallback về settings)
+        high_th = high_risk_threshold if high_risk_threshold is not None else settings.loan_high_risk_threshold
+        medium_th = medium_risk_threshold if medium_risk_threshold is not None else settings.loan_medium_risk_threshold
+        if pd_score >= high_th:
             risk_level = "HIGH RISK"
-        elif pd_score >= settings.loan_medium_risk_threshold:
+        elif pd_score >= medium_th:
             risk_level = "MEDIUM RISK"
         else:
             risk_level = "LOW RISK"

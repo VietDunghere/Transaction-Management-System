@@ -60,7 +60,7 @@ def submit_transaction(
 )
 def list_transactions(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER", "ANALYST")),
     status: Optional[TransactionStatus] = Query(None),
     customer_id: Optional[str] = Query(None, description="Lọc theo customer UUID"),
     merchant_id: Optional[str] = Query(None),
@@ -110,7 +110,7 @@ def list_transactions(
 def get_transaction(
     txn_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER", "ANALYST")),
 ) -> TransactionResponse:
     svc = TransactionService(db)
     txn = svc.get_transaction(txn_id)
@@ -154,7 +154,7 @@ def get_transaction(
 def get_transaction_state_history(
     txn_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER", "ANALYST")),
 ) -> List[TxnStateHistoryItem]:
     svc = TransactionService(db)
     txn = svc.get_transaction(txn_id)

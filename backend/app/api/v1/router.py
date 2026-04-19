@@ -5,6 +5,7 @@ API v1 Router — tổng hợp tất cả route modules.
 from fastapi import APIRouter
 
 from app.api.v1.routes import (
+    analyst,
     audit_logs,
     auth,
     cases,
@@ -22,6 +23,7 @@ from app.api.v1.routes import (
 
 router = APIRouter()
 
+router.include_router(analyst.router)
 router.include_router(auth.router)
 router.include_router(users.router)
 router.include_router(transactions.router)

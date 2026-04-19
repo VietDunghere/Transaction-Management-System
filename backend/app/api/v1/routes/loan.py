@@ -65,7 +65,7 @@ def apply_loan(
 )
 def list_loans(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "ANALYST")),
     customer_id: Optional[str] = Query(None, description="Lọc theo customer UUID"),
     status: Optional[LoanStatus] = Query(None, description="Lọc theo trạng thái"),
     page: int = Query(default=1, ge=1),
@@ -109,7 +109,7 @@ def list_loans(
 )
 def simulate_loan(
     body: LoanSimulationRequest,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "ANALYST")),
 ) -> LoanSimulationResponse:
     scoring_svc = LoanScoringService.get_instance()
 
@@ -145,7 +145,7 @@ def simulate_loan(
 def get_loan(
     loan_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "ANALYST")),
 ) -> LoanResponse:
     svc = LoanService(db)
     loan = svc.get_loan(loan_id)

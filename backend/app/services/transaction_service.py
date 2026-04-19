@@ -23,6 +23,7 @@ from app.core.logging import get_logger
 from app.models.scoring import AuditLog, RiskScoringResult
 from app.models.transaction import Transaction, TxnIdempotency, TxnState, TxnStateHistory
 from app.models.case import ReviewCase, ReviewCaseAction
+from app.repositories.analyst_repo import ModelConfigRepository, SuppressionRepository
 from app.repositories.transaction_repo import TransactionRepository
 from app.repositories.velocity_repo import CustomerRepository, MerchantRepository, VelocityRepository
 from app.schemas.transaction import TransactionSubmitRequest, TransactionSubmitResponse
@@ -41,6 +42,8 @@ class TransactionService:
         self._customer_repo = CustomerRepository(db)
         self._merchant_repo = MerchantRepository(db)
         self._velocity_repo = VelocityRepository(db)
+        self._config_repo = ModelConfigRepository(db)
+        self._suppression_repo = SuppressionRepository(db)
         self._scoring_svc = FraudScoringService.get_instance()
 
     # ============================================================
@@ -81,7 +84,70 @@ class TransactionService:
         card_hash = hash_card_number(request.card_number)
         card_masked = mask_card_number(request.card_number)
 
-        # ---- Bước 4: Cập nhật velocity stats (trước khi score) ----
+        # ---- Bước 4a: Kiểm tra suppression rule ----
+        if self._suppression_repo.is_suppressed(
+            merchant_id=request.merchant_id,
+            customer_id=request.customer_id,
+            card_hash=card_hash,
+        ):
+            # Whitelist — bypass fraud scoring, auto APPROVED
+            from app.models.transaction import TxnState, TxnStateHistory
+            txn_date_str = request.txn_time.strftime("%Y-%m-%d")
+            self._velocity_repo.upsert(card_hash, float(request.amount), txn_date_str)
+            txn = Transaction(
+                txn_id=str(uuid.uuid4()),
+                customer_id=request.customer_id,
+                merchant_id=request.merchant_id,
+                channel_id=request.channel_id,
+                submitted_by=submitted_by_user_id,
+                card_number_masked=card_masked,
+                card_number_hash=card_hash,
+                amount=request.amount,
+                currency_code=request.currency_code,
+                txn_time=request.txn_time,
+                status="APPROVED",
+                fraud_score=0.0,
+                reason_code="SUPPRESSION_RULE",
+                source_ip=request.source_ip,
+            )
+            self._txn_repo.create(txn)
+            self._db.add(TxnState(txn_id=txn.txn_id, status="APPROVED", version=1))
+            self._db.add(TxnStateHistory(
+                state_hist_id=str(uuid.uuid4()),
+                txn_id=txn.txn_id,
+                old_status=None,
+                new_status="APPROVED",
+                changed_by_user_id=submitted_by_user_id,
+                change_reason="Suppression rule — bypassed fraud scoring",
+            ))
+            audit = AuditLog(
+                log_id=str(uuid.uuid4()),
+                event_type="TRANSACTION_SUBMITTED",
+                entity_type="Transaction",
+                entity_id=txn.txn_id,
+                actor_user_id=submitted_by_user_id,
+                detail_json=json.dumps({"amount": float(request.amount), "fraud_score": 0.0, "decision": "APPROVED", "suppressed": True}),
+            )
+            self._db.add(audit)
+            self._db.commit()
+            self._db.refresh(txn)
+            response = TransactionSubmitResponse(
+                txn_id=txn.txn_id,
+                status="APPROVED",
+                fraud_score=0.0,
+                decision="APPROVED",
+                amount=txn.amount,
+                currency_code=txn.currency_code,
+                created_at=txn.created_at,
+                message="Giao dịch được duyệt tự động (suppression rule).",
+                case_id=None,
+            )
+            if request.idempotency_key:
+                self._txn_repo.update_idempotency(key=request.idempotency_key, status="SUCCESS", txn_id=txn.txn_id, response_json=json.dumps(response.model_dump()))
+                self._db.commit()
+            return response
+
+        # ---- Bước 4b: Cập nhật velocity stats (trước khi score) ----
         txn_date_str = request.txn_time.strftime("%Y-%m-%d")
         velocity = self._velocity_repo.upsert(card_hash, float(request.amount), txn_date_str)
 
@@ -108,8 +174,14 @@ class TransactionService:
             cc_std_amt=float(velocity.std_amt),
         )
 
-        # ---- Bước 6: Score ----
-        scoring_result = self._scoring_svc.score(scoring_input)
+        # ---- Bước 6: Score (dùng threshold từ DB nếu có) ----
+        reject_cfg = self._config_repo.get("fraud", "reject_threshold")
+        review_cfg = self._config_repo.get("fraud", "review_threshold")
+        scoring_result = self._scoring_svc.score(
+            scoring_input,
+            reject_threshold=float(reject_cfg.param_value) if reject_cfg else None,
+            review_threshold=float(review_cfg.param_value) if review_cfg else None,
+        )
         logger.info(
             "fraud_scored",
             customer_id=request.customer_id,
