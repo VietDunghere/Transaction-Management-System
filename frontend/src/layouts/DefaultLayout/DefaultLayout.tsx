@@ -19,10 +19,7 @@ export function DefaultLayout({ children }: PropsWithChildren) {
             <div className="flex flex-1 flex-col overflow-hidden min-w-0">
                 <Header isSidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-                <main
-                    className={cn('flex-1 overflow-y-auto overflow-x-hidden', 'bg-primary')}
-                    style={{ padding: 28 }}
-                >
+                <main className={cn('flex-1 overflow-y-auto overflow-x-hidden', 'bg-primary')} style={{ padding: 28 }}>
                     {children}
                 </main>
             </div>

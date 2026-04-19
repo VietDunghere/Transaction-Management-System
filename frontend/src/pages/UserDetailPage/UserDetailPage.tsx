@@ -104,11 +104,11 @@ export function UserDetailPage() {
                 }
                 summary={
                     <div className="flex flex-col gap-5">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col items-start gap-1">
                             <span className="text-xs font-medium text-text-secondary">Role</span>
                             <Badge variant={roleVariant[userData.role]}>{userData.role}</Badge>
                         </div>
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col items-start gap-1">
                             <span className="text-xs font-medium text-text-secondary">Status</span>
                             <Badge variant={userData.is_active ? 'success' : 'muted'} dot>
                                 {userData.is_active ? 'Active' : 'Disabled'}
@@ -176,9 +176,7 @@ export function UserDetailPage() {
                     onChange={(e) => setSelectedRole(e.target.value as Exclude<Role, 'ADMIN'>)}
                 />
                 {updateRole.isError && (
-                    <p className="text-xs text-status-danger mt-2">
-                        Failed to update role. Please try again.
-                    </p>
+                    <p className="text-xs text-status-danger mt-2">Failed to update role. Please try again.</p>
                 )}
             </Modal>
         </>

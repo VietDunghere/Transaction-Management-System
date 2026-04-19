@@ -108,9 +108,7 @@ export function LoanDetailPage() {
                             </span>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">
-                                Interest Rate
-                            </span>
+                            <span className="text-xs font-medium text-text-secondary">Interest Rate</span>
                             <span className="text-lg font-semibold">{loan.interest_rate}%</span>
                         </div>
                         <div className="flex flex-col gap-1">
@@ -212,9 +210,7 @@ export function LoanDetailPage() {
                     onChange={(e) => setReviewNote(e.target.value)}
                 />
                 {decideLoan.isError && (
-                    <p className="text-xs text-status-danger mt-2">
-                        Failed to submit decision. Please try again.
-                    </p>
+                    <p className="text-xs text-status-danger mt-2">Failed to submit decision. Please try again.</p>
                 )}
             </Modal>
         </>

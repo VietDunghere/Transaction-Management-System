@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Search, Bell, LogOut, User, Menu } from 'lucide-react';
+import { Search, Bell, LogOut, User, Menu, Sun, Moon } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { cn } from '~/utils/cn';
 import { useAuthStore } from '~/stores/useAuthStore';
+import { useUIStore } from '~/stores/useUIStore';
 import { useLogout } from '~/hooks/useAuth';
 
 interface HeaderProps {
@@ -42,6 +43,7 @@ function getBreadcrumbs(pathname: string) {
 
 export function Header({ onToggleSidebar }: HeaderProps) {
     const user = useAuthStore((s) => s.user);
+    const { theme, toggleTheme } = useUIStore();
     const logout = useLogout();
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const routerState = useRouterState();
@@ -49,11 +51,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
 
     return (
         <header
-            className={cn(
-                'flex items-center justify-between shrink-0',
-                'bg-primary',
-                'border-b border-border-default',
-            )}
+            className={cn('flex items-center justify-between shrink-0', 'bg-primary', 'border-b border-border-default')}
             style={{ height: 'var(--header-height)', padding: '20px 28px' }}
         >
             {/* Left — mobile toggle + breadcrumb */}
@@ -100,6 +98,20 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                     </span>
                 </div>
 
+                {/* Theme toggle */}
+                <button
+                    onClick={toggleTheme}
+                    className="flex items-center justify-center size-7 rounded-sm cursor-pointer hover:bg-subtle transition-colors"
+                    style={{ border: 'none', background: 'transparent' }}
+                    aria-label="Toggle theme"
+                >
+                    {theme === 'light' ? (
+                        <Moon size={16} className="text-text-primary" />
+                    ) : (
+                        <Sun size={16} className="text-text-primary" />
+                    )}
+                </button>
+
                 {/* Notifications */}
                 <button
                     className="flex items-center justify-center size-7 rounded-sm cursor-pointer hover:bg-subtle transition-colors"
@@ -121,9 +133,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                                 {user?.full_name?.charAt(0).toUpperCase() ?? '?'}
                             </span>
                         </div>
-                        <span className="hidden sm:block text-xs text-text-primary">
-                            {user?.full_name ?? 'User'}
-                        </span>
+                        <span className="hidden sm:block text-xs text-text-primary">{user?.full_name ?? 'User'}</span>
                     </button>
 
                     {userMenuOpen && (
@@ -137,9 +147,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                                 )}
                             >
                                 <div className="px-3 py-2 border-b border-border-default">
-                                    <p className="text-xs font-medium text-text-primary">
-                                        {user?.full_name}
-                                    </p>
+                                    <p className="text-xs font-medium text-text-primary">{user?.full_name}</p>
                                     <p className="text-xs text-text-secondary">{user?.role}</p>
                                 </div>
                                 <Link

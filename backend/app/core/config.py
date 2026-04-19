@@ -36,8 +36,13 @@ class Settings(BaseSettings):
 
     # ---- Fraud Detection Model ----
     fraud_model_path: str = "./ml_models/fraud_rf_v3.pkl"
-    fraud_reject_threshold: float = 0.45
-    fraud_review_threshold: float = 0.05
+    # Model chỉ cho ra score trong {0.3, 0.4, 0.5, 0.6, 0.7} (10 cây, quantized).
+    # Threshold được calibrate theo dải thực tế:
+    #   score < 0.35  → APPROVED      (~30% txn)
+    #   0.35 ≤ s < 0.65 → MANUAL_REVIEW (~40% txn)
+    #   score ≥ 0.65  → REJECTED      (~30% txn)
+    fraud_reject_threshold: float = 0.65
+    fraud_review_threshold: float = 0.35
     fraud_model_version: str = "rf_v3_regularized"
 
     # ---- Loan Approval Model ----

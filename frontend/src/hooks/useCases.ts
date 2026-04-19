@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { caseService } from '~/services/caseService';
+import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { CaseSearchParams } from '~/types/searchParams';
 import type { CaseDecisionRequest } from '~/types/api';
 
@@ -32,6 +34,11 @@ export function useAssignCase() {
         onSuccess: (_data, caseId) => {
             queryClient.invalidateQueries({ queryKey: caseKeys.detail(caseId) });
             queryClient.invalidateQueries({ queryKey: caseKeys.all });
+            toastSuccessWithActivity('Case assigned to you');
+        },
+        onError: (error: unknown) => {
+            const apiMsg = (error as any)?.response?.data?.message;
+            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
         },
     });
 }
@@ -45,6 +52,11 @@ export function useDecideCase() {
         onSuccess: (_data, vars) => {
             queryClient.invalidateQueries({ queryKey: caseKeys.detail(vars.caseId) });
             queryClient.invalidateQueries({ queryKey: caseKeys.all });
+            toastSuccessWithActivity('Case decision submitted');
+        },
+        onError: (error: unknown) => {
+            const apiMsg = (error as any)?.response?.data?.message;
+            toast.error(apiMsg || 'Failed to submit decision. This may be a version conflict — please refresh.');
         },
     });
 }

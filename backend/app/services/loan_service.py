@@ -140,6 +140,11 @@ class LoanService:
             cb_person_cred_hist_length=request.cb_person_cred_hist_length,
         )
         self._loan_repo.create(loan)
+
+        # Tính pd_score ngay khi apply nếu đủ AI features —
+        # giúp MANAGER thấy risk level trước khi ra quyết định (và demo thấy ngay)
+        _try_score_loan(loan)
+
         self._write_audit(loan.loan_id, submitted_by_user_id, "LOAN_APPLIED", {
             "principal_amount": float(request.principal_amount),
             "interest_rate": float(request.interest_rate),

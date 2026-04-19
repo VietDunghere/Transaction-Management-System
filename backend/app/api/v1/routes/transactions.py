@@ -1,13 +1,15 @@
 from __future__ import annotations
 """
 Router: Transactions
-POST /transactions       — submit giao dịch mới (OPERATOR)
-GET  /transactions       — danh sách giao dịch (OPERATOR, MANAGER)
-GET  /transactions/{id}  — chi tiết giao dịch (OPERATOR, MANAGER)
+POST /transactions/submit    — submit giao dịch mới (OPERATOR)
+GET  /transactions           — danh sách giao dịch (OPERATOR, MANAGER)
+GET  /transactions/{id}      — chi tiết giao dịch (OPERATOR, MANAGER)
+GET  /transactions/{id}/state-history — audit trail trạng thái
 """
 
 import json
 import math
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -60,9 +62,10 @@ def list_transactions(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER")),
     status: Optional[TransactionStatus] = Query(None),
+    customer_id: Optional[str] = Query(None, description="Lọc theo customer UUID"),
     merchant_id: Optional[str] = Query(None),
-    from_date: Optional[str] = Query(None, description="Từ ngày (ISO 8601)"),
-    to_date: Optional[str] = Query(None, description="Đến ngày (ISO 8601)"),
+    from_date: Optional[datetime] = Query(None, description="Từ ngày (ISO 8601)"),
+    to_date: Optional[datetime] = Query(None, description="Đến ngày (ISO 8601)"),
     min_amount: Optional[Decimal] = Query(None, ge=0),
     max_amount: Optional[Decimal] = Query(None, ge=0),
     page: int = Query(default=1, ge=1),
@@ -77,8 +80,13 @@ def list_transactions(
 
     items, total = svc.list_transactions(
         status=status,
+        customer_id=customer_id,
         merchant_id=merchant_id,
         submitted_by=submitted_by,
+        date_from=from_date,
+        date_to=to_date,
+        min_amount=float(min_amount) if min_amount is not None else None,
+        max_amount=float(max_amount) if max_amount is not None else None,
         page=page,
         page_size=limit,
     )

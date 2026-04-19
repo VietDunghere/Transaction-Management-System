@@ -106,9 +106,7 @@ export function CaseDetailPage() {
                 summary={
                     <div className="flex flex-col gap-5">
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">
-                                Transaction Amount
-                            </span>
+                            <span className="text-xs font-medium text-text-secondary">Transaction Amount</span>
                             <span className="text-lg font-semibold">
                                 {caseData.transaction.amount.toLocaleString()}
                             </span>
@@ -119,7 +117,7 @@ export function CaseDetailPage() {
                                 {(caseData.transaction.fraud_score * 100).toFixed(1)}%
                             </span>
                         </div>
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col items-start gap-1">
                             <span className="text-xs font-medium text-text-secondary">Case Status</span>
                             <Badge variant={statusVariant[caseData.case_status]}>{caseData.case_status}</Badge>
                         </div>

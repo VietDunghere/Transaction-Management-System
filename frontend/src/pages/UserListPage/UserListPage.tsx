@@ -40,7 +40,6 @@ const statusOptions = [
 const columns = [
     { key: 'username', label: 'Username' },
     { key: 'full_name', label: 'Full Name' },
-    { key: 'email', label: 'Email' },
     { key: 'role', label: 'Role' },
     { key: 'status', label: 'Status' },
     { key: 'created_at', label: 'Created' },
@@ -60,18 +59,9 @@ export function UserListPage() {
     const rows = (data?.data ?? []).map((u) => ({
         username: <span className="text-sm font-medium">{u.username}</span>,
         full_name: <span className="text-sm">{u.full_name}</span>,
-        email: <span className="text-xs text-text-secondary">{u.email}</span>,
         role: <Badge variant={roleVariant[u.role]}>{u.role}</Badge>,
-        status: (
-            <Badge variant={u.is_active ? 'success' : 'muted'}>
-                {u.is_active ? 'Active' : 'Disabled'}
-            </Badge>
-        ),
-        created_at: (
-            <span className="text-xs text-text-secondary">
-                {new Date(u.created_at).toLocaleDateString()}
-            </span>
-        ),
+        status: <Badge variant={u.is_active ? 'success' : 'muted'}>{u.is_active ? 'Active' : 'Disabled'}</Badge>,
+        created_at: <span className="text-xs text-text-secondary">{new Date(u.created_at).toLocaleDateString()}</span>,
     }));
 
     const totalPages = data ? Math.ceil(data.total / data.limit) : 0;

@@ -33,8 +33,6 @@ const statusOptions = [
 
 const columns = [
     { key: 'case_id', label: 'Case ID', width: '180px' },
-    { key: 'txn_amount', label: 'Txn Amount', align: 'right' as const },
-    { key: 'fraud_score', label: 'Fraud Score', align: 'right' as const },
     { key: 'case_status', label: 'Status' },
     { key: 'assigned_to', label: 'Assigned To' },
     { key: 'created_at', label: 'Created' },
@@ -52,19 +50,13 @@ export function CaseListPage() {
 
     const rows = (data?.data ?? []).map((c) => ({
         case_id: <span className="text-xs font-mono">{c.case_id.slice(0, 8)}...</span>,
-        txn_amount: <span className="text-sm font-medium">{c.transaction.amount.toLocaleString()}</span>,
-        fraud_score: <span className="text-sm">{(c.transaction.fraud_score * 100).toFixed(1)}%</span>,
         case_status: <Badge variant={statusVariant[c.case_status]}>{c.case_status}</Badge>,
         assigned_to: (
             <span className="text-xs text-text-secondary">
                 {c.assigned_to ? c.assigned_to.slice(0, 8) + '...' : 'Unassigned'}
             </span>
         ),
-        created_at: (
-            <span className="text-xs text-text-secondary">
-                {new Date(c.created_at).toLocaleString()}
-            </span>
-        ),
+        created_at: <span className="text-xs text-text-secondary">{new Date(c.created_at).toLocaleString()}</span>,
     }));
 
     const totalPages = data ? Math.ceil(data.total / data.limit) : 0;

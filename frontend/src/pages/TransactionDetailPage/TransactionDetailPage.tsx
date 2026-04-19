@@ -59,7 +59,7 @@ export function TransactionDetailPage() {
                         <span className="text-xs font-medium text-text-secondary">Fraud Score</span>
                         <span className="text-lg font-semibold">{(txn.fraud_score * 100).toFixed(1)}%</span>
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col items-start gap-1">
                         <span className="text-xs font-medium text-text-secondary">Status</span>
                         <Badge variant={statusVariant[txn.status]}>{txn.status}</Badge>
                     </div>
