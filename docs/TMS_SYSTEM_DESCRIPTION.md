@@ -245,3 +245,5 @@ Những chức năng không đề cập đến thì mặc định là không thu
 **Nhóm đối soát:**
 
 * Một RECONCILIATION_JOB so sánh dữ liệu từ 3 nguồn độc lập (TRANSACTIONS_LIVE trong OLTP, file raw log trong Data Lake, FACT_TRANSACTIONS trong Warehouse) cho một ngày duy nhất. Một ngày có thể có nhiều RECONCILIATION_JOB nếu ADMIN chạy lại sau khi điều tra và sửa lỗi.
+
+
