@@ -17,7 +17,7 @@
 | 13 | UC05 – REVIEWER list | REVIEWER bị auto-filter `assigned_to=self` → không thấy OPEN cases | REVIEWER thấy tất cả OPEN cases (queue nhận việc) + cases của mình |
 | 14 | UC05 – Case decide | Case OPEN có thể bị quyết định trực tiếp | Case phải ở trạng thái ASSIGNED trước khi có thể quyết định |
 | 15 | UC05 – ADMIN decide | ADMIN bị chặn khi decide case không phải của mình | ADMIN bypass như MANAGER (giám sát override) |
-| 16 | UC03 – State history | OPERATOR xem được state-history của mọi giao dịch | OPERATOR chỉ xem state-history của giao dịch do mình submit |
+| 16 | UC03 – State history | OPERATOR xem được state-history của mọi giao dịch | OPERATOR xem tất cả — hệ thống 1 ngân hàng duy nhất, không phân tách dữ liệu |
 
 ---
 
@@ -31,8 +31,8 @@
 * Xem thông tin tài khoản cá nhân (UC-AUTH-10).
 * Gửi giao dịch demo vào hệ thống qua API (`POST /api/v1/transactions/submit`) hoặc Postman với dữ liệu mô phỏng (card\_number, amount, merchant\_id...).
 * Gửi đơn vay demo thông qua Loan API (`POST /api/v1/loans`). *(~~Cũ: `/loans/submit`~~)*
-* Xem danh sách giao dịch đã gửi và kết quả xử lý (APPROVED / REJECTED / MANUAL\_REVIEW). **Chỉ thấy giao dịch do chính mình gửi.**
-* Xem danh sách đơn vay do mình tạo và trạng thái phê duyệt (PENDING / APPROVED / REJECTED).
+* Xem danh sách giao dịch và kết quả xử lý (APPROVED / REJECTED / MANUAL\_REVIEW).
+* Xem danh sách đơn vay và trạng thái phê duyệt (PENDING / APPROVED / REJECTED).
 
 **Reviewer (Nhân viên Duyệt)**
 
@@ -130,9 +130,9 @@
 **Operator (Nhân viên Vận hành)**
 
 * Gửi giao dịch demo (UC-TXN-01): gọi API `POST /api/v1/transactions/submit` với dữ liệu giao dịch mô phỏng (card\_number raw, amount, merchant\_id, txn\_time). Server tự mask và hash card\_number. Hệ thống tự động xác thực, kiểm tra trùng, chấm điểm AI, phân luồng.
-* Xem danh sách giao dịch (UC-TXN-07): xem bảng giao dịch đã gửi. **Chỉ thấy giao dịch do chính mình gửi** (filter ngầm submitted\_by).
+* Xem danh sách giao dịch (UC-TXN-07): xem toàn bộ giao dịch trong hệ thống.
 * Xem chi tiết giao dịch (UC-TXN-08): xem fraud\_score, status, reason\_code, thời gian xử lý.
-* Xem lịch sử trạng thái (UC-STATE-05): `GET /api/v1/transactions/{txn_id}/state-history` — **chỉ giao dịch do mình submit**. *(~~Cũ: OPERATOR xem được của tất cả~~)*
+* Xem lịch sử trạng thái (UC-STATE-05): `GET /api/v1/transactions/{txn_id}/state-history`.
 
 **Reviewer (Nhân viên Duyệt)**
 
@@ -173,7 +173,7 @@
   * AI features (tùy chọn, dùng để tính PD Score): `person_age`, `person_income`, `person_home_ownership`, `person_emp_length`, `loan_intent`, `loan_grade`, `cb_person_default_on_file`, `cb_person_cred_hist_length` *(~~Cũ: `applicant_id`, `credit_score`, `employment_type`~~)*
   * Đơn được tạo ở trạng thái **PENDING**. PD Score và risk\_level được tính ngay khi nộp (nếu đủ AI features). *(~~Cũ: trả kết quả ngay, không có trạng thái~~)*
 * Mô phỏng khoản vay (UC-LOAN-SIM): `POST /api/v1/loans/simulate` — chạy AI model trả về pd\_score và risk\_level mà **không lưu DB**. *(Mới)*
-* Xem danh sách đơn vay (UC-LOAN-02): `GET /api/v1/loans` — chỉ thấy đơn do mình tạo.
+* Xem danh sách đơn vay (UC-LOAN-02): `GET /api/v1/loans` — xem toàn bộ đơn vay.
 * Xem chi tiết đơn vay (UC-LOAN-03): `GET /api/v1/loans/{loan_id}` — xem pd\_score, risk\_level, trạng thái phê duyệt.
 
 **Manager (Quản lý)**
@@ -224,9 +224,9 @@
 * Xem danh sách case (UC-CASE-01): giám sát tổng quan — thấy tất cả cases.
 * Xem chi tiết case (UC-CASE-03): thấy mọi case (không bị hạn chế như REVIEWER).
 * Xem Audit Log (UC-AUDIT-02): `GET /api/v1/audit-logs`.
-* Truy vết giao dịch (UC-AUDIT-03): `GET /api/v1/audit-logs/transactions/{txn_id}/trace`.
+* Truy vết giao dịch (UC-AUDIT-03): `GET /api/v1/audit-logs/entities/TRANSACTION/{txn_id}`.
 * Lọc Audit Log (UC-AUDIT-04).
-* Xuất báo cáo Audit (UC-AUDIT-05): `GET /api/v1/audit-logs/export`.
+* Xem chi tiết một audit event (UC-AUDIT-04): `GET /api/v1/audit-logs/{log_id}`.
 
 **Admin (Quản trị viên)**
 
@@ -257,20 +257,21 @@
 
 **Admin (Quản trị viên)**
 
-* Xem cấu trúc Data Lake (UC-DATA-02): `GET /api/v1/datalake/structure`.
+* Xem danh sách snapshots Data Lake (UC-DATA-02): `GET /api/v1/datalake/snapshots`.
+* Nạp dữ liệu ngoài vào Data Lake: `POST /api/v1/datalake/ingest`.
 * Xem danh sách log ETL (UC-DATA-06): `GET /api/v1/etl/logs`.
-* Xem chi tiết một ETL job (UC-DATA-07): `GET /api/v1/etl/logs/{job_id}`.
 * Trigger ETL thủ công (UC-DATA-03/04/05): `POST /api/v1/etl/run` *(~~Cũ: `/etl/trigger`~~)* — chọn `target_date`.
 * Chạy đối soát thủ công (UC-RECON-01): `POST /api/v1/reconciliation/run`.
-* Xem kết quả đối soát (UC-DATA-09): `GET /api/v1/reconciliation/jobs`.
+* Xem danh sách phiên đối soát (UC-DATA-09): `GET /api/v1/reconciliation/reports`.
+* Xem chi tiết phiên đối soát (UC-RECON-03): `GET /api/v1/reconciliation/{run_id}`.
+* Resolve discrepancies: `PATCH /api/v1/reconciliation/{run_id}/resolve`.
 
 **Manager (Quản lý)**
 
 * Xem Dashboard tổng quan (UC-BI-01): `GET /api/v1/dashboard/summary`.
-* Xem biểu đồ Fraud/Legit (UC-BI-02): `GET /api/v1/dashboard/fraud-chart`.
-* Xem báo cáo theo thời gian (UC-BI-03): `GET /api/v1/reports/transactions`.
-* Xuất báo cáo PDF/CSV (UC-BI-04): `GET /api/v1/reports/transactions/export`.
-* Xem kết quả đối soát (UC-DATA-09): `GET /api/v1/reconciliation/jobs`.
+* Xem biểu đồ xu hướng fraud (UC-BI-02): `GET /api/v1/dashboard/fraud-trend`. *(~~Cũ: fraud-chart~~)*
+* Xem báo cáo giao dịch (UC-BI-03): `GET /api/v1/reports/transactions`.
+* Xuất báo cáo fraud summary (UC-BI-04): `GET /api/v1/reports/fraud`.
 
 ---
 
@@ -286,7 +287,7 @@
 
 * Xem lịch sử trạng thái (UC-STATE-05).
 * Chạy đối soát (UC-RECON-01): `POST /api/v1/reconciliation/run`.
-* Xem báo cáo chênh lệch (UC-RECON-03): `GET /api/v1/reconciliation/jobs/{job_id}`.
+* Xem chi tiết phiên đối soát (UC-RECON-03): `GET /api/v1/reconciliation/{run_id}`.
 
 **Hệ thống (System Auto)**
 
