@@ -1,5 +1,5 @@
 """
-Seed dữ liệu khởi tạo cho Transaction Management System.
+Seed dữ liệu khởi tạo cho Hệ thống Phân tích Rủi ro và Đánh giá Tài chính.
 Chạy: python seed.py
 Yêu cầu: DB đã tạo bảng (SQLAlchemy create_tables hoặc Alembic migrate xong).
 """
@@ -19,11 +19,12 @@ from app.models.user import User, Role, UserRole
 from app.models.customer import Customer
 from app.models.merchant import Merchant, Channel
 from app.models.loan import Loan
+from app.models.analyst import ModelConfig, SuppressionRule
 
 
 def seed(db: Session) -> None:
     # ── Roles ──────────────────────────────────────────────
-    roles_data = ["OPERATOR", "REVIEWER", "MANAGER", "ADMIN"]
+    roles_data = ["OPERATOR", "REVIEWER", "MANAGER", "ADMIN", "ANALYST"]
     roles: dict[str, Role] = {}
 
     for name in roles_data:
@@ -44,7 +45,8 @@ def seed(db: Session) -> None:
         {"username": "operator1","password": "Operator@123", "full_name": "Nguyễn Văn Operator","email": "op1@tms.local",     "role": "OPERATOR"},
         {"username": "operator2","password": "Operator@123", "full_name": "Trần Thị Operator",  "email": "op2@tms.local",     "role": "OPERATOR"},
         {"username": "reviewer1","password": "Reviewer@123", "full_name": "Lê Văn Reviewer",    "email": "rev1@tms.local",    "role": "REVIEWER"},
-        {"username": "manager1", "password": "Manager@123",  "full_name": "Phạm Thị Manager",   "email": "mgr1@tms.local",    "role": "MANAGER"},
+        {"username": "manager1",  "password": "Manager@123",  "full_name": "Phạm Thị Manager",   "email": "mgr1@tms.local",    "role": "MANAGER"},
+        {"username": "analyst1",  "password": "Analyst@123",  "full_name": "Hoàng Văn Analyst",  "email": "ana1@tms.local",    "role": "ANALYST"},
     ]
 
     for u_data in users_data:
@@ -354,6 +356,25 @@ def seed(db: Session) -> None:
             else:
                 print(f"[loans] skip {l_data['loan_id'][:18]}... (exists)")
 
+    # ── ModelConfig defaults ────────────────────────────────
+    model_configs_data = [
+        {"model_name": "fraud", "param_name": "reject_threshold",       "param_value": 0.65,  "description": "Ngưỡng từ chối tự động (fraud_score >= threshold → REJECTED)"},
+        {"model_name": "fraud", "param_name": "review_threshold",       "param_value": 0.35,  "description": "Ngưỡng chuyển MANUAL_REVIEW (fraud_score >= threshold → MANUAL_REVIEW)"},
+        {"model_name": "loan",  "param_name": "high_risk_threshold",    "param_value": 0.50,  "description": "Ngưỡng HIGH RISK (pd_score >= threshold → HIGH RISK)"},
+        {"model_name": "loan",  "param_name": "medium_risk_threshold",  "param_value": 0.20,  "description": "Ngưỡng MEDIUM RISK (pd_score >= threshold → MEDIUM RISK)"},
+    ]
+
+    for cfg in model_configs_data:
+        existing = db.query(ModelConfig).filter(
+            ModelConfig.model_name == cfg["model_name"],
+            ModelConfig.param_name == cfg["param_name"],
+        ).first()
+        if not existing:
+            db.add(ModelConfig(**cfg))
+            print(f"[model_configs] created {cfg['model_name']}.{cfg['param_name']} = {cfg['param_value']}")
+        else:
+            print(f"[model_configs] skip {cfg['model_name']}.{cfg['param_name']} (exists)")
+
     db.commit()
     print("\n[seed] Done.")
     print("\nTest accounts:")
@@ -361,6 +382,7 @@ def seed(db: Session) -> None:
     print("  operator1 / Operator@123 (OPERATOR)")
     print("  reviewer1 / Reviewer@123 (REVIEWER)")
     print("  manager1  / Manager@123  (MANAGER)")
+    print("  analyst1  / Analyst@123  (ANALYST)")
 
 
 if __name__ == "__main__":

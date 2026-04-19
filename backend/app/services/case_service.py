@@ -144,6 +144,15 @@ class CaseService:
         if not is_privileged and case.assigned_to != actor_user_id:
             raise PermissionDeniedError("Case này không được giao cho bạn.")
 
+        # SoD: người submit giao dịch không được tự review (4-eyes principle).
+        # MANAGER/ADMIN được phép override để xử lý trường hợp khẩn.
+        if not is_privileged:
+            txn = self._db.query(Transaction).filter(Transaction.txn_id == case.txn_id).first()
+            if txn and txn.submitted_by == actor_user_id:
+                raise PermissionDeniedError(
+                    "Vi phạm nguyên tắc 4 mắt (SoD): không thể review giao dịch do chính mình tạo."
+                )
+
         # Optimistic lock check
         if case.version != request.version:
             raise OptimisticLockError()

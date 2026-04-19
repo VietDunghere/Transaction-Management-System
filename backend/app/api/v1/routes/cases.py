@@ -36,7 +36,7 @@ router = APIRouter(prefix="/cases", tags=["Cases"])
 )
 def list_cases(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN", "ANALYST")),
     case_status: Optional[CaseStatus] = Query(None),
     assigned_to: Optional[str] = Query(None, description="Lọc theo reviewer user_id"),
     page: int = Query(default=1, ge=1),
@@ -104,7 +104,7 @@ def list_cases(
 def get_case(
     case_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN", "ANALYST")),
 ) -> CaseResponse:
     svc = CaseService(db)
     case = svc.get_case(case_id)

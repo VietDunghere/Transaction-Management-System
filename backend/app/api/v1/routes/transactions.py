@@ -39,14 +39,14 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
     status_code=201,
     summary="Submit giao dịch mới",
     description=(
-        "OPERATOR gửi giao dịch. Hệ thống sẽ chấm điểm fraud ngay lập tức "
-        "và trả về kết quả: APPROVED | REJECTED | MANUAL_REVIEW."
+        "Chỉ OPERATOR (= core banking system của ngân hàng) được phép gửi giao dịch. "
+        "Hệ thống chấm điểm fraud ngay lập tức và trả về: APPROVED | REJECTED | MANUAL_REVIEW."
     ),
 )
 def submit_transaction(
     body: TransactionSubmitRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR")),
 ) -> TransactionSubmitResponse:
     svc = TransactionService(db)
     return svc.submit(body, submitted_by_user_id=token.sub)
@@ -60,7 +60,7 @@ def submit_transaction(
 )
 def list_transactions(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER", "ANALYST")),
     status: Optional[TransactionStatus] = Query(None),
     customer_id: Optional[str] = Query(None, description="Lọc theo customer UUID"),
     merchant_id: Optional[str] = Query(None),
@@ -110,7 +110,7 @@ def list_transactions(
 def get_transaction(
     txn_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER", "ANALYST")),
 ) -> TransactionResponse:
     svc = TransactionService(db)
     txn = svc.get_transaction(txn_id)
@@ -154,7 +154,7 @@ def get_transaction(
 def get_transaction_state_history(
     txn_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "REVIEWER", "ANALYST")),
 ) -> List[TxnStateHistoryItem]:
     svc = TransactionService(db)
     txn = svc.get_transaction(txn_id)

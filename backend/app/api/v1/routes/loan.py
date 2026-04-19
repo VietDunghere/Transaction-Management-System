@@ -38,7 +38,7 @@ router = APIRouter(prefix="/loans", tags=["Loans"])
     status_code=201,
     summary="Tạo đơn vay mới",
     description=(
-        "OPERATOR tạo đơn vay cho khách hàng. "
+        "Chỉ OPERATOR (= core banking system của ngân hàng) được phép tạo đơn vay. "
         "Khoản vay được tạo ở trạng thái PENDING — chờ MANAGER phê duyệt. "
         "Customer phải tồn tại trong hệ thống."
     ),
@@ -46,7 +46,7 @@ router = APIRouter(prefix="/loans", tags=["Loans"])
 def apply_loan(
     body: LoanApplyRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR")),
 ) -> LoanResponse:
     svc = LoanService(db)
     loan = svc.apply(body, submitted_by_user_id=token.sub)
@@ -65,7 +65,7 @@ def apply_loan(
 )
 def list_loans(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "ANALYST")),
     customer_id: Optional[str] = Query(None, description="Lọc theo customer UUID"),
     status: Optional[LoanStatus] = Query(None, description="Lọc theo trạng thái"),
     page: int = Query(default=1, ge=1),
@@ -109,7 +109,7 @@ def list_loans(
 )
 def simulate_loan(
     body: LoanSimulationRequest,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "ANALYST")),
 ) -> LoanSimulationResponse:
     scoring_svc = LoanScoringService.get_instance()
 
@@ -145,7 +145,7 @@ def simulate_loan(
 def get_loan(
     loan_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "ANALYST")),
 ) -> LoanResponse:
     svc = LoanService(db)
     loan = svc.get_loan(loan_id)

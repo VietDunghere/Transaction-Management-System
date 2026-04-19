@@ -16,12 +16,14 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from app.api.v1.deps import require_roles
+from app.core.logging import get_logger
 from app.db.base import SessionLocal
 from app.repositories.transaction_repo import TransactionRepository
 from app.schemas.auth import TokenPayload
 from app.services.dashboard_service import DashboardService
 
 router = APIRouter(prefix="/stream", tags=["Stream"])
+logger = get_logger(__name__)
 
 
 @router.get(
@@ -71,7 +73,8 @@ async def stream_transactions(
                 else:
                     yield ": ping\n\n"
 
-            except Exception:
+            except Exception as exc:
+                logger.error("stream_transactions_error", error=str(exc))
                 yield ": error\n\n"
             finally:
                 db.close()
@@ -109,7 +112,8 @@ async def stream_dashboard(
                 summary = svc.get_summary()
                 payload = summary.model_dump(mode="json")
                 yield f"data: {json.dumps(payload, default=str)}\n\n"
-            except Exception:
+            except Exception as exc:
+                logger.error("stream_dashboard_error", error=str(exc))
                 yield ": error\n\n"
             finally:
                 db.close()

@@ -4,7 +4,7 @@ Pydantic schemas: Transaction
 Request/Response cho submit và query giao dịch.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional
 
@@ -42,6 +42,18 @@ class TransactionSubmitRequest(BaseModel):
         if not cleaned.isdigit():
             raise ValueError("Số thẻ chỉ được chứa chữ số.")
         return cleaned
+
+    @field_validator("txn_time")
+    @classmethod
+    def validate_txn_time(cls, v: datetime) -> datetime:
+        """Từ chối giao dịch có txn_time trong tương lai (tolerance 5 phút)."""
+        now = datetime.now(timezone.utc)
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=timezone.utc)
+        from datetime import timedelta
+        if v > now + timedelta(minutes=5):
+            raise ValueError("txn_time không được nằm trong tương lai.")
+        return v
 
 
 class TransactionListFilter(BaseModel):

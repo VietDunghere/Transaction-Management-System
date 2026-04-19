@@ -107,7 +107,7 @@ def _fmt_dt(val) -> Optional[str]:
 )
 def export_transactions(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN", "ANALYST")),
     format: Literal["csv", "json"] = Query(
         default="json",
         description="Định dạng output: 'csv' (download) hoặc 'json'",
@@ -176,7 +176,7 @@ def export_transactions(
 )
 def export_fraud_report(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN", "ANALYST")),
     format: Literal["csv", "json"] = Query(
         default="json",
         description="Định dạng output: 'csv' (download) hoặc 'json'",

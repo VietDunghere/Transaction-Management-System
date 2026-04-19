@@ -31,7 +31,7 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 )
 def get_dashboard_summary(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN", "ANALYST")),
 ) -> DashboardSummary:
     svc = DashboardService(db)
     return svc.get_summary()
@@ -50,7 +50,7 @@ def get_dashboard_summary(
 )
 def get_fraud_trend(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN", "ANALYST")),
     days: int = Query(
         default=30,
         ge=1,
