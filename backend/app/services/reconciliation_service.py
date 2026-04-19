@@ -16,6 +16,7 @@ ReconciliationService.resolve():
   Yêu cầu run đã COMPLETED (không resolve run đang RUNNING/FAILED).
 """
 
+import json
 import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -27,6 +28,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppException, ConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.models.reconciliation import ReconciliationItem, ReconciliationRun
+from app.models.scoring import AuditLog
 from app.models.transaction import Transaction
 from app.repositories.reconciliation_repo import ReconciliationRepository
 from app.schemas.reconciliation import ReconciliationRunRequest, ResolveRequest
@@ -259,6 +261,17 @@ class ReconciliationService:
             item.resolved_at = now
 
         self._db.flush()
+        self._db.add(AuditLog(
+            log_id=str(uuid.uuid4()),
+            event_type="RECONCILIATION_RESOLVED",
+            entity_type="ReconciliationRun",
+            entity_id=run_id,
+            actor_user_id=actor_user_id,
+            detail_json=json.dumps({
+                "resolved_count": len(open_items),
+                "resolution_note": request.resolution_note,
+            }),
+        ))
         self._db.commit()
 
         logger.info(

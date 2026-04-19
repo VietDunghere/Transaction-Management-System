@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Identity, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -21,7 +21,7 @@ class ModelConfig(Base):
     __tablename__ = "model_configs"
     __table_args__ = (UniqueConstraint("model_name", "param_name", name="uq_model_configs_name_param"),)
 
-    config_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    config_id: Mapped[int] = mapped_column(Integer, Identity(start=1), primary_key=True)
     model_name: Mapped[str] = mapped_column(String(50), nullable=False)        # "fraud" | "loan"
     param_name: Mapped[str] = mapped_column(String(100), nullable=False)       # "reject_threshold" ...
     param_value: Mapped[float] = mapped_column(Numeric(10, 6), nullable=False)
@@ -54,3 +54,29 @@ class SuppressionRule(Base):
     )
 
     creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])  # type: ignore[name-defined]
+
+
+class AnalystReport(Base):
+    """Bảng analyst_reports — báo cáo / đề xuất của ANALYST gửi lên MANAGER."""
+
+    __tablename__ = "analyst_reports"
+
+    report_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    report_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    # FRAUD_ANALYSIS | LOAN_ANALYSIS | THRESHOLD_RECOMMENDATION | SUPPRESSION_REVIEW | GENERAL
+    content_md: Mapped[str] = mapped_column(Text, nullable=False)             # nội dung Markdown
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING_REVIEW")
+    # PENDING_REVIEW | ACKNOWLEDGED | ARCHIVED
+    submitted_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.user_id"), nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.current_timestamp(), nullable=False
+    )
+    acknowledged_by: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.user_id"))
+    acknowledged_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    note: Mapped[Optional[str]] = mapped_column(String(1000))                 # ghi chú của MANAGER khi acknowledge
+
+    submitter: Mapped["User"] = relationship("User", foreign_keys=[submitted_by])  # type: ignore[name-defined]
+    acknowledger: Mapped[Optional["User"]] = relationship("User", foreign_keys=[acknowledged_by])  # type: ignore[name-defined]

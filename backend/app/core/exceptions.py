@@ -124,3 +124,12 @@ class OptimisticLockError(AppException):
             status_code=status.HTTP_409_CONFLICT,
             detail="Dữ liệu đã được cập nhật bởi người khác. Vui lòng tải lại và thử lại.",
         )
+
+
+class BusinessValidationError(AppException):
+    """Vi phạm quy tắc nghiệp vụ (VD: threshold không hợp lệ, trạng thái sai)."""
+    def __init__(self, detail: str):
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=detail,
+        )

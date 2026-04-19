@@ -1,5 +1,5 @@
 """
-Seed dữ liệu khởi tạo cho Transaction Management System.
+Seed dữ liệu khởi tạo cho Hệ thống Phân tích Rủi ro và Đánh giá Tài chính.
 Chạy: python seed.py
 Yêu cầu: DB đã tạo bảng (SQLAlchemy create_tables hoặc Alembic migrate xong).
 """

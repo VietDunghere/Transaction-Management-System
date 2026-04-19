@@ -39,14 +39,14 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
     status_code=201,
     summary="Submit giao dịch mới",
     description=(
-        "OPERATOR gửi giao dịch. Hệ thống sẽ chấm điểm fraud ngay lập tức "
-        "và trả về kết quả: APPROVED | REJECTED | MANUAL_REVIEW."
+        "Chỉ OPERATOR (= core banking system của ngân hàng) được phép gửi giao dịch. "
+        "Hệ thống chấm điểm fraud ngay lập tức và trả về: APPROVED | REJECTED | MANUAL_REVIEW."
     ),
 )
 def submit_transaction(
     body: TransactionSubmitRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR")),
 ) -> TransactionSubmitResponse:
     svc = TransactionService(db)
     return svc.submit(body, submitted_by_user_id=token.sub)

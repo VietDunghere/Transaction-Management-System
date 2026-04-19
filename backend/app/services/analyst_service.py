@@ -13,15 +13,19 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import BusinessValidationError, NotFoundError
 from app.core.logging import get_logger
-from app.models.analyst import ModelConfig, SuppressionRule
+from app.models.analyst import AnalystReport, ModelConfig, SuppressionRule
 from app.models.case import ReviewCase
 from app.models.loan import Loan
 from app.models.scoring import AuditLog
 from app.models.transaction import Transaction
 from app.repositories.analyst_repo import ModelConfigRepository, SuppressionRepository
 from app.schemas.analyst import (
+    AnalystReportAcknowledgeRequest,
+    AnalystReportCreateRequest,
+    AnalystReportResponse,
+    AnalystReportSummary,
     FraudModelPerformanceResponse,
     FraudScoreDistribution,
     LoanModelPerformanceResponse,
@@ -65,12 +69,16 @@ class AnalystService:
         reject_th = _resolved("fraud", "reject_threshold")
         review_th = _resolved("fraud", "review_threshold")
         if review_th >= reject_th:
-            raise ValueError(f"review_threshold ({review_th}) phải nhỏ hơn reject_threshold ({reject_th})")
+            raise BusinessValidationError(
+                f"review_threshold ({review_th}) phải nhỏ hơn reject_threshold ({reject_th})"
+            )
 
         high_th = _resolved("loan", "high_risk_threshold")
         medium_th = _resolved("loan", "medium_risk_threshold")
         if medium_th >= high_th:
-            raise ValueError(f"medium_risk_threshold ({medium_th}) phải nhỏ hơn high_risk_threshold ({high_th})")
+            raise BusinessValidationError(
+                f"medium_risk_threshold ({medium_th}) phải nhỏ hơn high_risk_threshold ({high_th})"
+            )
 
         for item in request.updates:
             cfg = self._config_repo.update(item.model_name, item.param_name, item.param_value, actor_user_id)
@@ -205,6 +213,84 @@ class AnalystService:
         self._db.refresh(rule)
         logger.info("suppression_rule_created", rule_id=rule.rule_id, actor=actor_user_id)
         return rule
+
+    # ============================================================
+    # 4. Analyst reports
+    # ============================================================
+
+    def create_report(self, request: AnalystReportCreateRequest, actor_user_id: str) -> AnalystReport:
+        report = AnalystReport(
+            report_id=str(uuid.uuid4()),
+            title=request.title,
+            report_type=request.report_type,
+            content_md=request.content_md,
+            status="PENDING_REVIEW",
+            submitted_by=actor_user_id,
+        )
+        self._db.add(report)
+        self._db.add(AuditLog(
+            log_id=str(uuid.uuid4()),
+            event_type="ANALYST_REPORT_SUBMITTED",
+            entity_type="AnalystReport",
+            entity_id=report.report_id,
+            actor_user_id=actor_user_id,
+            detail_json=json.dumps({"title": report.title, "report_type": report.report_type}),
+        ))
+        self._db.commit()
+        self._db.refresh(report)
+        logger.info("analyst_report_created", report_id=report.report_id, actor=actor_user_id)
+        return report
+
+    def list_reports(
+        self,
+        status: str | None = None,
+        report_type: str | None = None,
+        submitted_by: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> tuple[list[AnalystReport], int]:
+        q = self._db.query(AnalystReport)
+        if status:
+            q = q.filter(AnalystReport.status == status)
+        if report_type:
+            q = q.filter(AnalystReport.report_type == report_type)
+        if submitted_by:
+            q = q.filter(AnalystReport.submitted_by == submitted_by)
+        total = q.count()
+        items = q.order_by(AnalystReport.submitted_at.desc()).offset(offset).limit(limit).all()
+        return items, total
+
+    def get_report(self, report_id: str) -> AnalystReport:
+        report = self._db.query(AnalystReport).filter(AnalystReport.report_id == report_id).first()
+        if report is None:
+            raise NotFoundError("AnalystReport")
+        return report
+
+    def acknowledge_report(
+        self,
+        report_id: str,
+        request: AnalystReportAcknowledgeRequest,
+        actor_user_id: str,
+    ) -> AnalystReport:
+        report = self.get_report(report_id)
+        if report.status == "ACKNOWLEDGED":
+            raise BusinessValidationError("Báo cáo này đã được xác nhận trước đó.")
+        report.status = "ACKNOWLEDGED"
+        report.acknowledged_by = actor_user_id
+        report.acknowledged_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        report.note = request.note
+        self._db.add(AuditLog(
+            log_id=str(uuid.uuid4()),
+            event_type="ANALYST_REPORT_ACKNOWLEDGED",
+            entity_type="AnalystReport",
+            entity_id=report_id,
+            actor_user_id=actor_user_id,
+            detail_json=json.dumps({"report_id": report_id, "note": request.note}),
+        ))
+        self._db.commit()
+        self._db.refresh(report)
+        logger.info("analyst_report_acknowledged", report_id=report_id, actor=actor_user_id)
+        return report
 
     def deactivate_suppression_rule(self, rule_id: str, actor_user_id: str) -> SuppressionRule:
         rule = self._suppression_repo.deactivate(rule_id)

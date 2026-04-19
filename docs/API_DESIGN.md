@@ -1,6 +1,6 @@
-# API Design – Transaction Management System
+# API Design – Hệ thống Phân tích Rủi ro và Đánh giá Tài chính (HPTRRĐGTC)
 
-> **Base URL:** `https://api.tms.local/api/v1`
+> **Base URL:** `https://api.hptrrđgtc.local/api/v1`
 > **Auth:** JWT Bearer Token (trừ endpoint `/auth/login` và `/auth/refresh`)
 > **Content-Type:** `application/json`
 
@@ -29,6 +29,12 @@
 | 17 | Transaction state-history: OPERATOR xem được của ai cũng được | OPERATOR chỉ xem giao dịch do mình submit |
 | 18 | `CaseDecideRequest` body field: `note` | `decision_note` (khớp với Pydantic schema thực tế) |
 | 19 | `TransactionSubmitResponse`: thiếu `amount`, `currency_code`, `message`, `case_id` | Thêm đủ fields |
+| 20 | Thiếu role ANALYST | Thêm role ANALYST với module phân tích riêng (UC09) |
+| 21 | Tên hệ thống: "Transaction Management System" | Đổi tên thành "Hệ thống Phân tích Rủi ro và Đánh giá Tài chính" |
+| 22 | Thiếu SoD check trong PATCH /cases/{id}/decision | Thêm: reviewer không quyết định case cho giao dịch do mình submit → 403 |
+| 23 | Thiếu AuditLog trong reconciliation resolve và ETL run | Thêm đầy đủ |
+| 24 | `txn_time` không validate future date | Thêm validator: từ chối txn_time > now + 5 phút |
+| 25 | CORS allow_methods/allow_headers quá rộng trên production | Tighten cho production env |
 
 ---
 
@@ -42,7 +48,8 @@
 6. [UC06 – Data Engineering & Báo cáo](#uc06--data-engineering--báo-cáo)
 7. [UC07 – Idempotency, State & Reconciliation](#uc07--idempotency-state--reconciliation)
 8. [UC08 – Real-time Stream (SSE)](#uc08--real-time-stream-sse)
-9. [Quy ước chung](#quy-ước-chung)
+9. [UC09 – Analyst Module](#uc09--analyst-module)
+10. [Quy ước chung](#quy-ước-chung)
 
 ---
 
@@ -373,8 +380,9 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR, MANAGER, ADMIN *(~~Cũ: chỉ OPERATOR~~)* |
+| **Roles** | OPERATOR |
 
+> **OPERATOR = core banking system của ngân hàng** — không phải internal staff.
 > Server tự mask `card_number` — client gửi raw, không được gửi số thẻ đã mask sẵn.
 
 **Request Body**
@@ -542,8 +550,9 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 | | |
 |---|---|
 | **Auth** | Bearer Token |
-| **Roles** | OPERATOR, MANAGER, ADMIN *(~~Cũ: chỉ OPERATOR~~)* |
+| **Roles** | OPERATOR |
 
+> **OPERATOR = core banking system của ngân hàng** — không phải internal staff.
 > OPERATOR chỉ thấy đơn do mình tạo khi gọi `GET /loans`.
 > Body cũ (`applicant_id`, `credit_score`, `employment_type`) đã bị thay thế hoàn toàn.
 
@@ -892,6 +901,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 > Tham số `version` bắt buộc để kích hoạt **Optimistic Locking** — tránh hai reviewer ghi đè nhau.
 > **Case phải ở trạng thái ASSIGNED** trước khi quyết định. Case OPEN → 409. *(Mới – ~~Cũ: không check~~)*
 > REVIEWER: chỉ quyết định case được giao cho mình. MANAGER/ADMIN: override bất kỳ case ASSIGNED nào.
+> **SoD (4-eyes principle):** REVIEWER không được quyết định case cho giao dịch do chính mình submit. Vi phạm → 403. MANAGER/ADMIN được phép override.
 
 **Request Body**
 ```json
@@ -1622,6 +1632,371 @@ data: {...updated metrics...}
 
 ---
 
+## UC09 – Analyst Module
+
+> **Prefix:** `/analyst`
+> **Roles:** ANALYST (write), MANAGER (read + acknowledge), ADMIN (read + write)
+
+---
+
+### GET /analyst/thresholds
+**UC-ANALYST-01** – Xem ngưỡng phân loại hiện tại của fraud model và credit model.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST, MANAGER, ADMIN |
+
+**Response 200**
+```json
+{
+  "fraud": [
+    { "model_name": "fraud", "param_name": "reject_threshold", "param_value": 0.65, "updated_at": "ISO8601", "updated_by": "uuid" },
+    { "model_name": "fraud", "param_name": "review_threshold", "param_value": 0.35, "updated_at": "ISO8601", "updated_by": "uuid" }
+  ],
+  "loan": [
+    { "model_name": "loan", "param_name": "high_risk_threshold", "param_value": 0.50, "updated_at": "ISO8601", "updated_by": "uuid" },
+    { "model_name": "loan", "param_name": "medium_risk_threshold", "param_value": 0.20, "updated_at": "ISO8601", "updated_by": "uuid" }
+  ]
+}
+```
+
+---
+
+### PATCH /analyst/thresholds
+**UC-ANALYST-02** – Cập nhật ngưỡng phân loại (batch update).
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST, ADMIN |
+
+> Cross-validation: `review_threshold < reject_threshold` và `medium_risk_threshold < high_risk_threshold`. Vi phạm → 422.
+> Mọi thay đổi ghi `AuditLog(THRESHOLD_UPDATED)`.
+
+**Request Body**
+```json
+{
+  "updates": [
+    { "model_name": "fraud", "param_name": "reject_threshold", "param_value": 0.70 }
+  ]
+}
+```
+
+**Response 200** — cùng schema với GET /analyst/thresholds
+
+**Response 422 – Cross-validation failed**
+```json
+{ "code": "BusinessValidationError", "message": "review_threshold (0.40) phải nhỏ hơn reject_threshold (0.35)" }
+```
+
+---
+
+### GET /analyst/model-performance/fraud
+**UC-ANALYST-03** – Thống kê hiệu suất fraud detection model.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST, MANAGER, ADMIN |
+
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `days` | int | Số ngày nhìn lại (1–365, default: 30) |
+
+**Response 200**
+```json
+{
+  "period_days": 30,
+  "score_distribution": {
+    "approved_count": 4800,
+    "review_count": 6200,
+    "rejected_count": 5000,
+    "total": 16000,
+    "approved_rate": 0.30,
+    "review_rate": 0.3875,
+    "rejected_rate": 0.3125,
+    "false_positive_count": 124,
+    "false_positive_rate": 0.02
+  },
+  "current_thresholds": {
+    "reject_threshold": 0.65,
+    "review_threshold": 0.35
+  }
+}
+```
+
+---
+
+### GET /analyst/model-performance/loan
+**UC-ANALYST-04** – Thống kê hiệu suất credit scoring model.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST, MANAGER, ADMIN |
+
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `days` | int | Số ngày nhìn lại (1–365, default: 30) |
+
+**Response 200**
+```json
+{
+  "period_days": 30,
+  "risk_distribution": {
+    "low_risk_count": 320,
+    "medium_risk_count": 180,
+    "high_risk_count": 100,
+    "total": 600,
+    "low_risk_rate": 0.5333,
+    "medium_risk_rate": 0.30,
+    "high_risk_rate": 0.1667,
+    "approved_count": 480,
+    "rejected_count": 80,
+    "pending_count": 40
+  },
+  "current_thresholds": {
+    "high_risk_threshold": 0.50,
+    "medium_risk_threshold": 0.20
+  }
+}
+```
+
+---
+
+### GET /analyst/suppression-rules
+**UC-ANALYST-05** – Danh sách suppression rules (whitelist bypass fraud scoring).
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST, ADMIN |
+
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `include_inactive` | boolean | Bao gồm rules đã vô hiệu hóa (default: false) |
+
+**Response 200** — Array
+```json
+[
+  {
+    "rule_id": "uuid",
+    "rule_type": "MERCHANT | CUSTOMER | CARD",
+    "entity_id": "string",
+    "reason": "string",
+    "is_active": true,
+    "created_by": "uuid",
+    "created_at": "ISO8601",
+    "expires_at": "ISO8601 | null"
+  }
+]
+```
+
+---
+
+### POST /analyst/suppression-rules
+**UC-ANALYST-06** – Tạo suppression rule mới.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST |
+
+> Ghi `AuditLog(SUPPRESSION_RULE_CREATED)`.
+
+**Request Body**
+```json
+{
+  "rule_type": "MERCHANT | CUSTOMER | CARD",
+  "entity_id": "string (ID của merchant/customer/card)",
+  "reason": "string (lý do bypass, bắt buộc)",
+  "expires_at": "ISO8601 | null"
+}
+```
+
+**Response 201** — cùng schema với item trong GET /analyst/suppression-rules
+
+---
+
+### PATCH /analyst/suppression-rules/{rule_id}
+**UC-ANALYST-07** – Vô hiệu hóa suppression rule.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST, ADMIN |
+
+> Ghi `AuditLog(SUPPRESSION_RULE_DEACTIVATED)`.
+
+**Response 200** — rule với `is_active: false`
+
+**Response 404**
+```json
+{ "code": "NotFoundError", "message": "SuppressionRule không tồn tại." }
+```
+
+---
+
+### POST /analyst/reports
+**UC-ANALYST-08** – ANALYST soạn và submit báo cáo phân tích lên MANAGER.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST |
+
+> Báo cáo dạng **Markdown** — hỗ trợ bảng, heading, danh sách.
+> `content_md` tối thiểu 30 ký tự. Ghi `AuditLog(ANALYST_REPORT_SUBMITTED)`.
+
+**Request Body**
+```json
+{
+  "title": "string",
+  "report_type": "FRAUD_ANALYSIS | LOAN_ANALYSIS | THRESHOLD_RECOMMENDATION | SUPPRESSION_REVIEW | GENERAL",
+  "content_md": "string (Markdown)"
+}
+```
+
+**Response 201**
+```json
+{
+  "report_id": "uuid",
+  "title": "string",
+  "report_type": "THRESHOLD_RECOMMENDATION",
+  "content_md": "string",
+  "status": "PENDING_REVIEW",
+  "submitted_by": "uuid",
+  "submitted_at": "ISO8601",
+  "acknowledged_by": null,
+  "acknowledged_at": null,
+  "note": null,
+  "submitter": { "user_id": "uuid", "username": "string", "full_name": "string" },
+  "acknowledger": null
+}
+```
+
+**Response 422 – Invalid report_type**
+```json
+{ "code": "ValidationError", "message": "report_type không hợp lệ." }
+```
+
+---
+
+### GET /analyst/reports
+**UC-ANALYST-09** – Danh sách báo cáo (không bao gồm `content_md` để giảm payload).
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST, MANAGER, ADMIN |
+
+**Query Params**
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `status` | string | `PENDING_REVIEW \| ACKNOWLEDGED \| ARCHIVED` |
+| `report_type` | string | Lọc theo loại báo cáo |
+| `submitted_by` | uuid | Lọc theo analyst |
+| `limit` | int | Số bản ghi/trang (1–100, default: 20) |
+| `offset` | int | Skip N bản ghi (default: 0) |
+
+**Response 200**
+```json
+{
+  "total": 12,
+  "limit": 20,
+  "offset": 0,
+  "items": [
+    {
+      "report_id": "uuid",
+      "title": "string",
+      "report_type": "FRAUD_ANALYSIS",
+      "status": "PENDING_REVIEW",
+      "submitted_by": "uuid",
+      "submitted_at": "ISO8601",
+      "acknowledged_by": null,
+      "acknowledged_at": null
+    }
+  ]
+}
+```
+
+> ⚠️ Items **không có `content_md`** (dùng GET /analyst/reports/{id} để lấy nội dung đầy đủ).
+
+---
+
+### GET /analyst/reports/{report_id}
+**UC-ANALYST-10** – Chi tiết báo cáo kèm nội dung Markdown đầy đủ.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST, MANAGER, ADMIN |
+
+**Response 200** — cùng schema với POST /analyst/reports Response 201 (có `content_md`)
+
+**Response 404**
+```json
+{ "code": "NotFoundError", "message": "AnalystReport không tồn tại." }
+```
+
+---
+
+### GET /analyst/reports/{report_id}/pdf
+**UC-ANALYST-11** – Tải báo cáo dưới dạng PDF chuyên nghiệp.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | ANALYST, MANAGER, ADMIN |
+
+> Render Markdown → PDF bằng fpdf2. Hỗ trợ tiếng Việt Unicode đầy đủ (Arial Unicode TTF).
+> Header: navy bar + light-blue title band + meta row (ngày gửi, người gửi, trạng thái).
+> Footer: tên hệ thống + số trang.
+> Nếu báo cáo đã ACKNOWLEDGED: hiển thị khối xác nhận màu xanh với tên MANAGER và ghi chú.
+
+**Response 200**
+```
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="analyst_report_<id8>.pdf"
+```
+
+---
+
+### PATCH /analyst/reports/{report_id}/acknowledge
+**UC-ANALYST-12** – MANAGER xác nhận đã đọc và xử lý báo cáo.
+
+| | |
+|---|---|
+| **Auth** | Bearer Token |
+| **Roles** | MANAGER, ADMIN |
+
+> Chuyển status `PENDING_REVIEW → ACKNOWLEDGED`. Double-acknowledge → 422.
+> Ghi `AuditLog(ANALYST_REPORT_ACKNOWLEDGED)`.
+
+**Request Body**
+```json
+{
+  "note": "string (tùy chọn — ghi chú phản hồi cho analyst)"
+}
+```
+
+**Response 200** — cùng schema với POST /analyst/reports Response 201
+
+**Response 422 – Đã xác nhận trước đó**
+```json
+{ "code": "BusinessValidationError", "message": "Báo cáo này đã được xác nhận trước đó." }
+```
+
+---
+
 ## Quy ước chung
 
 ### Mã lỗi chuẩn (Error Codes)
@@ -1648,27 +2023,33 @@ data: {...updated metrics...}
 
 ### Phân quyền theo Endpoint
 
-*(~~Bảng cũ: Loan Submit chỉ OPERATOR; Transaction States chỉ OPERATOR/ADMIN~~)*
-
-| Module | OPERATOR | REVIEWER | MANAGER | ADMIN |
-|---|:---:|:---:|:---:|:---:|
-| Health | ✓ | ✓ | ✓ | ✓ |
-| Auth (login/logout/refresh/change-pw/me) | ✓ | ✓ | ✓ | ✓ |
-| User Management | – | – | Chỉ đọc | Full |
-| Transaction Submit | ✓ | – | ✓ | ✓ |
-| Transaction View | Chỉ của mình | ✓ | ✓ | ✓ |
-| Transaction State-History | ✓ | ✓ | ✓ | ✓ |
-| Case Management | – | Full | Chỉ đọc | Chỉ đọc |
-| Audit Log | – | – | ✓ | ✓ |
-| Dashboard / BI | – | – | ✓ | ✓ |
-| Loan Create | ✓ | – | ✓ | ✓ |
-| Loan Simulate | ✓ | – | ✓ | ✓ |
-| Loan View | Chỉ của mình | – | ✓ | ✓ |
-| Loan Decision (Approve/Reject) | – | – | ✓ | ✓ |
-| ETL / Data Lake | – | – | – | ✓ |
-| Reconciliation | – | – | Chỉ đọc | Full |
-| SSE Stream (transactions) | ✓ | ✓ | ✓ | ✓ |
-| SSE Stream (dashboard) | – | – | ✓ | ✓ |
+| Module | OPERATOR | REVIEWER | ANALYST | MANAGER | ADMIN |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Health | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Auth (login/logout/refresh/change-pw/me) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| User Management | – | – | – | Chỉ đọc | Full |
+| Transaction Submit | ✓ | – | – | – | – |
+| Transaction View | Chỉ của mình | ✓ | – | ✓ | ✓ |
+| Transaction State-History | ✓ | ✓ | – | ✓ | ✓ |
+| Case Management | – | Full | – | Chỉ đọc | Chỉ đọc |
+| Audit Log | – | – | – | ✓ | ✓ |
+| Dashboard / BI | – | – | – | ✓ | ✓ |
+| Loan Create | ✓ | – | – | – | – |
+| Loan Simulate | ✓ | – | – | ✓ | ✓ |
+| Loan View | Chỉ của mình | – | – | ✓ | ✓ |
+| Loan Decision (Approve/Reject) | – | – | – | ✓ | ✓ |
+| ETL / Data Lake | – | – | – | – | ✓ |
+| Reconciliation | – | – | – | Chỉ đọc | Full |
+| SSE Stream (transactions) | ✓ | ✓ | – | ✓ | ✓ |
+| SSE Stream (dashboard) | – | – | – | ✓ | ✓ |
+| Analyst Thresholds (view) | – | – | ✓ | ✓ | ✓ |
+| Analyst Thresholds (update) | – | – | ✓ | – | ✓ |
+| Analyst Model Performance | – | – | ✓ | ✓ | ✓ |
+| Analyst Suppression Rules (view) | – | – | ✓ | – | ✓ |
+| Analyst Suppression Rules (create/deactivate) | – | – | ✓ | – | ✓ |
+| Analyst Reports (create) | – | – | ✓ | – | – |
+| Analyst Reports (view/PDF) | – | – | ✓ | ✓ | ✓ |
+| Analyst Reports (acknowledge) | – | – | – | ✓ | ✓ |
 
 ### Phân luồng Fraud Score (UC-TXN-05)
 

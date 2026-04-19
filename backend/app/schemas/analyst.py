@@ -118,3 +118,62 @@ class LoanModelPerformanceResponse(BaseModel):
     period_days: int
     risk_distribution: LoanRiskDistribution
     current_thresholds: dict[str, float]
+
+
+# ================================================================
+# Analyst report schemas
+# ================================================================
+
+VALID_REPORT_TYPES = {
+    "FRAUD_ANALYSIS",
+    "LOAN_ANALYSIS",
+    "THRESHOLD_RECOMMENDATION",
+    "SUPPRESSION_REVIEW",
+    "GENERAL",
+}
+
+
+class AnalystReportCreateRequest(BaseModel):
+    title: str = Field(..., min_length=5, max_length=255)
+    report_type: str = Field(..., description="FRAUD_ANALYSIS | LOAN_ANALYSIS | THRESHOLD_RECOMMENDATION | SUPPRESSION_REVIEW | GENERAL")
+    content_md: str = Field(..., min_length=20, description="Nội dung báo cáo định dạng Markdown")
+
+    @field_validator("report_type")
+    @classmethod
+    def validate_report_type(cls, v: str) -> str:
+        if v not in VALID_REPORT_TYPES:
+            raise ValueError(f"report_type phải là một trong: {', '.join(sorted(VALID_REPORT_TYPES))}")
+        return v
+
+
+class AnalystReportAcknowledgeRequest(BaseModel):
+    note: Optional[str] = Field(None, max_length=1000, description="Ghi chú phản hồi của MANAGER")
+
+
+class AnalystReportResponse(BaseModel):
+    report_id: str
+    title: str
+    report_type: str
+    content_md: str
+    status: str
+    submitted_by: str
+    submitted_at: datetime
+    acknowledged_by: Optional[str] = None
+    acknowledged_at: Optional[datetime] = None
+    note: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class AnalystReportSummary(BaseModel):
+    """Trả về trong list — không bao gồm content_md để tránh payload lớn."""
+    report_id: str
+    title: str
+    report_type: str
+    status: str
+    submitted_by: str
+    submitted_at: datetime
+    acknowledged_by: Optional[str] = None
+    acknowledged_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}

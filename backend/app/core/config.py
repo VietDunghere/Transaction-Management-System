@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     )
 
     # ---- Application ----
-    app_name: str = "Transaction Management System"
+    app_name: str = "Hệ thống Phân tích Rủi ro và Đánh giá Tài chính"
     app_env: str = "development"
     debug: bool = False
 
