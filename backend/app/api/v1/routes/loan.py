@@ -14,7 +14,6 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 
 from app.api.v1.deps import require_roles
-from app.core.exceptions import PermissionDeniedError
 from app.db.deps import DbSession
 from app.schemas.auth import TokenPayload
 from app.schemas.common import LoanStatus, PagedResponse, PaginationMeta
@@ -57,11 +56,7 @@ def apply_loan(
     "",
     response_model=PagedResponse[LoanListItem],
     summary="Danh sách khoản vay",
-    description=(
-        "Lấy danh sách khoản vay với filter. "
-        "OPERATOR chỉ thấy khoản vay do mình tạo. "
-        "MANAGER và ADMIN thấy tất cả."
-    ),
+    description="Lấy danh sách khoản vay với filter theo customer, trạng thái.",
 )
 def list_loans(
     db: DbSession,
@@ -73,14 +68,9 @@ def list_loans(
 ) -> PagedResponse[LoanListItem]:
     svc = LoanService(db)
 
-    # OPERATOR chỉ thấy khoản vay do mình submit
-    submitted_by: Optional[str] = None
-    if "OPERATOR" in token.roles and "MANAGER" not in token.roles and "ADMIN" not in token.roles:
-        submitted_by = token.sub
-
     items, total = svc.list_loans(
         customer_id=customer_id,
-        submitted_by=submitted_by,
+        submitted_by=None,
         status=status,
         page=page,
         page_size=limit,
@@ -149,11 +139,6 @@ def get_loan(
 ) -> LoanResponse:
     svc = LoanService(db)
     loan = svc.get_loan(loan_id)
-
-    # OPERATOR chỉ được xem khoản vay do mình tạo
-    if "OPERATOR" in token.roles and "MANAGER" not in token.roles and "ADMIN" not in token.roles:
-        if loan.submitted_by != token.sub:
-            raise PermissionDeniedError("Bạn không có quyền xem khoản vay này.")
 
     return LoanResponse.model_validate(loan)
 

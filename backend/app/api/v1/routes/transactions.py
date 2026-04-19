@@ -16,7 +16,6 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 
 from app.api.v1.deps import require_roles
-from app.core.exceptions import PermissionDeniedError
 from app.db.deps import DbSession
 from app.repositories.transaction_repo import TransactionRepository
 from app.schemas.auth import TokenPayload
@@ -73,16 +72,11 @@ def list_transactions(
 ) -> PagedResponse[TransactionResponse]:
     svc = TransactionService(db)
 
-    # OPERATOR chỉ thấy giao dịch do mình submit
-    submitted_by = None
-    if "OPERATOR" in token.roles and "MANAGER" not in token.roles and "ADMIN" not in token.roles:
-        submitted_by = token.sub
-
     items, total = svc.list_transactions(
         status=status,
         customer_id=customer_id,
         merchant_id=merchant_id,
-        submitted_by=submitted_by,
+        submitted_by=None,
         date_from=from_date,
         date_to=to_date,
         min_amount=float(min_amount) if min_amount is not None else None,
@@ -114,15 +108,6 @@ def get_transaction(
 ) -> TransactionResponse:
     svc = TransactionService(db)
     txn = svc.get_transaction(txn_id)
-
-    # OPERATOR chỉ được xem transaction do mình submit
-    is_operator_only = (
-        "OPERATOR" in token.roles
-        and "MANAGER" not in token.roles
-        and "ADMIN" not in token.roles
-    )
-    if is_operator_only and txn.submitted_by != token.sub:
-        raise PermissionDeniedError("Bạn không có quyền xem giao dịch này.")
 
     response = TransactionResponse.model_validate(txn)
 
@@ -158,15 +143,6 @@ def get_transaction_state_history(
 ) -> List[TxnStateHistoryItem]:
     svc = TransactionService(db)
     txn = svc.get_transaction(txn_id)
-
-    # OPERATOR chỉ được xem state-history của giao dịch do mình submit
-    is_operator_only = (
-        "OPERATOR" in token.roles
-        and "MANAGER" not in token.roles
-        and "ADMIN" not in token.roles
-    )
-    if is_operator_only and txn.submitted_by != token.sub:
-        raise PermissionDeniedError("Bạn không có quyền xem lịch sử giao dịch này.")
 
     repo = TransactionRepository(db)
     history = repo.get_state_history(txn_id)
