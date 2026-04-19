@@ -112,19 +112,46 @@ def build_transaction() -> dict:
 
 
 def build_loan() -> dict:
-    """Tạo 1 loan application payload ngẫu nhiên với đủ AI features."""
-    grade        = random.choice(LOAN_GRADES)
-    intent       = random.choice(LOAN_INTENTS)
-    ownership    = random.choice(HOME_OWNERSHIPS)
-    age          = random.randint(20, 65)
-    emp_length   = random.randint(0, min(age - 18, 30))
-    income       = round(random.uniform(20_000, 200_000), 2)
-    loan_amnt    = round(random.uniform(2_000, 40_000), 2)
-    # interest_rate cho LoanApplyRequest: dạng thập phân 0.05–0.25
-    int_rate_dec = round(random.uniform(0.05, 0.25), 4)
-    term         = random.choice([12, 24, 36, 48, 60])
-    cred_hist    = random.randint(1, 30)
-    default_file = random.choices(["Y", "N"], weights=[15, 85])[0]
+    """Tạo 1 loan application payload ngẫu nhiên với đủ AI features.
+
+    Income + grade + default_flag được phân bổ có chủ đích để model cho ra
+    PD score trải đều LOW / MEDIUM / HIGH (tránh toàn bộ predict cùng 1 nhãn):
+      - 30% low-risk profile  : income cao + grade A-B + no default
+      - 40% medium-risk       : income mid  + grade C-D + mix
+      - 30% high-risk profile : income thấp + grade E-G + có thể có default
+    """
+    risk_bucket = random.choices(["low", "medium", "high"], weights=[30, 40, 30])[0]
+
+    if risk_bucket == "low":
+        grade        = random.choice(["A", "B"])
+        income       = round(random.uniform(80_000, 200_000), 2)
+        loan_amnt    = round(random.uniform(2_000, 15_000), 2)
+        int_rate_dec = round(random.uniform(0.05, 0.12), 4)
+        default_file = random.choices(["Y", "N"], weights=[5, 95])[0]
+        ownership    = random.choice(["OWN", "MORTGAGE"])
+        emp_length   = random.randint(5, 30)
+    elif risk_bucket == "medium":
+        grade        = random.choice(["C", "D"])
+        income       = round(random.uniform(35_000, 80_000), 2)
+        loan_amnt    = round(random.uniform(10_000, 30_000), 2)
+        int_rate_dec = round(random.uniform(0.12, 0.18), 4)
+        default_file = random.choices(["Y", "N"], weights=[20, 80])[0]
+        ownership    = random.choice(HOME_OWNERSHIPS)
+        emp_length   = random.randint(2, 15)
+    else:  # high
+        grade        = random.choice(["E", "F", "G"])
+        income       = round(random.uniform(20_000, 45_000), 2)
+        loan_amnt    = round(random.uniform(15_000, 40_000), 2)
+        int_rate_dec = round(random.uniform(0.18, 0.25), 4)
+        default_file = random.choices(["Y", "N"], weights=[40, 60])[0]
+        ownership    = random.choice(["RENT", "OTHER"])
+        emp_length   = random.randint(0, 8)
+
+    intent  = random.choice(LOAN_INTENTS)
+    age     = random.randint(20, 65)
+    emp_length = min(emp_length, max(0, age - 18))
+    term    = random.choice([12, 24, 36, 48, 60])
+    cred_hist = random.randint(1, 30)
 
     return {
         "customer_id":              random.choice(CUSTOMERS),
