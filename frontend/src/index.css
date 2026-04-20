@@ -214,3 +214,19 @@
     --color-feedback-positive: #34d399;
     --color-feedback-negative: #f87171;
 }
+
+/* ============================================================
+   Custom Visual Effects
+   ============================================================ */
+.sun-shadow {
+    /* Picture frame floating shadow - Light Mode (Deeper & Darker) */
+    box-shadow: 0 40px 120px -10px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px); /* Elevated, standing up */
+}
+
+[data-theme='dark'] .sun-shadow {
+    /* Picture frame floating shadow - Dark Mode (Deeper) */
+    box-shadow: 0 40px 120px -10px rgba(0, 0, 0, 1), 0 0 30px rgba(0, 0, 0, 0.5);
+    transform: translateY(-4px);
+}
+
