@@ -7,13 +7,13 @@
 | 3 | UC03 – Phân luồng fraud | `≤ 0.3 → APPROVED`, `> 0.7 → REJECTED` | `< 0.35 → APPROVED`, `≥ 0.65 → REJECTED` |
 | 4 | UC04 – OPERATOR | Endpoint: `POST /api/v1/loans/submit`, body cũ có `applicant_id`, `credit_score`, `employment_type` | `POST /api/v1/loans`, body dùng `customer_id`, `person_age`, `person_income`, `loan_grade`, v.v. |
 | 5 | UC04 – OPERATOR | Hệ thống trả về `risk_grade` ngay lập tức | Tạo đơn ở trạng thái **PENDING**, `pd_score` tính ngay khi nộp |
-| 6 | UC04 – MANAGER | Chỉ xem danh sách, không có hành động duyệt | Phê duyệt / từ chối đơn vay: `PATCH /api/v1/loans/{loan_id}/decision` |
-| 7 | UC04 – Access | Tạo đơn vay: chỉ OPERATOR | OPERATOR, MANAGER, ADMIN đều có thể tạo đơn |
+| 6 | UC04 – REVIEWER | Chỉ xem danh sách hồ sơ vay | Phê duyệt / từ chối đơn vay: `PATCH /api/v1/loans/{loan_id}/decision` |
+| 7 | UC04 – Access | Tạo đơn vay: chỉ OPERATOR | Vẫn chỉ OPERATOR — MANAGER/ADMIN không tạo đơn (thiết kế 1-bank) |
 | 8 | UC04 | Thiếu endpoint mô phỏng | Thêm `POST /api/v1/loans/simulate` (không lưu DB) |
 | 9 | UC07 | Endpoint: `GET /transactions/{txn_id}/states` | `GET /transactions/{txn_id}/state-history` |
 | 10 | UC06 – Admin | Endpoint: `POST /api/v1/etl/trigger` | `POST /api/v1/etl/run` |
 | 11 | Toàn bộ | Thiếu SSE Stream | Thêm UC08 – SSE Real-time Stream |
-| 12 | UC04 – SoD | Thiếu kiểm tra phân tách trách nhiệm | MANAGER/ADMIN không được phê duyệt đơn vay do chính mình tạo (4-eyes principle) |
+| 12 | UC04 – SoD | Thiếu kiểm tra phân tách trách nhiệm | REVIEWER/MANAGER không được phê duyệt đơn vay do chính mình tạo (4-eyes principle) |
 | 13 | UC05 – REVIEWER list | REVIEWER bị auto-filter `assigned_to=self` → không thấy OPEN cases | REVIEWER thấy tất cả OPEN cases (queue nhận việc) + cases của mình |
 | 14 | UC05 – Case decide | Case OPEN có thể bị quyết định trực tiếp | Case phải ở trạng thái ASSIGNED trước khi có thể quyết định |
 | 15 | UC05 – ADMIN decide | ADMIN bị chặn khi decide case không phải của mình | ADMIN bypass như MANAGER (giám sát override) |
@@ -51,7 +51,6 @@
 * Xem Audit Log – theo dõi ai đã làm gì, khi nào, trên entity nào.
 * Truy vết giao dịch – xem toàn bộ lịch sử trạng thái của một giao dịch cụ thể.
 * Xem danh sách người dùng (chỉ đọc).
-* **Phê duyệt hoặc từ chối đơn vay** – xem đơn PENDING, ra quyết định APPROVE / REJECT kèm ghi chú. *(Mới – Cũ chỉ có quyền xem)*
 
 **Admin (Quản trị viên)**
 
@@ -176,21 +175,20 @@
 * Xem danh sách đơn vay (UC-LOAN-02): `GET /api/v1/loans` — xem toàn bộ đơn vay.
 * Xem chi tiết đơn vay (UC-LOAN-03): `GET /api/v1/loans/{loan_id}` — xem pd\_score, risk\_level, trạng thái phê duyệt.
 
-**Manager (Quản lý)**
+**Reviewer (Nhân viên Duyệt)**
 
-* Xem danh sách hồ sơ vay (UC-LOAN-02): `GET /api/v1/loans` — thấy tất cả đơn vay.
+* Xem danh sách hồ sơ vay (UC-LOAN-02): `GET /api/v1/loans`.
 * Xem chi tiết hồ sơ vay (UC-LOAN-03).
-* **Phê duyệt hoặc từ chối đơn vay (UC-LOAN-04)**: `PATCH /api/v1/loans/{loan_id}/decision` *(Mới – Cũ không có)*
+* **Phê duyệt hoặc từ chối đơn vay (UC-LOAN-04)**: `PATCH /api/v1/loans/{loan_id}/decision`
   * `decision`: `APPROVE` hoặc `REJECT`
   * `review_note`: bắt buộc
   * `version`: Optimistic Locking
   * Khi APPROVE: hệ thống tính `monthly_payment`, `outstanding_balance`, `maturity_date`.
-  * **Ràng buộc SoD**: người phê duyệt **không được là người đã tạo đơn** (`submitted_by != actor_user_id`). Nếu vi phạm → 403. *(~~Cũ: không có check~~)*
+  * **Ràng buộc SoD**: người phê duyệt **không được là người đã tạo đơn** (`submitted_by != actor_user_id`). Nếu vi phạm → 403.
 
-**Admin (Quản trị viên)**
+**Manager (Quản lý)**
 
-* Xem danh sách và chi tiết hồ sơ vay (UC-LOAN-02, UC-LOAN-03): giám sát tổng thể.
-* Phê duyệt hoặc từ chối đơn vay (UC-LOAN-04) *(Mới)*.
+* Xem danh sách và chi tiết hồ sơ vay (UC-LOAN-02, UC-LOAN-03): giám sát tổng thể, chỉ đọc.
 
 **Quan hệ include/extend**
 
