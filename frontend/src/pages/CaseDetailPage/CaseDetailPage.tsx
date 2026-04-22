@@ -19,6 +19,30 @@ const severityVariant: Record<string, 'danger' | 'warning' | 'info' | 'muted'> =
     HIGH: 'danger', MEDIUM: 'warning', LOW: 'info',
 };
 
+const RISK_SIGNAL_LABELS: Record<string, string> = {
+    amt:          'Transaction amount',
+    amt_dev:      'Amount deviation from customer average',
+    cc_avg_amt:   'Customer average transaction amount',
+    cc_std_amt:   'Volatility of customer spend',
+    cc_avg_daily: 'Daily transaction frequency',
+    cc_total:     'Total lifetime transactions',
+    dist_km:      'Distance from home to merchant (km)',
+    is_sus_dist:  'Suspicious distance (>100 km from home)',
+    txn_hour:     'Transaction hour (unusual time)',
+    txn_dow:      'Day of week',
+    txn_month:    'Month of transaction',
+    is_weekend:   'Transaction on weekend',
+    is_night:     'Transaction at night (11 PM – 6 AM)',
+    age:          'Customer age',
+    city_pop:     'City population (location risk)',
+    merchant:     'Merchant frequency pattern',
+    category:     'Merchant category risk',
+    job:          'Customer occupation',
+    city:         'Customer city',
+    state:        'Customer state',
+    gender:       'Customer gender pattern',
+};
+
 const statusVariant: Record<CaseStatus, 'default' | 'success' | 'danger' | 'warning' | 'info' | 'muted'> = {
     OPEN: 'info',
     ASSIGNED: 'warning',
@@ -204,11 +228,14 @@ export function CaseDetailPage() {
                                 <KeyValueRow
                                     label="AI Risk Signals"
                                     value={
-                                        <div className="flex flex-col gap-1">
+                                        <div className="flex flex-col gap-1.5">
                                             {caseData.transaction.top_risk_factors.map((f: string, i: number) => (
-                                                <span key={i} className="text-xs bg-bg-secondary text-text-secondary px-2 py-0.5 rounded font-mono">
-                                                    {f}
-                                                </span>
+                                                <div key={i} className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-status-warning flex-shrink-0" />
+                                                    <span className="text-xs text-text-primary">
+                                                        {RISK_SIGNAL_LABELS[f] ?? f}
+                                                    </span>
+                                                </div>
                                             ))}
                                         </div>
                                     }
