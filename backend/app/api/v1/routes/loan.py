@@ -60,7 +60,7 @@ def apply_loan(
 )
 def list_loans(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "ANALYST")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER")),
     customer_id: Optional[str] = Query(None, description="Lọc theo customer UUID"),
     status: Optional[LoanStatus] = Query(None, description="Lọc theo trạng thái"),
     page: int = Query(default=1, ge=1),
@@ -99,7 +99,7 @@ def list_loans(
 )
 def simulate_loan(
     body: LoanSimulationRequest,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "ANALYST")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER")),
 ) -> LoanSimulationResponse:
     scoring_svc = LoanScoringService.get_instance()
 
@@ -135,7 +135,7 @@ def simulate_loan(
 def get_loan(
     loan_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "MANAGER", "ADMIN", "ANALYST")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER")),
 ) -> LoanResponse:
     svc = LoanService(db)
     loan = svc.get_loan(loan_id)
@@ -148,7 +148,7 @@ def get_loan(
     response_model=LoanResponse,
     summary="Phê duyệt / Từ chối khoản vay",
     description=(
-        "MANAGER hoặc ADMIN đưa ra quyết định APPROVE hoặc REJECT cho khoản vay. "
+        "REVIEWER đưa ra quyết định APPROVE hoặc REJECT cho khoản vay. "
         "Yêu cầu cung cấp version hiện tại để tránh lost update (optimistic locking). "
         "Khi APPROVE: hệ thống tự tính monthly_payment, outstanding_balance và maturity_date."
     ),
@@ -157,7 +157,7 @@ def decide_loan(
     loan_id: str,
     body: LoanDecisionRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("REVIEWER")),
 ) -> LoanResponse:
     svc = LoanService(db)
     loan = svc.decide(loan_id, body, actor_user_id=token.sub)

@@ -139,13 +139,13 @@ class CaseService:
             )
 
         # REVIEWER chỉ quyết định được case được giao cho mình.
-        # MANAGER và ADMIN có thể quyết định bất kỳ case nào (override/giám sát).
-        is_privileged = "MANAGER" in actor_roles or "ADMIN" in actor_roles
+        # MANAGER có thể quyết định bất kỳ case nào (override/giám sát).
+        is_privileged = "MANAGER" in actor_roles
         if not is_privileged and case.assigned_to != actor_user_id:
             raise PermissionDeniedError("Case này không được giao cho bạn.")
 
         # SoD: người submit giao dịch không được tự review (4-eyes principle).
-        # MANAGER/ADMIN được phép override để xử lý trường hợp khẩn.
+        # MANAGER được phép override để xử lý trường hợp khẩn.
         if not is_privileged:
             txn = self._db.query(Transaction).filter(Transaction.txn_id == case.txn_id).first()
             if txn and txn.submitted_by == actor_user_id:

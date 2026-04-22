@@ -36,7 +36,7 @@ router = APIRouter(prefix="/cases", tags=["Cases"])
 )
 def list_cases(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN", "ANALYST")),
+    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER")),
     case_status: Optional[CaseStatus] = Query(None),
     assigned_to: Optional[str] = Query(None, description="Lọc theo reviewer user_id"),
     page: int = Query(default=1, ge=1),
@@ -52,7 +52,6 @@ def list_cases(
     is_reviewer_only = (
         "REVIEWER" in token.roles
         and "MANAGER" not in token.roles
-        and "ADMIN" not in token.roles
     )
 
     if is_reviewer_only and assigned_to is not None and assigned_to != token.sub:
@@ -104,7 +103,7 @@ def list_cases(
 def get_case(
     case_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN", "ANALYST")),
+    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER")),
 ) -> CaseResponse:
     svc = CaseService(db)
     case = svc.get_case(case_id)
@@ -113,7 +112,6 @@ def get_case(
     is_reviewer_only = (
         "REVIEWER" in token.roles
         and "MANAGER" not in token.roles
-        and "ADMIN" not in token.roles
     )
     if is_reviewer_only and case.assigned_to != token.sub:
         raise PermissionDeniedError("Case này không được giao cho bạn.")
@@ -180,7 +178,7 @@ def decide_case(
     case_id: str,
     body: CaseDecideRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER")),
 ) -> CaseResponse:
     svc = CaseService(db)
     svc.decide(case_id, body, actor_user_id=token.sub, actor_roles=token.roles)

@@ -5,7 +5,7 @@ Business logic cho loan application và approval workflow.
 
 Flow:
   1. OPERATOR gửi đơn vay (apply) → PENDING
-  2. MANAGER phê duyệt (decide APPROVE) → APPROVED, tính monthly_payment, set maturity_date
+  2. REVIEWER phê duyệt (decide APPROVE) → APPROVED, tính monthly_payment, set maturity_date
      hoặc từ chối (decide REJECT) → REJECTED
 """
 
@@ -191,7 +191,7 @@ class LoanService:
         actor_user_id: str,
     ) -> Loan:
         """
-        MANAGER phê duyệt hoặc từ chối khoản vay.
+        REVIEWER phê duyệt hoặc từ chối khoản vay.
 
         - Optimistic locking: client phải gửi version hiện tại.
           Nếu version không khớp → 409 OptimisticLockError.
