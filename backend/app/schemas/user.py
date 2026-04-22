@@ -14,7 +14,7 @@ from pydantic import BaseModel, EmailStr, Field
 # Enums
 # ============================================================
 
-VALID_ROLES = {"OPERATOR", "REVIEWER", "MANAGER", "ADMIN"}
+VALID_ROLES = {"OPERATOR", "REVIEWER", "ANALYST", "MANAGER", "ADMIN"}
 
 
 # ============================================================
