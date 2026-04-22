@@ -747,10 +747,10 @@ INSERT INTO "model_configs" ("model_name", "param_name", "param_value", "descrip
 VALUES ('fraud', 'review_threshold', 0.050000, 'Ngưỡng MANUAL_REVIEW: fraud_score >= giá trị này → chuyển duyệt tay', 'aa000001-0000-0000-0000-000000000001', TO_TIMESTAMP('2026-01-10 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), 1);
 
 INSERT INTO "model_configs" ("model_name", "param_name", "param_value", "description", "updated_by", "updated_at", "version")
-VALUES ('loan', 'risk_high_threshold', 0.600000, 'Ngưỡng HIGH RISK: pd_score >= giá trị này → phân loại HIGH RISK', 'aa000001-0000-0000-0000-000000000001', TO_TIMESTAMP('2026-01-10 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), 1);
+VALUES ('loan', 'high_risk_threshold', 0.600000, 'Ngưỡng HIGH RISK: pd_score >= giá trị này → phân loại HIGH RISK', 'aa000001-0000-0000-0000-000000000001', TO_TIMESTAMP('2026-01-10 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), 1);
 
 INSERT INTO "model_configs" ("model_name", "param_name", "param_value", "description", "updated_by", "updated_at", "version")
-VALUES ('loan', 'risk_medium_threshold', 0.300000, 'Ngưỡng MEDIUM RISK: pd_score >= giá trị này → phân loại MEDIUM RISK', 'aa000001-0000-0000-0000-000000000001', TO_TIMESTAMP('2026-01-10 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), 1);
+VALUES ('loan', 'medium_risk_threshold', 0.300000, 'Ngưỡng MEDIUM RISK: pd_score >= giá trị này → phân loại MEDIUM RISK', 'aa000001-0000-0000-0000-000000000001', TO_TIMESTAMP('2026-01-10 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), 1);
 COMMIT;
 
 -- ---- suppression_rules — ví dụ whitelist ----

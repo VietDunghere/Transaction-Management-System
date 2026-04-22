@@ -451,8 +451,11 @@ CREATE INDEX idx_case_assigned          ON "review_cases" ("assigned_to");
 CREATE INDEX idx_audit_event_type       ON "audit_logs" ("event_type");
 CREATE INDEX idx_audit_entity_id        ON "audit_logs" ("entity_id");
 CREATE INDEX idx_audit_event_ts         ON "audit_logs" ("event_ts");
-CREATE INDEX idx_rule_hits_code         ON "rule_hits" ("rule_code");
-CREATE INDEX idx_supp_expires           ON "suppression_rules" ("expires_at");
+CREATE INDEX idx_rule_hits_code              ON "rule_hits" ("rule_code");
+CREATE INDEX idx_supp_expires                ON "suppression_rules" ("expires_at");
+CREATE INDEX idx_txn_state_history_txn       ON "txn_state_history" ("txn_id");
+CREATE INDEX idx_review_case_actions_case    ON "review_case_actions" ("case_id");
+CREATE INDEX idx_loans_reviewed_by           ON "loans" ("reviewed_by");
 
 -- ============================================================
 -- COMMENTS
@@ -498,7 +501,7 @@ COMMENT ON COLUMN "loans"."status" IS 'PENDING|APPROVED|REJECTED|DISBURSED|CLOSE
 COMMENT ON COLUMN "loans"."version" IS 'Optimistic Locking';
 COMMENT ON TABLE  "model_configs" IS 'Ngưỡng phân loại Fraud/PD Score — ANALYST điều chỉnh, không hardcode';
 COMMENT ON COLUMN "model_configs"."model_name" IS '"fraud" | "loan"';
-COMMENT ON COLUMN "model_configs"."param_name" IS '"reject_threshold" | "review_threshold" | "risk_high_threshold" | "risk_medium_threshold"';
+COMMENT ON COLUMN "model_configs"."param_name" IS '"reject_threshold" | "review_threshold" | "high_risk_threshold" | "medium_risk_threshold"';
 COMMENT ON TABLE  "suppression_rules" IS 'Whitelist bypass fraud scoring — ANALYST quản lý';
 COMMENT ON COLUMN "suppression_rules"."rule_id" IS 'UUID';
 COMMENT ON COLUMN "suppression_rules"."rule_type" IS 'MERCHANT | CUSTOMER | CARD_HASH';
@@ -624,7 +627,7 @@ BEGIN
     INSERT INTO "txn_idempotency" (
         "idempotency_key", "txn_id", "status", "created_at"
     ) VALUES (
-        p_idempotency_key, p_txn_id, 'PENDING', SYSTIMESTAMP
+        p_idempotency_key, p_txn_id, 'IN_PROGRESS', SYSTIMESTAMP
     );
 
     p_out_txn_id := p_txn_id;
@@ -826,6 +829,7 @@ END;
 CREATE OR REPLACE TRIGGER TRG_STATE_VERSION_UP
 BEFORE UPDATE ON "txn_state"
 FOR EACH ROW
+FOLLOWS TRG_OPTIMISTIC_LOCK_CHECK
 BEGIN
     IF :NEW."status" <> :OLD."status" THEN
         :NEW."version" := :OLD."version" + 1;
