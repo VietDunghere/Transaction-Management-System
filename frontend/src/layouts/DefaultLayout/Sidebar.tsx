@@ -9,6 +9,12 @@ import {
     Database,
     User,
     Component,
+    SlidersHorizontal,
+    Activity,
+    ShieldOff,
+    FileText,
+    Layers,
+    GitCompare,
 } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { cn } from '~/utils/cn';
@@ -28,17 +34,26 @@ interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-    { label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/', roles: ['MANAGER', 'ADMIN'] },
-    { label: 'Transactions', icon: <ArrowLeftRight size={20} />, href: '/transactions' },
+    { label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
+    { label: 'Transactions', icon: <ArrowLeftRight size={20} />, href: '/transactions', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
     { label: 'Cases', icon: <ShieldAlert size={20} />, href: '/cases', roles: ['REVIEWER', 'MANAGER', 'ADMIN'] },
+    { label: 'Loans', icon: <CreditCard size={20} />, href: '/loans', roles: ['OPERATOR', 'REVIEWER', 'MANAGER', 'ADMIN'] },
     { label: 'Users', icon: <Users size={20} />, href: '/users', roles: ['MANAGER', 'ADMIN'] },
-    { label: 'Loans', icon: <CreditCard size={20} />, href: '/loans', roles: ['OPERATOR', 'MANAGER', 'ADMIN'] },
+];
+
+const analystNavItems: NavItem[] = [
+    { label: 'Thresholds', icon: <SlidersHorizontal size={20} />, href: '/analyst/thresholds', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
+    { label: 'Model Performance', icon: <Activity size={20} />, href: '/analyst/model-performance', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
+    { label: 'Suppression Rules', icon: <ShieldOff size={20} />, href: '/analyst/suppression-rules', roles: ['ANALYST', 'ADMIN'] },
+    { label: 'Analyst Reports', icon: <FileText size={20} />, href: '/analyst/reports', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
 ];
 
 const secondaryNavItems: NavItem[] = [
     { label: 'Reports', icon: <BarChart3 size={20} />, href: '/reports', roles: ['MANAGER', 'ADMIN'] },
     { label: 'Audit Logs', icon: <ScrollText size={20} />, href: '/audit-logs', roles: ['MANAGER', 'ADMIN'] },
     { label: 'ETL Pipeline', icon: <Database size={20} />, href: '/etl', roles: ['ADMIN'] },
+    { label: 'Data Lake', icon: <Layers size={20} />, href: '/datalake', roles: ['ADMIN'] },
+    { label: 'Reconciliation', icon: <GitCompare size={20} />, href: '/reconciliation', roles: ['ADMIN'] },
     { label: 'Profile', icon: <User size={20} />, href: '/profile' },
     { label: 'UI Demo', icon: <Component size={20} />, href: '/ui-demo' },
 ];
@@ -55,6 +70,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     const userRole = user?.role;
 
     const visibleMain = filterByRole(mainNavItems, userRole);
+    const visibleAnalyst = filterByRole(analystNavItems, userRole);
     const visibleSecondary = filterByRole(secondaryNavItems, userRole);
 
     const userInitial = user?.full_name?.charAt(0).toUpperCase() ?? '?';
@@ -123,6 +139,41 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                             );
                         })}
                     </ul>
+
+                    {/* ANALYST section */}
+                    {visibleAnalyst.length > 0 && (
+                        <>
+                            {isOpen && (
+                                <div className="px-3 py-1 mt-4 mb-1">
+                                    <span className="text-xs font-normal text-text-secondary uppercase tracking-wider">
+                                        Analyst
+                                    </span>
+                                </div>
+                            )}
+                            <ul className="flex flex-col gap-0.5">
+                                {visibleAnalyst.map((item) => {
+                                    const isActive = currentPath === item.href || currentPath.startsWith(item.href + '/');
+                                    return (
+                                        <li key={item.href}>
+                                            <Link
+                                                to={item.href}
+                                                className={cn(
+                                                    'flex items-center gap-2 px-5 py-2',
+                                                    'rounded-sm text-sm transition-colors duration-150',
+                                                    isActive
+                                                        ? 'text-text-primary font-semibold'
+                                                        : 'text-text-secondary hover:text-text-primary',
+                                                )}
+                                            >
+                                                <span className="shrink-0">{item.icon}</span>
+                                                {isOpen && <span className="truncate">{item.label}</span>}
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </>
+                    )}
 
                     {/* SECONDARY section */}
                     {isOpen && (

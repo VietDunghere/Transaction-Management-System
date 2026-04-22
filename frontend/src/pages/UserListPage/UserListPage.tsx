@@ -19,6 +19,7 @@ import { EmptyState } from '~/components/ui/EmptyState/EmptyState';
 const roleVariant: Record<Role, 'info' | 'warning' | 'success' | 'danger'> = {
     OPERATOR: 'info',
     REVIEWER: 'warning',
+    ANALYST: 'info',
     MANAGER: 'success',
     ADMIN: 'danger',
 };

@@ -65,7 +65,7 @@ def run_reconciliation(
 )
 def list_reconciliation_runs(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("ADMIN")),
+    token: TokenPayload = Depends(require_roles("ADMIN", "ANALYST")),
     status: Optional[str] = Query(
         None,
         description="Lọc theo status: RUNNING | COMPLETED | FAILED",
@@ -98,7 +98,7 @@ def list_reconciliation_runs(
 def get_reconciliation_run(
     run_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("ADMIN")),
+    token: TokenPayload = Depends(require_roles("ADMIN", "ANALYST")),
 ) -> ReconciliationDetailResponse:
     svc = ReconciliationService(db)
     run = svc.get_run(run_id)

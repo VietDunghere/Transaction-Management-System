@@ -14,103 +14,149 @@ GRANT PROJECT_ADMIN TO ADMIN;
 ALTER USER ADMIN QUOTA UNLIMITED ON USERS;
 
 -- ============================================================
--- 1. ROLE: OPERATOR (Nhân viên Vận hành / Kênh giao dịch)
+-- 1. ROLE: OPERATOR
+--    Core Banking System của Ngân hàng đối tác (hệ thống tự động).
+--    Chỉ được INSERT giao dịch / đơn vay — không đọc báo cáo.
 -- ============================================================
 CREATE ROLE OPERATOR;
 GRANT CONNECT TO OPERATOR;
 
--- Quyền Nhóm bảng Giao dịch: Thêm và Xem
-GRANT SELECT, INSERT ON "transactions_live" TO OPERATOR;
-GRANT SELECT, INSERT ON "txn_idempotency" TO OPERATOR;
-GRANT SELECT, INSERT ON "txn_state" TO OPERATOR;
-GRANT SELECT, INSERT ON "txn_state_history" TO OPERATOR;
+GRANT SELECT, INSERT ON "transactions_live"    TO OPERATOR;
+GRANT SELECT, INSERT ON "txn_idempotency"      TO OPERATOR;
+GRANT SELECT, INSERT ON "txn_state"            TO OPERATOR;
+GRANT SELECT, INSERT ON "txn_state_history"    TO OPERATOR;
+GRANT SELECT, INSERT ON "loans"                TO OPERATOR;
+GRANT SELECT         ON "customers"            TO OPERATOR;
+GRANT SELECT         ON "merchants"            TO OPERATOR;
+GRANT SELECT         ON "channels"             TO OPERATOR;
+GRANT SELECT         ON "risk_scoring_results" TO OPERATOR;
+GRANT SELECT         ON "rule_hits"            TO OPERATOR;
+GRANT SELECT         ON "model_configs"        TO OPERATOR;
+GRANT SELECT         ON "suppression_rules"    TO OPERATOR;
+GRANT SELECT, INSERT, UPDATE ON "card_velocity_stats" TO OPERATOR;
 
--- Quyền Nhóm bảng Thông tin: Chỉ Xem
-GRANT SELECT ON "customers" TO OPERATOR;
-GRANT SELECT ON "merchants" TO OPERATOR;
-GRANT SELECT ON "channels" TO OPERATOR;
-
--- Quyền Nhóm bảng AI: Chỉ Xem
-GRANT SELECT ON "risk_scoring_results" TO OPERATOR;
-GRANT SELECT ON "rule_hits" TO OPERATOR;
-
--- Cấp quyền gọi Procedure Submit (quan trọng để chạy luồng tạo mới)
 GRANT EXECUTE ON PROC_SUBMIT_TRANSACTION TO OPERATOR;
 
 -- ============================================================
--- 2. ROLE: REVIEWER (Nhân viên Duyệt / Thẩm định viên)
+-- 2. ROLE: REVIEWER
+--    Nhân viên duyệt Case thủ công.
 -- ============================================================
 CREATE ROLE REVIEWER;
 GRANT CONNECT TO REVIEWER;
 
--- Quyền Nhóm bảng Duyệt tay: Xem, Thêm, Sửa
-GRANT SELECT, UPDATE ON "review_cases" TO REVIEWER;
+GRANT SELECT, UPDATE        ON "review_cases"        TO REVIEWER;
 GRANT SELECT, INSERT, UPDATE ON "review_case_actions" TO REVIEWER;
+GRANT SELECT, UPDATE        ON "transactions_live"   TO REVIEWER;
+GRANT SELECT, UPDATE        ON "txn_state"           TO REVIEWER;
+GRANT SELECT, INSERT        ON "txn_state_history"   TO REVIEWER;
+GRANT SELECT                ON "customers"           TO REVIEWER;
+GRANT SELECT                ON "merchants"           TO REVIEWER;
+GRANT SELECT                ON "risk_scoring_results" TO REVIEWER;
 
--- Quyền Nhóm bảng Giao dịch: Xem, Sửa
-GRANT SELECT, UPDATE ON "transactions_live" TO REVIEWER;
-GRANT SELECT, UPDATE ON "txn_state" TO REVIEWER;
-GRANT SELECT, INSERT ON "txn_state_history" TO REVIEWER; -- INSERT cho trigger/log nếu cần thiết ở mức user
-
--- Quyền Nhóm bảng AI & Master Data: Chỉ Xem
-GRANT SELECT ON "customers" TO REVIEWER;
-GRANT SELECT ON "merchants" TO REVIEWER;
-GRANT SELECT ON "risk_scoring_results" TO REVIEWER;
-
--- Cấp quyền gọi Procedure xử lý case
 GRANT EXECUTE ON PROC_PROCESS_REVIEW_CASE TO REVIEWER;
 
 -- ============================================================
--- 3. ROLE: MANAGER (Quản lý / Giám đốc Vận hành)
+-- 3. ROLE: ANALYST
+--    Chuyên viên Phân tích Rủi ro.
+-- ============================================================
+CREATE ROLE ANALYST;
+GRANT CONNECT TO ANALYST;
+
+-- Đọc dữ liệu OLTP để phân tích
+GRANT SELECT ON "transactions_live"     TO ANALYST;
+GRANT SELECT ON "risk_scoring_results"  TO ANALYST;
+GRANT SELECT ON "rule_hits"             TO ANALYST;
+GRANT SELECT ON "loans"                 TO ANALYST;
+GRANT SELECT ON "review_cases"          TO ANALYST;
+GRANT SELECT ON "audit_logs"            TO ANALYST;
+GRANT SELECT ON "customers"             TO ANALYST;
+GRANT SELECT ON "merchants"             TO ANALYST;
+GRANT SELECT ON "card_velocity_stats"   TO ANALYST;
+GRANT SELECT ON "reconciliation_runs"   TO ANALYST;
+GRANT SELECT ON "reconciliation_items"  TO ANALYST;
+GRANT SELECT ON "etl_logs"             TO ANALYST;
+GRANT SELECT ON "datalake_snapshots"   TO ANALYST;
+
+-- DWH — đọc để phân tích xu hướng
+GRANT SELECT ON "fact_transactions"    TO ANALYST;
+GRANT SELECT ON "fact_loans"           TO ANALYST;
+GRANT SELECT ON "dim_time"             TO ANALYST;
+GRANT SELECT ON "dim_customer"         TO ANALYST;
+GRANT SELECT ON "dim_merchant"         TO ANALYST;
+GRANT SELECT ON "dim_channel"          TO ANALYST;
+
+-- Analyst Module — toàn quyền trên 3 bảng nghiệp vụ
+GRANT SELECT, INSERT, UPDATE ON "model_configs"     TO ANALYST;
+GRANT SELECT, INSERT, UPDATE ON "suppression_rules" TO ANALYST;
+GRANT SELECT, INSERT, UPDATE ON "analyst_reports"   TO ANALYST;
+
+-- ============================================================
+-- 4. ROLE: MANAGER
+--    Quản lý / Giám đốc Vận hành.
 -- ============================================================
 CREATE ROLE MANAGER;
 GRANT CONNECT TO MANAGER;
 
--- Quyền Báo cáo OLAP: Chỉ xem
-GRANT SELECT ON "fact_transactions" TO MANAGER;
-GRANT SELECT ON "fact_loans" TO MANAGER;
-GRANT SELECT ON "dim_time" TO MANAGER;
-GRANT SELECT ON "dim_customer" TO MANAGER;
-GRANT SELECT ON "dim_merchant" TO MANAGER;
-GRANT SELECT ON "dim_channel" TO MANAGER;
-GRANT SELECT ON "dim_location" TO MANAGER;
+-- DWH báo cáo
+GRANT SELECT ON "fact_transactions"   TO MANAGER;
+GRANT SELECT ON "fact_loans"          TO MANAGER;
+GRANT SELECT ON "dim_time"            TO MANAGER;
+GRANT SELECT ON "dim_customer"        TO MANAGER;
+GRANT SELECT ON "dim_merchant"        TO MANAGER;
+GRANT SELECT ON "dim_channel"         TO MANAGER;
+GRANT SELECT ON "dim_location"        TO MANAGER;
 
--- Quyền Giao dịch & Case Dashboard KPI: Chỉ xem
-GRANT SELECT ON "transactions_live" TO MANAGER;
-GRANT SELECT ON "review_cases" TO MANAGER;
-GRANT SELECT ON "review_case_actions" TO MANAGER;
+-- OLTP dashboard
+GRANT SELECT ON "transactions_live"    TO MANAGER;
+GRANT SELECT ON "review_cases"         TO MANAGER;
+GRANT SELECT ON "review_case_actions"  TO MANAGER;
+GRANT SELECT ON "loans"                TO MANAGER;
+GRANT SELECT ON "risk_scoring_results" TO MANAGER;
+GRANT SELECT ON "customers"            TO MANAGER;
+GRANT SELECT ON "merchants"            TO MANAGER;
 
--- Quyền Audit & Đối soát tiến độ dòng tiền: Chỉ xem
-GRANT SELECT ON "audit_logs" TO MANAGER;
-GRANT SELECT ON "reconciliation_jobs" TO MANAGER;
+-- Audit & Đối soát
+GRANT SELECT ON "audit_logs"           TO MANAGER;
+GRANT SELECT ON "reconciliation_runs"  TO MANAGER;
 GRANT SELECT ON "reconciliation_items" TO MANAGER;
+GRANT SELECT ON "etl_logs"            TO MANAGER;
+
+-- Analyst Module — xem + acknowledge báo cáo
+GRANT SELECT         ON "model_configs"     TO MANAGER;
+GRANT SELECT         ON "suppression_rules" TO MANAGER;
+GRANT SELECT, UPDATE ON "analyst_reports"   TO MANAGER;
 
 -- ============================================================
--- 4. ROLE: IT_ADMIN (Quản trị viên Hệ thống / IT Support)
--- (Tách biệt với PROJECT_ADMIN, chuyên phục vụ nghiệp vụ IT)
+-- 5. ROLE: IT_ADMIN
+--    Quản trị viên Hệ thống — tách biệt với PROJECT_ADMIN.
 -- ============================================================
 CREATE ROLE IT_ADMIN;
 GRANT CONNECT TO IT_ADMIN;
 
--- Nhóm bảng Phân quyền: Toàn quyền CRUD
-GRANT SELECT, INSERT, UPDATE, DELETE ON "users" TO IT_ADMIN;
-GRANT SELECT, INSERT, UPDATE, DELETE ON "roles" TO IT_ADMIN;
+-- Phân quyền người dùng
+GRANT SELECT, INSERT, UPDATE, DELETE ON "users"      TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "roles"      TO IT_ADMIN;
 GRANT SELECT, INSERT, UPDATE, DELETE ON "user_roles" TO IT_ADMIN;
 
--- Nhóm bảng Master Data: Toàn quyền CRUD (quản lý, khóa merchant vi phạm...)
+-- Master Data
 GRANT SELECT, INSERT, UPDATE, DELETE ON "customers" TO IT_ADMIN;
 GRANT SELECT, INSERT, UPDATE, DELETE ON "merchants" TO IT_ADMIN;
-GRANT SELECT, INSERT, UPDATE, DELETE ON "channels" TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "channels"  TO IT_ADMIN;
 
--- Nhóm bảng Vận hành Data (Batch Jobs/ETL/Đối soát): Xem & Thêm
-GRANT SELECT, INSERT ON "raw_ingest_batches" TO IT_ADMIN;
-GRANT SELECT, INSERT ON "reconciliation_jobs" TO IT_ADMIN;
-GRANT SELECT, INSERT ON "reconciliation_items" TO IT_ADMIN;
+-- Vận hành ETL & Đối soát
+GRANT SELECT, INSERT, UPDATE, DELETE ON "etl_logs"             TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "datalake_snapshots"   TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "reconciliation_runs"  TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "reconciliation_items" TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "card_velocity_stats"  TO IT_ADMIN;
 
--- Cấp thêm quyền chạy Procedure đối soát phòng khi Job lỗi cần kích hoạt lại (Retry)
 GRANT EXECUTE ON PROC_EXECUTE_RECONCILIATION TO IT_ADMIN;
 
--- Nhóm bảng Ghi vết (Audit): Chỉ xem log hệ thống/truy vết
+-- Audit
 GRANT SELECT ON "audit_logs" TO IT_ADMIN;
 
-
+-- Analyst Module
+GRANT SELECT, INSERT, UPDATE, DELETE ON "model_configs"     TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "suppression_rules" TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "analyst_reports"   TO IT_ADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "loans"             TO IT_ADMIN;

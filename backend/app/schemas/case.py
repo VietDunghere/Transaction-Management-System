@@ -6,7 +6,7 @@ Request/Response cho quản lý case review.
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from pydantic import BaseModel, Field
 
@@ -43,6 +43,34 @@ class CaseListFilter(BaseModel):
 # Response schemas
 # ============================================================
 
+class CaseRuleHit(BaseModel):
+    rule_code: str
+    rule_name: Optional[str]
+    hit_value: Optional[str]
+    severity: Optional[str]
+
+    model_config = {"from_attributes": True}
+
+
+class CardVelocitySnapshot(BaseModel):
+    """Thống kê velocity của thẻ — dùng để reviewer đánh giá hành vi bình thường."""
+    avg_daily_txn: float
+    total_txn: int
+    avg_amt: float
+    std_amt: float
+
+
+class RecentTransaction(BaseModel):
+    """Giao dịch gần đây của customer — reviewer thấy pattern."""
+    txn_id: str
+    amount: Decimal
+    currency_code: str
+    merchant_name: Optional[str]
+    status: str
+    fraud_score: Optional[float]
+    txn_time: datetime
+
+
 class CaseTransactionSummary(BaseModel):
     """Tóm tắt giao dịch đính kèm trong case — reviewer cần thấy ngay."""
     txn_id: str
@@ -52,7 +80,14 @@ class CaseTransactionSummary(BaseModel):
     fraud_score: Optional[float]
     merchant_name: Optional[str]
     merchant_category: Optional[str]
+    merchant_risk_level: Optional[str]
     customer_name: Optional[str]
+    channel_name: Optional[str]
+    source_ip: Optional[str]
+    card_number_masked: Optional[str]
+    rule_hits: list[CaseRuleHit] = []
+    card_velocity: Optional[CardVelocitySnapshot] = None
+    recent_transactions: list[RecentTransaction] = []
 
     model_config = {"from_attributes": True}
 
@@ -74,12 +109,12 @@ class CaseResponse(BaseModel):
     txn_id: str
     case_status: CaseStatus
     assigned_to: Optional[str]
+    assigned_to_name: Optional[str] = None
     decision: Optional[str]
     decision_note: Optional[str]
     version: int
     created_at: datetime
     decided_at: Optional[datetime]
-    # Thông tin giao dịch để reviewer ra quyết định
     transaction: Optional[CaseTransactionSummary] = None
     actions: List[CaseActionResponse] = []
 
@@ -92,6 +127,7 @@ class CaseListItem(BaseModel):
     txn_id: str
     case_status: CaseStatus
     assigned_to: Optional[str]
+    assigned_to_name: Optional[str] = None
     fraud_score: Optional[float]
     amount: Optional[Decimal]
     txn_time: Optional[datetime]

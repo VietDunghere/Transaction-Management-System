@@ -18,6 +18,7 @@ import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
 const roleVariant: Record<Role, 'info' | 'warning' | 'success' | 'danger'> = {
     OPERATOR: 'info',
     REVIEWER: 'warning',
+    ANALYST: 'info',
     MANAGER: 'success',
     ADMIN: 'danger',
 };

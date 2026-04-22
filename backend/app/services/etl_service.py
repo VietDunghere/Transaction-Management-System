@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppException, ConflictError
 from app.core.logging import get_logger
 from app.models.etl_log import DataLakeSnapshot, EtlLog
+from app.models.scoring import AuditLog
 from app.models.transaction import Transaction
 from app.repositories.etl_repo import DataLakeRepository, EtlRepository
 from app.schemas.etl import DataLakeIngestRequest, EtlRunRequest
@@ -78,6 +79,18 @@ class EtlService:
             job.status = "SUCCESS"
             job.records_out = 1
             job.completed_at = datetime.now(timezone.utc)
+            self._db.add(AuditLog(
+                log_id=str(uuid.uuid4()),
+                event_type="ETL_JOB_TRIGGERED",
+                entity_type="EtlLog",
+                entity_id=job.job_id,
+                actor_user_id=triggered_by,
+                detail_json=json.dumps({
+                    "job_type": request.job_type,
+                    "target_date": str(request.target_date),
+                    "records_in": job.records_in,
+                }),
+            ))
             self._db.commit()
 
             logger.info(

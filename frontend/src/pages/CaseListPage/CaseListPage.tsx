@@ -8,6 +8,8 @@ import { ListPageTemplate } from '~/components/templates/ListPageTemplate/ListPa
 import { TableShell } from '~/components/ui/TableShell/TableShell';
 import { FilterBar } from '~/components/ui/FilterBar/FilterBar';
 import { Select } from '~/components/ui/Select/Select';
+import { QuickDateFilter } from '~/components/ui/QuickDateFilter/QuickDateFilter';
+import type { QuickPeriod } from '~/components/ui/QuickDateFilter/QuickDateFilter';
 import { Pagination } from '~/components/ui/Pagination/Pagination';
 import { Badge } from '~/components/ui/Badge/Badge';
 import { LoadingSkeleton } from '~/components/ui/LoadingSkeleton/LoadingSkeleton';
@@ -53,7 +55,7 @@ export function CaseListPage() {
         case_status: <Badge variant={statusVariant[c.case_status]}>{c.case_status}</Badge>,
         assigned_to: (
             <span className="text-xs text-text-secondary">
-                {c.assigned_to ? c.assigned_to.slice(0, 8) + '...' : 'Unassigned'}
+                {c.assigned_to_name ?? (c.assigned_to ? c.assigned_to.slice(0, 8) + '...' : 'Unassigned')}
             </span>
         ),
         created_at: <span className="text-xs text-text-secondary">{new Date(c.created_at).toLocaleString()}</span>,
@@ -77,6 +79,10 @@ export function CaseListPage() {
                             }))
                         }
                         placeholder="All Status"
+                    />
+                    <QuickDateFilter
+                        value={params.period as QuickPeriod | undefined}
+                        onChange={(period) => setParams((p) => ({ ...p, period, page: 1 }))}
                     />
                 </FilterBar>
             }

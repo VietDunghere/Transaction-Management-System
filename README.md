@@ -1,8 +1,8 @@
-# Hệ thống Quản lý Giao dịch (TMS)
+# Hệ thống Phân tích Rủi ro và Đánh giá Tài chính (HPTRRĐGTC)
 
 ## Tóm tắt điều hành
 
-Hệ thống Quản lý Giao dịch (Transaction Management System - TMS) là một nền tảng cấp doanh nghiệp được thiết kế để tự động hóa xử lý giao dịch, phát hiện gian lận, và quản lý tuân thủ cho các tổ chức tài chính. Hệ thống xử lý các giao dịch đến thông qua cơ chế định tuyến thông minh, sử dụng công nghệ chấm điểm gian lận dựa trên AI để giảm thiểu khối lượng xét duyệt thủ công trong khi duy trì các bản ghi kiểm tra đầy đủ để tuân thủ quy định.
+Hệ thống Phân tích Rủi ro và Đánh giá Tài chính (HPTRRĐGTC) là một nền tảng cấp doanh nghiệp được thiết kế để tự động hóa xử lý giao dịch, phát hiện gian lận, đánh giá tín dụng, và phân tích rủi ro tài chính cho các tổ chức ngân hàng. Hệ thống kết hợp cơ chế định tuyến thông minh dựa trên AI, quy trình kiểm duyệt có kiểm soát, và module phân tích chuyên sâu cho phép Analyst theo dõi hiệu suất mô hình, đề xuất điều chỉnh ngưỡng, và báo cáo lên cấp quản lý — tất cả với audit trail đầy đủ để tuân thủ quy định.
 
 ---
 
@@ -66,11 +66,20 @@ Quy trình đối soát tự động đảm bảo tính nhất quán trên các 
 - Ghi chú lý do cho từng quyết định
 - Chịu trách nhiệm cho các quyết định xét duyệt
 
+**ANALYST (Chuyên viên phân tích rủi ro)**
+- Theo dõi và phân tích hiệu suất mô hình fraud detection & credit scoring
+- Xem xét phân phối điểm và tỷ lệ false positive
+- Điều chỉnh ngưỡng phân loại (reject/review threshold) khi cần
+- Tạo và quản lý suppression rules cho merchant/customer đặc biệt
+- Soạn báo cáo phân tích dạng Markdown và trình lên MANAGER để xem xét
+- Xuất báo cáo dưới dạng PDF chuyên nghiệp
+
 **MANAGER (Người giám sát hoạt động)**
 - Theo dõi các chỉ số và KPI trên bảng điều khiển
 - Phân tích các mẫu gian lận và xu hướng thông qua báo cáo
 - Xét duyệt bản ghi kiểm tra để đảm bảo chất lượng
 - Tạo báo cáo tuân thủ và xuất bản
+- Xem xét và xác nhận báo cáo phân tích từ ANALYST
 
 **ADMIN (Quản trị viên hệ thống)**
 - Quản lý tài khoản người dùng và kiểm soát truy cập
@@ -152,6 +161,29 @@ Hệ thống bao gồm một trình mô phỏng phê duyệt cho vay có thể:
 - Phân loại mức rủi ro (THẤP, TRUNG BÌNH, CAO)
 - Hỗ trợ phân tích giả định cho mô hình quyết định tín dụng
 
+### 10. Module Phân tích Chuyên sâu (Analyst Module)
+
+Module dành riêng cho ANALYST cung cấp bộ công cụ phân tích rủi ro toàn diện:
+
+**Quản lý ngưỡng mô hình:**
+- Xem và điều chỉnh các ngưỡng phân loại của fraud model (`reject_threshold`, `review_threshold`) và credit model (`high_risk_threshold`, `medium_risk_threshold`)
+- Mọi thay đổi được ghi vào audit log với actor và timestamp
+
+**Hiệu suất mô hình:**
+- Thống kê phân phối điểm fraud score theo khoảng thời gian tùy chọn
+- Tính tỷ lệ false positive dựa trên quyết định thực tế của reviewer
+- Thống kê phân phối rủi ro tín dụng và tỷ lệ phê duyệt/từ chối
+
+**Suppression Rules:**
+- Tạo whitelist bypass fraud scoring cho merchant/customer/card VIP
+- Quản lý danh sách rules (xem, vô hiệu hóa), mỗi thay đổi có audit log
+
+**Báo cáo Analyst:**
+- Soạn báo cáo phân tích dạng Markdown (hỗ trợ bảng, header, danh sách)
+- Vòng đời báo cáo: `PENDING_REVIEW → ACKNOWLEDGED → ARCHIVED`
+- MANAGER xác nhận báo cáo và ghi chú phản hồi
+- Xuất báo cáo dưới dạng **PDF chuyên nghiệp** với header thương hiệu, bảng định dạng đầy đủ, khối xác nhận màu xanh, và hỗ trợ tiếng Việt Unicode đầy đủ
+
 ---
 
 ## Kiến trúc hệ thống
@@ -183,10 +215,10 @@ Công việc nền
 ### Stack công nghệ
 
 - Framework backend: FastAPI (Python)
-- Cơ sở dữ liệu: Oracle (chính), PostgreSQL (phát triển)
-- Bộ nhớ cache/Quản lý phiên: Redis
-- Hàng đợi tin nhắn: Cần xác định
-- Triển khai: Docker, sẵn sàng cho Kubernetes
+- Cơ sở dữ liệu: Oracle 23ai Free (chính), SQLite (dev fallback)
+- ORM: SQLAlchemy + Alembic (migration)
+- PDF rendering: fpdf2 + Arial Unicode TTF (hỗ trợ tiếng Việt)
+- Triển khai: Docker (Oracle container), sẵn sàng cho Kubernetes
 
 ---
 
@@ -282,41 +314,38 @@ Hệ thống được thiết kế để xử lý:
 
 Triển khai hiện tại bao gồm:
 
-- Đặc tả thiết kế API (31 điểm cuối)
-- Giáo dáng cấu trúc dự án (mô hình FastAPI MVC)
-- Khung tài liệu
-- Các vấn đề được xác định và sửa chữa được đề xuất (API_AUDIT.md)
+- Backend hoàn chỉnh: **43+ endpoints** trên 9 module
+- Cơ sở dữ liệu Oracle 23ai với đầy đủ Alembic migration
+- ML models: fraud detection (Random Forest) + credit scoring (XGBoost)
+- Module Analyst: thresholds, suppression rules, báo cáo Markdown + PDF
+- SSE real-time stream cho giao dịch và dashboard
+- Seed data đầy đủ cho mọi role (OPERATOR, REVIEWER, ANALYST, MANAGER, ADMIN)
 
 ---
 
-## Các vấn đề đã biết và khuyến nghị
+## Bảo mật doanh nghiệp đã triển khai
 
-Một cuộc kiểm toán toàn diện đã xác định 20 vấn đề trên ba cấp độ mức độ:
+Hệ thống đáp ứng tiêu chuẩn doanh nghiệp với các kiểm soát sau:
 
-**Các vấn đề quan trọng (5)**
-- Cách ly dữ liệu: Khả năng nhìn thấy OPERATOR không bị hạn chế theo người dùng
-- Khóa lạc quan: Trường phiên bản bị thiếu từ các yêu cầu cập nhật
-- Dư thừa điểm cuối: Các đường dẫn cập nhật trạng thái giao dịch trùng lặp
-- Máy trạng thái: Không có xác thực các chuyển giao trạng thái không hợp lệ
-- Ủy quyền: Admin tự vô hiệu hóa không được ngăn chặn
+**Segregation of Duties (4-eyes principle)**
+- Người tạo đơn vay không được tự phê duyệt → 403
+- Reviewer không được quyết định case cho giao dịch do chính mình submit → 403
+- MANAGER/ADMIN có thể override trong trường hợp khẩn
 
-**Các vấn đề ưu tiên cao (7)**
-- Idempotency: Đặc tả trường hash không hoàn chỉnh
-- Che mặt thẻ: Trách nhiệm không rõ (khách hàng hoặc máy chủ)
-- Phương pháp HTTP: Sử dụng động từ không chính xác trong nhiều điểm cuối
-- Điều kiện chạy: Chỉ định trường hợp thiếu kiểm soát đồng thời
-- Đối soát: Trạng thái FAILED bị thiếu cho lỗi công việc
-- Xung đột tham số: Lựa chọn phạm vi ngày tương đối so với tuyệt đối
-- Kiểm tra sức khỏe: Điểm cuối bị thiếu để giám sát dịch vụ
+**Optimistic Locking**
+- Mọi thao tác ghi quan trọng (loan decision, case decision) đều yêu cầu `version` field
+- Conflict khi version không khớp → 409
 
-**Các vấn đề mức độ trung bình (8)**
-- Thiếu điểm cuối: GET cho người dùng, khoản vay, công việc ETL
-- Không nhất quán về tên gọi: Trên dấu thời gian, điểm cuối và trường
-- Hạt độ bảng điều khiển: Hạt độ dữ liệu xu hướng không rõ ràng
-- Phân trang: Điểm cuối cấu trúc Data Lake thiếu phân trang
-- Tài liệu: Tiền tố phiên bản bị thiếu từ URL cơ sở
+**Audit Log toàn diện**
+- Mọi thao tác ghi (tạo, cập nhật, xóa) đều ghi `AuditLog` với actor + timestamp
+- Bao gồm: threshold update, suppression rule, ETL trigger, reconciliation resolve, analyst report
 
-Chi tiết phân tích với các bước khắc phục được cung cấp trong API_AUDIT.md.
+**Input Validation**
+- `txn_time` không được nằm trong tương lai (tolerance 5 phút)
+- CORS tightened cho môi trường production
+
+**RBAC**
+- 5 roles với phân quyền rõ ràng: OPERATOR, REVIEWER, ANALYST, MANAGER, ADMIN
 
 ---
 
@@ -336,12 +365,13 @@ Chi tiết phân tích với các bước khắc phục được cung cấp tron
 
 ## Tham chiếu tài liệu
 
-- API_DESIGN.md: Đặc tả API hoàn chỉnh (31 điểm cuối)
-- API_SUMMARY.md: Tham chiếu nhanh tổng hợp điểm cuối
-- API_AUDIT.md: Phân tích vấn đề với các bước khắc phục
-- PROJECT_STRUCTURE.md: Ánh xạ trách nhiệm lớp kiến trúc
-- USECASE.md: Mô tả trường hợp sử dụng chi tiết và tương tác diễn viên
-- db/: Sơ đồ quan hệ thực thể và lược đồ cơ sở dữ liệu
+- `docs/API_DESIGN.md`: Đặc tả API hoàn chỉnh (43+ endpoints, 9 module UC)
+- `docs/API_SUMMARY.md`: Tham chiếu nhanh tổng hợp endpoint
+- `docs/API_AUDIT.md`: Phân tích vấn đề doanh nghiệp với các bước khắc phục
+- `docs/PROJECT_STRUCTURE.md`: Ánh xạ trách nhiệm lớp kiến trúc
+- `docs/USECASE.md`: Mô tả use case chi tiết và tương tác actor
+- `docs/SYSTEM_WORKFLOW.md`: Luồng xử lý giao dịch end-to-end
+- `docs/DB_TABLES_EXPLAINED.md`: Giải thích từng bảng DB và quan hệ
 
 ---
 
@@ -358,7 +388,10 @@ Chi tiết phân tích với các bước khắc phục được cung cấp tron
 
 | Phiên bản | Ngày | Thay đổi |
 |----------|------|---------|
-| 1.0 | 2026-04-07 | Thiết lập dự án ban đầu với thiết kế API và giáo dáng cấu trúc |
+| 1.0 | 2026-04-07 | Thiết lập dự án ban đầu với thiết kế API và cấu trúc dự án |
+| 1.1 | 2026-04-10 | Triển khai đầy đủ backend: auth, transactions, loans, cases, ETL, reconciliation, dashboard, SSE |
+| 1.2 | 2026-04-15 | Thêm role ANALYST: threshold management, model performance, suppression rules |
+| 1.3 | 2026-04-19 | Thêm Analyst Reports (Markdown + PDF export), đổi tên thành HPTRRĐGTC, vá SoD và AuditLog gaps |
 
 ---
 
@@ -380,6 +413,6 @@ Chi tiết phân tích với các bước khắc phục được cung cấp tron
 
 ---
 
-Phiên bản tài liệu: 1.0
-Cập nhật lần cuối: 2026-04-07
+Phiên bản tài liệu: 1.3
+Cập nhật lần cuối: 2026-04-19
 Trạng thái: Hoạt động

@@ -17,6 +17,7 @@ from app.db.base import Base  # noqa: F401
 
 # Import tất cả models để Base.metadata biết đủ bảng
 from app.models import (  # noqa: F401
+    analyst,
     audit_log,
     card_velocity,
     case,

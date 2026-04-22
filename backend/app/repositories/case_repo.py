@@ -4,8 +4,10 @@ Repository: Case
 Data access layer cho review_cases và review_case_actions.
 """
 
+from datetime import datetime
 from typing import List, Optional, Tuple
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.case import ReviewCase, ReviewCaseAction
@@ -37,11 +39,18 @@ class CaseRepository:
         self,
         case_status: Optional[CaseStatus] = None,
         assigned_to: Optional[str] = None,
+        reviewer_queue_for: Optional[str] = None,
+        created_from: Optional[datetime] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> Tuple[List[ReviewCase], int]:
         """
         Danh sách cases với filter.
+
+        Args:
+            reviewer_queue_for: Khi set (user_id của REVIEWER), trả về
+                (case OPEN chưa ai nhận) OR (case được assign cho reviewer đó).
+                Dùng thay cho assigned_to khi hiển thị queue REVIEWER.
 
         Returns:
             (items, total_count)
@@ -53,8 +62,20 @@ class CaseRepository:
 
         if case_status:
             query = query.filter(ReviewCase.case_status == case_status.value)
-        if assigned_to:
+
+        if reviewer_queue_for:
+            # Compound: OPEN (unassigned) hoặc assigned cho reviewer này
+            query = query.filter(
+                or_(
+                    ReviewCase.assigned_to.is_(None),
+                    ReviewCase.assigned_to == reviewer_queue_for,
+                )
+            )
+        elif assigned_to:
             query = query.filter(ReviewCase.assigned_to == assigned_to)
+
+        if created_from:
+            query = query.filter(ReviewCase.created_at >= created_from)
 
         total = query.count()
         items = (

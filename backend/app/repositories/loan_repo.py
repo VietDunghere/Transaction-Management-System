@@ -5,6 +5,7 @@ Data access layer cho bảng loans.
 Chỉ chứa thao tác DB thuần — không có business logic.
 """
 
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import and_, desc
@@ -41,6 +42,7 @@ class LoanRepository:
         customer_id: Optional[str] = None,
         submitted_by: Optional[str] = None,
         status: Optional[LoanStatus] = None,
+        created_from: Optional[datetime] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Loan], int]:
@@ -50,7 +52,7 @@ class LoanRepository:
         Returns:
             (items, total_count)
         """
-        query = self._db.query(Loan)
+        query = self._db.query(Loan).options(joinedload(Loan.customer))
 
         filters = []
         if customer_id:
@@ -59,6 +61,8 @@ class LoanRepository:
             filters.append(Loan.submitted_by == submitted_by)
         if status:
             filters.append(Loan.status == status.value)
+        if created_from:
+            filters.append(Loan.created_at >= created_from)
 
         if filters:
             query = query.filter(and_(*filters))

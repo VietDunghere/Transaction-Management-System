@@ -4,7 +4,7 @@ Pydantic schemas: Transaction
 Request/Response cho submit và query giao dịch.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional
 
@@ -43,6 +43,18 @@ class TransactionSubmitRequest(BaseModel):
             raise ValueError("Số thẻ chỉ được chứa chữ số.")
         return cleaned
 
+    @field_validator("txn_time")
+    @classmethod
+    def validate_txn_time(cls, v: datetime) -> datetime:
+        """Từ chối giao dịch có txn_time trong tương lai (tolerance 5 phút)."""
+        now = datetime.now(timezone.utc)
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=timezone.utc)
+        from datetime import timedelta
+        if v > now + timedelta(minutes=5):
+            raise ValueError("txn_time không được nằm trong tương lai.")
+        return v
+
 
 class TransactionListFilter(BaseModel):
     """Query params cho list transactions."""
@@ -75,13 +87,15 @@ class TransactionResponse(BaseModel):
     customer_id: str
     merchant_id: str
     channel_id: int
+    submitted_by: str                    # user_id người submit — cần cho display và SoD audit
     card_number_masked: Optional[str]
     amount: Decimal
     currency_code: str
     txn_time: datetime
     status: TransactionStatus
     fraud_score: Optional[float]
-    reason_code: Optional[str]
+    reason_code: Optional[str]           # fraud scoring reason: HIGH_FRAUD_SCORE, etc.
+    override_reason: Optional[str]       # manual override reason: HIGH_VALUE, etc.
     created_at: datetime
     # Đính kèm fraud detail khi có
     fraud_detail: Optional[FraudScoreDetail] = None
@@ -95,6 +109,9 @@ class TransactionSubmitResponse(BaseModel):
     status: TransactionStatus
     fraud_score: Optional[float]
     decision: str
+    amount: Decimal                      # frontend cần cho confirmation screen
+    currency_code: str
+    created_at: datetime                 # timestamp chính xác từ server
     message: str
     case_id: Optional[str] = Field(None, description="Không null nếu MANUAL_REVIEW")
 

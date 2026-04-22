@@ -5,7 +5,7 @@ Business logic cho loan application và approval workflow.
 
 Flow:
   1. OPERATOR gửi đơn vay (apply) → PENDING
-  2. MANAGER phê duyệt (decide APPROVE) → APPROVED, tính monthly_payment, set maturity_date
+  2. REVIEWER phê duyệt (decide APPROVE) → APPROVED, tính monthly_payment, set maturity_date
      hoặc từ chối (decide REJECT) → REJECTED
 """
 
@@ -18,10 +18,11 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ConflictError, NotFoundError, OptimisticLockError
+from app.core.exceptions import ConflictError, NotFoundError, OptimisticLockError, PermissionDeniedError
 from app.core.logging import get_logger
 from app.models.loan import Loan
 from app.models.scoring import AuditLog
+from app.repositories.analyst_repo import ModelConfigRepository
 from app.repositories.loan_repo import LoanRepository
 from app.repositories.velocity_repo import CustomerRepository
 from app.services.loan_scoring_service import LoanScoringService, LoanSimulationInput
@@ -65,7 +66,11 @@ def _calculate_monthly_payment(
     return Decimal(str(round(pmt, 2)))
 
 
-def _try_score_loan(loan: "Loan") -> None:  # noqa: F821
+def _try_score_loan(
+    loan: "Loan",  # noqa: F821
+    high_risk_threshold: float | None = None,
+    medium_risk_threshold: float | None = None,
+) -> None:
     """Gọi LoanScoringService nếu loan có đủ AI input features; no-op nếu thiếu."""
     if not all([
         loan.person_age, loan.person_income, loan.person_home_ownership,
@@ -86,11 +91,11 @@ def _try_score_loan(loan: "Loan") -> None:  # noqa: F821
         loan_intent=loan.loan_intent,
         loan_grade=loan.loan_grade,
         loan_amnt=float(loan.principal_amount),
-        loan_int_rate=float(loan.interest_rate) * 100,  # model nhận %, ví dụ 12.0 thay vì 0.12
+        loan_int_rate=float(loan.interest_rate) * 100,
         cb_person_default_on_file=loan.cb_person_default_on_file,
         cb_person_cred_hist_length=loan.cb_person_cred_hist_length,
     )
-    result = svc.simulate(inp)
+    result = svc.simulate(inp, high_risk_threshold=high_risk_threshold, medium_risk_threshold=medium_risk_threshold)
     loan.pd_score = result.pd_score
     loan.risk_level = result.risk_level
 
@@ -102,6 +107,7 @@ class LoanService:
         self._db = db
         self._loan_repo = LoanRepository(db)
         self._customer_repo = CustomerRepository(db)
+        self._config_repo = ModelConfigRepository(db)
 
     # ============================================================
     # Public API
@@ -143,7 +149,13 @@ class LoanService:
 
         # Tính pd_score ngay khi apply nếu đủ AI features —
         # giúp MANAGER thấy risk level trước khi ra quyết định (và demo thấy ngay)
-        _try_score_loan(loan)
+        high_th = self._config_repo.get("loan", "high_risk_threshold")
+        medium_th = self._config_repo.get("loan", "medium_risk_threshold")
+        _try_score_loan(
+            loan,
+            high_risk_threshold=float(high_th.param_value) if high_th else None,
+            medium_risk_threshold=float(medium_th.param_value) if medium_th else None,
+        )
 
         self._write_audit(loan.loan_id, submitted_by_user_id, "LOAN_APPLIED", {
             "principal_amount": float(request.principal_amount),
@@ -179,7 +191,7 @@ class LoanService:
         actor_user_id: str,
     ) -> Loan:
         """
-        MANAGER phê duyệt hoặc từ chối khoản vay.
+        REVIEWER phê duyệt hoặc từ chối khoản vay.
 
         - Optimistic locking: client phải gửi version hiện tại.
           Nếu version không khớp → 409 OptimisticLockError.
@@ -200,6 +212,13 @@ class LoanService:
                 f"Khoản vay đang ở trạng thái '{loan.status}', không thể thay đổi."
             )
 
+        # Phân tách trách nhiệm (SoD): người tạo đơn không được tự phê duyệt
+        if loan.submitted_by == actor_user_id:
+            raise PermissionDeniedError(
+                "Không thể phê duyệt khoản vay do chính mình tạo ra "
+                "(nguyên tắc phân tách trách nhiệm – 4-eyes principle)."
+            )
+
         if loan.version != request.version:
             raise OptimisticLockError()
 
@@ -218,7 +237,13 @@ class LoanService:
             loan.maturity_date = _add_months(now.date(), loan.term_months)
 
             # Populate pd_score / risk_level nếu loan có đủ AI features
-            _try_score_loan(loan)
+            high_th = self._config_repo.get("loan", "high_risk_threshold")
+            medium_th = self._config_repo.get("loan", "medium_risk_threshold")
+            _try_score_loan(
+                loan,
+                high_risk_threshold=float(high_th.param_value) if high_th else None,
+                medium_risk_threshold=float(medium_th.param_value) if medium_th else None,
+            )
         else:
             loan.status = LoanStatus.REJECTED.value
 
