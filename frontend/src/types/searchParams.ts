@@ -17,6 +17,7 @@ export const transactionSearchSchema = z.object({
     to_date: z.string().optional().catch(undefined),
     min_amount: z.number().optional().catch(undefined),
     max_amount: z.number().optional().catch(undefined),
+    period: z.enum(['D', 'W', 'M']).optional().catch(undefined),
 });
 export type TransactionSearchParams = z.infer<typeof transactionSearchSchema>;
 
@@ -26,6 +27,7 @@ export const caseSearchSchema = z.object({
     ...paginationSchema,
     case_status: z.enum(['OPEN', 'ASSIGNED', 'APPROVED', 'REJECTED', 'CLOSED']).optional().catch(undefined),
     assigned_to: z.string().optional().catch(undefined),
+    period: z.enum(['D', 'W', 'M']).optional().catch(undefined),
 });
 export type CaseSearchParams = z.infer<typeof caseSearchSchema>;
 
@@ -44,6 +46,7 @@ export const loanSearchSchema = z.object({
     ...paginationSchema,
     customer_id: z.string().optional().catch(undefined),
     status: z.enum(['PENDING', 'SCORING', 'APPROVED', 'REJECTED', 'MANUAL_REVIEW']).optional().catch(undefined),
+    period: z.enum(['D', 'W', 'M']).optional().catch(undefined),
 });
 export type LoanSearchParams = z.infer<typeof loanSearchSchema>;
 

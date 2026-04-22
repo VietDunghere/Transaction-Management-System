@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { useCase, useAssignCase, useDecideCase } from '~/hooks/useCases';
 import { useAuthStore } from '~/stores/useAuthStore';
-import type { CaseStatus, CaseDecision } from '~/types/api';
+import type { CaseStatus, CaseDecision, CaseRuleHit } from '~/types/api';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
 import { DetailPageTemplate } from '~/components/templates/DetailPageTemplate/DetailPageTemplate';
 import { Card } from '~/components/ui/Card/Card';
@@ -14,6 +14,10 @@ import { Modal } from '~/components/ui/Modal/Modal';
 import { Textarea } from '~/components/ui/Textarea/Textarea';
 import { LoadingSkeleton } from '~/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
+
+const severityVariant: Record<string, 'danger' | 'warning' | 'info' | 'muted'> = {
+    HIGH: 'danger', MEDIUM: 'warning', LOW: 'info',
+};
 
 const statusVariant: Record<CaseStatus, 'default' | 'success' | 'danger' | 'warning' | 'info' | 'muted'> = {
     OPEN: 'info',
@@ -49,7 +53,7 @@ export function CaseDetailPage() {
     };
 
     const handleDecision = () => {
-        if (!decisionModal.decision || !decisionNote.trim()) return;
+        if (!decisionModal.decision || decisionNote.trim().length < 10) return;
         decideCase.mutate(
             {
                 caseId,
@@ -114,7 +118,9 @@ export function CaseDetailPage() {
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-medium text-text-secondary">Fraud Score</span>
                             <span className="text-lg font-semibold">
-                                {(caseData.transaction.fraud_score * 100).toFixed(1)}%
+                                {caseData.transaction.fraud_score != null
+                                    ? `${(caseData.transaction.fraud_score * 100).toFixed(1)}%`
+                                    : '—'}
                             </span>
                         </div>
                         <div className="flex flex-col items-start gap-1">
@@ -145,7 +151,7 @@ export function CaseDetailPage() {
                                     <Badge variant={statusVariant[caseData.case_status]}>{caseData.case_status}</Badge>
                                 }
                             />
-                            <KeyValueRow label="Assigned To" value={caseData.assigned_to ?? 'Unassigned'} />
+                            <KeyValueRow label="Assigned To" value={caseData.assigned_to_name ?? (caseData.assigned_to ? caseData.assigned_to.slice(0, 8) + '...' : 'Unassigned')} />
                             <KeyValueRow label="Decision" value={caseData.decision ?? '-'} />
                             <KeyValueRow label="Decision Note" value={caseData.decision_note ?? '-'} />
                             <KeyValueRow label="Version" value={String(caseData.version)} />
@@ -157,24 +163,70 @@ export function CaseDetailPage() {
 
                         <SectionHeader title="Transaction Info" className="mt-6" />
                         <div className="flex flex-col gap-1 mt-4">
+                            <KeyValueRow label="Customer" value={caseData.transaction.customer_name ?? '—'} />
                             <KeyValueRow
-                                label="Customer ID"
-                                value={<span className="font-mono text-xs">{caseData.transaction.customer_id}</span>}
+                                label="Merchant"
+                                value={
+                                    <div className="flex items-center gap-2">
+                                        <span>{caseData.transaction.merchant_name ?? '—'}</span>
+                                        {caseData.transaction.merchant_category && (
+                                            <Badge variant="info">{caseData.transaction.merchant_category}</Badge>
+                                        )}
+                                        {caseData.transaction.merchant_risk_level === 'HIGH' && (
+                                            <Badge variant="danger">HIGH RISK</Badge>
+                                        )}
+                                    </div>
+                                }
                             />
                             <KeyValueRow
-                                label="Merchant ID"
-                                value={<span className="font-mono text-xs">{caseData.transaction.merchant_id}</span>}
+                                label="Amount"
+                                value={
+                                    <span className="font-mono font-semibold">
+                                        {caseData.transaction.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {caseData.transaction.currency_code}
+                                    </span>
+                                }
                             />
-                            <KeyValueRow label="Amount" value={caseData.transaction.amount.toLocaleString()} />
                             <KeyValueRow
                                 label="Fraud Score"
-                                value={`${(caseData.transaction.fraud_score * 100).toFixed(1)}%`}
+                                value={
+                                    <span className={`font-semibold ${
+                                        (caseData.transaction.fraud_score ?? 0) >= 0.65 ? 'text-status-danger' :
+                                        (caseData.transaction.fraud_score ?? 0) >= 0.35 ? 'text-status-warning' :
+                                        'text-text-primary'
+                                    }`}>
+                                        {caseData.transaction.fraud_score != null
+                                            ? `${(caseData.transaction.fraud_score * 100).toFixed(1)}%`
+                                            : '—'}
+                                    </span>
+                                }
                             />
+                            <KeyValueRow label="Channel" value={caseData.transaction.channel_name ?? '—'} />
                             <KeyValueRow
                                 label="Transaction Time"
                                 value={new Date(caseData.transaction.txn_time).toLocaleString()}
                             />
+                            <KeyValueRow label="Source IP" value={caseData.transaction.source_ip ?? '—'} />
+                            <KeyValueRow label="Card" value={caseData.transaction.card_number_masked ?? '—'} />
                         </div>
+
+                        {caseData.transaction.rule_hits.length > 0 && (
+                            <>
+                                <SectionHeader title={`Triggered Rules (${caseData.transaction.rule_hits.length})`} className="mt-6" />
+                                <div className="flex flex-col gap-2 mt-3">
+                                    {caseData.transaction.rule_hits.map((rh: CaseRuleHit, i: number) => (
+                                        <div key={i} className="flex items-start justify-between gap-4 py-2 border-b border-border-default last:border-0">
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-sm font-medium text-text-primary">{rh.rule_name ?? rh.rule_code}</span>
+                                                {rh.hit_value && <span className="text-xs text-text-secondary font-mono">{rh.hit_value}</span>}
+                                            </div>
+                                            {rh.severity && (
+                                                <Badge variant={severityVariant[rh.severity] ?? 'muted'}>{rh.severity}</Badge>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </Card>
                 }
             />
@@ -200,11 +252,14 @@ export function CaseDetailPage() {
                 }
             >
                 <Textarea
-                    label="Decision Note (required)"
+                    label="Decision Note (required, min 10 characters)"
                     placeholder="Provide your reasoning..."
                     value={decisionNote}
                     onChange={(e) => setDecisionNote(e.target.value)}
                 />
+                {decisionNote.trim().length > 0 && decisionNote.trim().length < 10 && (
+                    <p className="text-xs text-status-danger mt-1">Note phải có ít nhất 10 ký tự ({decisionNote.trim().length}/10).</p>
+                )}
                 {decideCase.isError && (
                     <p className="text-xs text-status-danger mt-2">
                         Failed to submit decision. This may be a version conflict (409) — please refresh and try again.

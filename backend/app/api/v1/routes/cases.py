@@ -8,6 +8,7 @@ POST /cases/{id}/decide  — quyết định (REVIEWER, MANAGER, ADMIN)
 """
 
 import math
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -20,12 +21,23 @@ from app.schemas.case import (
     CaseDecideRequest,
     CaseListItem,
     CaseResponse,
+    CaseRuleHit,
     CaseTransactionSummary,
 )
+from app.models.scoring import RuleHit
+from app.models.user import User
 from app.schemas.common import CaseStatus, PagedResponse, PaginationMeta
 from app.services.case_service import CaseService
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
+
+
+def _resolve_user_names(db, user_ids: list[str]) -> dict[str, str]:
+    """Batch-resolve user_id → full_name."""
+    if not user_ids:
+        return {}
+    rows = db.query(User.user_id, User.full_name).filter(User.user_id.in_(user_ids)).all()
+    return {r.user_id: r.full_name for r in rows}
 
 
 @router.get(
@@ -39,6 +51,7 @@ def list_cases(
     token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
     case_status: Optional[CaseStatus] = Query(None),
     assigned_to: Optional[str] = Query(None, description="Lọc theo reviewer user_id"),
+    period: Optional[str] = Query(None, description="D=1 ngày, W=7 ngày, M=30 ngày"),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> PagedResponse[CaseListItem]:
@@ -61,13 +74,23 @@ def list_cases(
     # Dùng reviewer_queue_for thay vì assigned_to để repo tạo compound OR query.
     reviewer_queue_for = token.sub if is_reviewer_only else None
 
+    _period_days = {"D": 1, "W": 7, "M": 30}
+    created_from = (
+        datetime.now(timezone.utc) - timedelta(days=_period_days[period])
+        if period and period in _period_days else None
+    )
+
     items, total = svc.list_cases(
         case_status=case_status,
         assigned_to=assigned_to if not is_reviewer_only else None,
         reviewer_queue_for=reviewer_queue_for,
+        created_from=created_from,
         page=page,
         page_size=limit,
     )
+
+    assignee_ids = [c.assigned_to for c in items if c.assigned_to]
+    name_map = _resolve_user_names(db, assignee_ids)
 
     list_data = []
     for case in items:
@@ -77,6 +100,7 @@ def list_cases(
             txn_id=case.txn_id,
             case_status=case.case_status,
             assigned_to=case.assigned_to,
+            assigned_to_name=name_map.get(case.assigned_to) if case.assigned_to else None,
             fraud_score=float(txn.fraud_score) if txn and txn.fraud_score else None,
             amount=txn.amount if txn else None,
             txn_time=txn.txn_time if txn else None,
@@ -108,12 +132,13 @@ def get_case(
     svc = CaseService(db)
     case = svc.get_case(case_id)
 
-    # REVIEWER chỉ được xem case được giao cho mình
+    # REVIEWER chỉ được xem case OPEN (chưa assign) hoặc case được giao cho mình.
+    # Không được xem case đã assign cho reviewer khác.
     is_reviewer_only = (
         "REVIEWER" in token.roles
         and "MANAGER" not in token.roles
     )
-    if is_reviewer_only and case.assigned_to != token.sub:
+    if is_reviewer_only and case.assigned_to is not None and case.assigned_to != token.sub:
         raise PermissionDeniedError("Case này không được giao cho bạn.")
 
     txn_summary = None
@@ -127,14 +152,33 @@ def get_case(
             fraud_score=float(t.fraud_score) if t.fraud_score else None,
             merchant_name=t.merchant.merchant_name if t.merchant else None,
             merchant_category=t.merchant.merchant_category if t.merchant else None,
+            merchant_risk_level=t.merchant.risk_level if t.merchant else None,
             customer_name=t.customer.full_name if t.customer else None,
+            channel_name=t.channel.channel_name if t.channel else None,
+            source_ip=t.source_ip,
+            card_number_masked=t.card_number_masked,
+            rule_hits=[
+                CaseRuleHit(
+                    rule_code=rh.rule_code,
+                    rule_name=rh.rule_name,
+                    hit_value=rh.hit_value,
+                    severity=rh.severity,
+                )
+                for rh in db.query(RuleHit).filter(RuleHit.txn_id == t.txn_id).all()
+            ],
         )
+
+    assignee_name = None
+    if case.assigned_to:
+        u = db.query(User.full_name).filter(User.user_id == case.assigned_to).scalar()
+        assignee_name = u
 
     return CaseResponse(
         case_id=case.case_id,
         txn_id=case.txn_id,
         case_status=case.case_status,
         assigned_to=case.assigned_to,
+        assigned_to_name=assignee_name,
         decision=case.decision,
         decision_note=case.decision_note,
         version=case.version,

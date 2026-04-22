@@ -9,6 +9,7 @@ PATCH  /loans/{loan_id}/decision — phê duyệt / từ chối (REVIEWER, MANAG
 """
 
 import math
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -17,7 +18,9 @@ from app.api.v1.deps import require_roles
 from app.db.deps import DbSession
 from app.schemas.auth import TokenPayload
 from app.schemas.common import LoanStatus, PagedResponse, PaginationMeta
+from app.models.loan import Loan
 from app.schemas.loan import (
+    CustomerLoanStats,
     LoanApplyRequest,
     LoanDecisionRequest,
     LoanListItem,
@@ -29,6 +32,34 @@ from app.services.loan_service import LoanService
 from app.services.loan_scoring_service import LoanScoringService, LoanSimulationInput
 
 router = APIRouter(prefix="/loans", tags=["Loans"])
+
+
+def _build_loan_response(loan, db) -> LoanResponse:
+    """Build LoanResponse enriched with customer info and loan history stats."""
+    resp = LoanResponse.model_validate(loan)
+
+    if loan.customer:
+        c = loan.customer
+        resp.customer_name = c.full_name
+        resp.customer_job = c.job
+        resp.customer_kyc_status = c.kyc_status
+        resp.customer_income_level = c.income_level
+
+    # Loan history for this customer (exclude current loan)
+    all_loans = (
+        db.query(Loan.status)
+        .filter(Loan.customer_id == loan.customer_id, Loan.loan_id != loan.loan_id)
+        .all()
+    )
+    stats = CustomerLoanStats(
+        total_loans=len(all_loans),
+        approved=sum(1 for r in all_loans if r.status == "APPROVED"),
+        rejected=sum(1 for r in all_loans if r.status == "REJECTED"),
+        active=sum(1 for r in all_loans if r.status in ("PENDING", "SCORING", "MANUAL_REVIEW")),
+    )
+    resp.customer_loan_stats = stats
+
+    return resp
 
 
 @router.post(
@@ -63,20 +94,34 @@ def list_loans(
     token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER", "MANAGER", "ADMIN")),
     customer_id: Optional[str] = Query(None, description="Lọc theo customer UUID"),
     status: Optional[LoanStatus] = Query(None, description="Lọc theo trạng thái"),
+    period: Optional[str] = Query(None, description="D=1 ngày, W=7 ngày, M=30 ngày"),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100, alias="limit"),
 ) -> PagedResponse[LoanListItem]:
     svc = LoanService(db)
 
+    _period_days = {"D": 1, "W": 7, "M": 30}
+    created_from = (
+        datetime.now(timezone.utc) - timedelta(days=_period_days[period])
+        if period and period in _period_days else None
+    )
+
     items, total = svc.list_loans(
         customer_id=customer_id,
         submitted_by=None,
         status=status,
+        created_from=created_from,
         page=page,
         page_size=limit,
     )
+    list_data = []
+    for loan in items:
+        item = LoanListItem.model_validate(loan)
+        item.customer_name = loan.customer.full_name if loan.customer else None
+        list_data.append(item)
+
     return PagedResponse(
-        data=[LoanListItem.model_validate(loan) for loan in items],
+        data=list_data,
         pagination=PaginationMeta(
             page=page,
             page_size=limit,
@@ -140,7 +185,7 @@ def get_loan(
     svc = LoanService(db)
     loan = svc.get_loan(loan_id)
 
-    return LoanResponse.model_validate(loan)
+    return _build_loan_response(loan, db)
 
 
 @router.patch(
@@ -161,4 +206,4 @@ def decide_loan(
 ) -> LoanResponse:
     svc = LoanService(db)
     loan = svc.decide(loan_id, body, actor_user_id=token.sub)
-    return LoanResponse.model_validate(loan)
+    return _build_loan_response(loan, db)

@@ -51,6 +51,7 @@ class CaseService:
         case_status=None,
         assigned_to=None,
         reviewer_queue_for=None,
+        created_from=None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[ReviewCase], int]:
@@ -59,6 +60,7 @@ class CaseService:
             case_status=case_status,
             assigned_to=assigned_to,
             reviewer_queue_for=reviewer_queue_for,
+            created_from=created_from,
             page=page,
             page_size=page_size,
         )

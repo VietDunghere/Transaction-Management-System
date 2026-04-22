@@ -80,10 +80,22 @@ class LoanDecisionRequest(BaseModel):
 # Response schemas
 # ============================================================
 
+class CustomerLoanStats(BaseModel):
+    """Tóm tắt lịch sử vay của khách hàng — dùng để reviewer đánh giá rủi ro."""
+    total_loans: int = 0
+    approved: int = 0
+    rejected: int = 0
+    active: int = 0
+
+
 class LoanResponse(BaseModel):
     """Chi tiết đầy đủ một khoản vay."""
     loan_id: str
     customer_id: str
+    customer_name: Optional[str] = None
+    customer_job: Optional[str] = None
+    customer_kyc_status: Optional[str] = None
+    customer_income_level: Optional[str] = None
     submitted_by: str
     reviewed_by: Optional[str] = None
 
@@ -110,6 +122,18 @@ class LoanResponse(BaseModel):
     pd_score: Optional[float] = None
     risk_level: Optional[str] = None
 
+    # Applicant profile used for scoring — exposed for reviewer context
+    person_age: Optional[int] = None
+    person_income: Optional[float] = None
+    person_home_ownership: Optional[str] = None
+    person_emp_length: Optional[int] = None
+    loan_grade: Optional[str] = None
+    loan_intent: Optional[str] = None
+    cb_person_default_on_file: Optional[str] = None
+    cb_person_cred_hist_length: Optional[int] = None
+
+    customer_loan_stats: Optional[CustomerLoanStats] = None
+
     model_config = {"from_attributes": True}
 
 
@@ -117,6 +141,7 @@ class LoanListItem(BaseModel):
     """Summary row cho danh sách khoản vay."""
     loan_id: str
     customer_id: str
+    customer_name: Optional[str] = None
     submitted_by: str
     principal_amount: Decimal
     currency_code: str

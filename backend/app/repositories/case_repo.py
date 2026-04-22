@@ -4,6 +4,7 @@ Repository: Case
 Data access layer cho review_cases và review_case_actions.
 """
 
+from datetime import datetime
 from typing import List, Optional, Tuple
 
 from sqlalchemy import or_
@@ -39,6 +40,7 @@ class CaseRepository:
         case_status: Optional[CaseStatus] = None,
         assigned_to: Optional[str] = None,
         reviewer_queue_for: Optional[str] = None,
+        created_from: Optional[datetime] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> Tuple[List[ReviewCase], int]:
@@ -71,6 +73,9 @@ class CaseRepository:
             )
         elif assigned_to:
             query = query.filter(ReviewCase.assigned_to == assigned_to)
+
+        if created_from:
+            query = query.filter(ReviewCase.created_at >= created_from)
 
         total = query.count()
         items = (

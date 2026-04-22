@@ -9,6 +9,8 @@ import { ListPageTemplate } from '~/components/templates/ListPageTemplate/ListPa
 import { TableShell } from '~/components/ui/TableShell/TableShell';
 import { FilterBar } from '~/components/ui/FilterBar/FilterBar';
 import { Select } from '~/components/ui/Select/Select';
+import { QuickDateFilter } from '~/components/ui/QuickDateFilter/QuickDateFilter';
+import type { QuickPeriod } from '~/components/ui/QuickDateFilter/QuickDateFilter';
 import { Pagination } from '~/components/ui/Pagination/Pagination';
 import { Badge } from '~/components/ui/Badge/Badge';
 import { Button } from '~/components/ui/Button/Button';
@@ -62,7 +64,11 @@ export function LoanListPage() {
 
     const rows = (data?.data ?? []).map((loan) => ({
         loan_id: <span className="text-xs font-mono">{loan.loan_id.slice(0, 8)}...</span>,
-        customer_id: <span className="text-xs font-mono">{loan.customer_id.slice(0, 8)}...</span>,
+        customer_id: (
+            <span className="text-sm">
+                {loan.customer_name ?? <span className="font-mono text-xs text-text-tertiary">{loan.customer_id.slice(0, 8)}…</span>}
+            </span>
+        ),
         amount: (
             <span className="text-sm font-medium">
                 {loan.principal_amount.toLocaleString()} {loan.currency_code}
@@ -111,6 +117,10 @@ export function LoanListPage() {
                             }))
                         }
                         placeholder="All Status"
+                    />
+                    <QuickDateFilter
+                        value={params.period as QuickPeriod | undefined}
+                        onChange={(period) => setParams((p) => ({ ...p, period, page: 1 }))}
                     />
                 </FilterBar>
             }

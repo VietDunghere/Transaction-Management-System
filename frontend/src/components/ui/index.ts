@@ -18,6 +18,8 @@ export { SectionHeader } from './SectionHeader';
 export { SearchBox } from './SearchBox';
 export { FilterBar } from './FilterBar';
 export { DateRangeShell } from './DateRangeShell';
+export { QuickDateFilter } from './QuickDateFilter';
+export type { QuickPeriod } from './QuickDateFilter';
 export { Pagination } from './Pagination';
 
 /* State Components */

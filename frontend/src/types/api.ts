@@ -165,13 +165,18 @@ export interface CaseListItem {
     txn_id: string;
     case_status: CaseStatus;
     assigned_to: string | null;
-    transaction?: {
-        txn_id: string;
-        amount: number;
-        fraud_score: number;
-        merchant_id: string;
-    } | null;
+    assigned_to_name: string | null;
+    fraud_score: number | null;
+    amount: number | null;
+    txn_time: string | null;
     created_at: string;
+}
+
+export interface CaseRuleHit {
+    rule_code: string;
+    rule_name: string | null;
+    hit_value: string | null;
+    severity: string | null;
 }
 
 export interface CaseDetail {
@@ -179,16 +184,24 @@ export interface CaseDetail {
     txn_id: string;
     case_status: CaseStatus;
     assigned_to: string | null;
+    assigned_to_name: string | null;
     decision: CaseDecision | null;
     decision_note: string | null;
     version: number;
     transaction: {
         txn_id: string;
-        customer_id: string;
-        merchant_id: string;
         amount: number;
-        fraud_score: number;
+        currency_code: string;
+        fraud_score: number | null;
         txn_time: string;
+        customer_name: string | null;
+        merchant_name: string | null;
+        merchant_category: string | null;
+        merchant_risk_level: string | null;
+        channel_name: string | null;
+        source_ip: string | null;
+        card_number_masked: string | null;
+        rule_hits: CaseRuleHit[];
     };
     created_at: string;
     decided_at: string | null;
@@ -221,6 +234,7 @@ export interface CaseDecisionResponse {
 export interface Loan {
     loan_id: string;
     customer_id: string;
+    customer_name: string | null;
     status: LoanStatus;
     principal_amount: number;
     currency_code: string;
@@ -231,12 +245,34 @@ export interface Loan {
     created_at: string;
 }
 
+export interface CustomerLoanStats {
+    total_loans: number;
+    approved: number;
+    rejected: number;
+    active: number;
+}
+
 export interface LoanDetail extends Loan {
     purpose: string;
     monthly_payment: number | null;
     maturity_date: string | null;
     reviewed_by: string | null;
     reviewed_at: string | null;
+    // Customer info
+    customer_name: string | null;
+    customer_job: string | null;
+    customer_kyc_status: string | null;
+    customer_income_level: string | null;
+    customer_loan_stats: CustomerLoanStats | null;
+    // Applicant profile for reviewer context
+    person_age: number | null;
+    person_income: number | null;
+    person_home_ownership: string | null;
+    person_emp_length: number | null;
+    loan_grade: string | null;
+    loan_intent: string | null;
+    cb_person_default_on_file: string | null;
+    cb_person_cred_hist_length: number | null;
 }
 
 export interface CreateLoanRequest {

@@ -219,7 +219,7 @@ const loanDetailRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/loans/$loanId',
     component: LoanDetailPage,
-    beforeLoad: () => guardRole(['OPERATOR', 'MANAGER', 'ADMIN']),
+    beforeLoad: () => guardRole(['OPERATOR', 'REVIEWER', 'MANAGER', 'ADMIN']),
 });
 
 // -- Audit Logs (MANAGER, ADMIN) --

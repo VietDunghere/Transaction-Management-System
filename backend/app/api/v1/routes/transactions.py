@@ -9,7 +9,7 @@ GET  /transactions/{id}/state-history — audit trail trạng thái (MANAGER, AD
 
 import json
 import math
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional
 
@@ -67,17 +67,24 @@ def list_transactions(
     to_date: Optional[datetime] = Query(None, description="Đến ngày (ISO 8601)"),
     min_amount: Optional[Decimal] = Query(None, ge=0),
     max_amount: Optional[Decimal] = Query(None, ge=0),
+    period: Optional[str] = Query(None, description="D=1 ngày, W=7 ngày, M=30 ngày"),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> PagedResponse[TransactionResponse]:
     svc = TransactionService(db)
+
+    _period_days = {"D": 1, "W": 7, "M": 30}
+    effective_from = (
+        datetime.now(timezone.utc) - timedelta(days=_period_days[period])
+        if period and period in _period_days else from_date
+    )
 
     items, total = svc.list_transactions(
         status=status,
         customer_id=customer_id,
         merchant_id=merchant_id,
         submitted_by=None,
-        date_from=from_date,
+        date_from=effective_from,
         date_to=to_date,
         min_amount=float(min_amount) if min_amount is not None else None,
         max_amount=float(max_amount) if max_amount is not None else None,

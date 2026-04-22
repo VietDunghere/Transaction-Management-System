@@ -10,6 +10,8 @@ import { TableShell } from '~/components/ui/TableShell/TableShell';
 import { FilterBar } from '~/components/ui/FilterBar/FilterBar';
 import { Select } from '~/components/ui/Select/Select';
 import { DateRangeShell } from '~/components/ui/DateRangeShell/DateRangeShell';
+import { QuickDateFilter } from '~/components/ui/QuickDateFilter/QuickDateFilter';
+import type { QuickPeriod } from '~/components/ui/QuickDateFilter/QuickDateFilter';
 import { Pagination } from '~/components/ui/Pagination/Pagination';
 import { Badge } from '~/components/ui/Badge/Badge';
 import { Button } from '~/components/ui/Button/Button';
@@ -99,8 +101,12 @@ export function TransactionListPage() {
                     <DateRangeShell
                         startValue={params.from_date}
                         endValue={params.to_date}
-                        onStartChange={(v) => setParams((p) => ({ ...p, from_date: v || undefined, page: 1 }))}
-                        onEndChange={(v) => setParams((p) => ({ ...p, to_date: v || undefined, page: 1 }))}
+                        onStartChange={(v) => setParams((p) => ({ ...p, from_date: v || undefined, period: undefined, page: 1 }))}
+                        onEndChange={(v) => setParams((p) => ({ ...p, to_date: v || undefined, period: undefined, page: 1 }))}
+                    />
+                    <QuickDateFilter
+                        value={params.period as QuickPeriod | undefined}
+                        onChange={(period) => setParams((p) => ({ ...p, period, from_date: undefined, to_date: undefined, page: 1 }))}
                     />
                 </FilterBar>
             }
