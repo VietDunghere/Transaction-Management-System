@@ -46,7 +46,7 @@ export function LoginPage() {
                 <ShaderBackground />
             </div>
 
-            <div className="w-full max-w-[1200px] mx-auto p-4 md:p-6 relative z-10">
+            <div className="w-full max-w-300 mx-auto p-4 md:p-6 relative z-10">
                 <div className="rounded-[26px] transition-all duration-700 ease-in-out">
                     {/* The main card */}
                     <div
@@ -132,15 +132,15 @@ export function LoginPage() {
                             </div>
                         </div>
 
-                        {/* Right: Abstract Graphic/Image
+                        {/* Right: Abstract Graphic/Image */}
                         <div className="hidden md:block w-full md:w-1/2 relative bg-black">
                             <img
                                 src="/login_side_image.png"
                                 alt="Security and Analytics"
                                 className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 transition-opacity duration-700 ease-in-out"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-transparent to-[#0f172a]/90 mix-blend-multiply transition-colors duration-700 ease-in-out"></div>
-                        </div> */}
+                            <div className="absolute inset-0 transition-colors duration-700 ease-in-out"></div>
+                        </div>
                     </div>
                 </div>
             </div>
