@@ -19,6 +19,26 @@ const severityVariant: Record<string, 'danger' | 'warning' | 'info' | 'muted'> =
     HIGH: 'danger', MEDIUM: 'warning', LOW: 'info',
 };
 
+const formatSignalValue = (key: string, value: number): string => {
+    switch (key) {
+        case 'txn_hour':   return `${value}:00`;
+        case 'txn_dow':    return ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][Math.round(value)] ?? String(value);
+        case 'is_night':
+        case 'is_weekend':
+        case 'is_sus_dist': return value ? 'Yes' : 'No';
+        case 'dist_km':    return `${value.toFixed(1)} km`;
+        case 'amt':
+        case 'cc_avg_amt':
+        case 'cc_std_amt': return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        case 'amt_dev':    return `${value.toFixed(2)}× std dev`;
+        case 'age':        return `${Math.round(value)} years old`;
+        case 'city_pop':   return value.toLocaleString();
+        case 'cc_avg_daily':
+        case 'cc_total':   return String(Math.round(value));
+        default:           return String(value);
+    }
+};
+
 const RISK_SIGNAL_LABELS: Record<string, string> = {
     amt:          'Transaction amount',
     amt_dev:      'Amount deviation from customer average',
@@ -230,11 +250,18 @@ export function CaseDetailPage() {
                                     value={
                                         <div className="flex flex-col gap-1.5">
                                             {caseData.transaction.top_risk_factors.map((f: string, i: number) => (
-                                                <div key={i} className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-status-warning flex-shrink-0" />
-                                                    <span className="text-xs text-text-primary">
-                                                        {RISK_SIGNAL_LABELS[f] ?? f}
-                                                    </span>
+                                                <div key={i} className="flex items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-status-warning flex-shrink-0" />
+                                                        <span className="text-xs text-text-primary">
+                                                            {RISK_SIGNAL_LABELS[f] ?? f}
+                                                        </span>
+                                                    </div>
+                                                    {caseData.transaction.risk_signal_values?.[f] !== undefined && (
+                                                        <span className="text-xs font-mono font-semibold text-text-primary flex-shrink-0">
+                                                            {formatSignalValue(f, caseData.transaction.risk_signal_values[f])}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>

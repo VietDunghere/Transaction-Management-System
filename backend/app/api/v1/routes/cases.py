@@ -154,9 +154,20 @@ def get_case(
             .order_by(RiskScoringResult.score_time.desc())
             .first()
         )
+        risk_signal_values: dict[str, float] = {}
         if latest_score and latest_score.reason_json:
             try:
                 top_risk_factors = _json.loads(latest_score.reason_json).get("top_features", [])
+            except Exception:
+                pass
+        if latest_score and latest_score.feature_snapshot_json:
+            try:
+                snapshot = _json.loads(latest_score.feature_snapshot_json)
+                risk_signal_values = {
+                    k: round(float(v), 4)
+                    for k, v in snapshot.items()
+                    if k in top_risk_factors and isinstance(v, (int, float))
+                }
             except Exception:
                 pass
 
@@ -183,6 +194,7 @@ def get_case(
                 for rh in db.query(RuleHit).filter(RuleHit.txn_id == t.txn_id).all()
             ],
             top_risk_factors=top_risk_factors,
+            risk_signal_values=risk_signal_values,
         )
 
     assignee_name = None

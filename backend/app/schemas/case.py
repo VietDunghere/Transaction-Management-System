@@ -68,6 +68,7 @@ class CaseTransactionSummary(BaseModel):
     card_number_masked: Optional[str]
     rule_hits: list[CaseRuleHit] = []
     top_risk_factors: list[str] = []
+    risk_signal_values: dict[str, float] = {}
 
     model_config = {"from_attributes": True}
 

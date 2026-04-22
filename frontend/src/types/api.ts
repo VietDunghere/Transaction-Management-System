@@ -203,6 +203,7 @@ export interface CaseDetail {
         card_number_masked: string | null;
         rule_hits: CaseRuleHit[];
         top_risk_factors: string[];
+        risk_signal_values: Record<string, number>;
     };
     created_at: string;
     decided_at: string | null;
