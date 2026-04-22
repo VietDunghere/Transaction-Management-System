@@ -8,7 +8,7 @@ export type CaseStatus = 'OPEN' | 'ASSIGNED' | 'APPROVED' | 'REJECTED' | 'CLOSED
 
 export type CaseDecision = 'APPROVE' | 'REJECT';
 
-export type LoanStatus = 'PENDING' | 'SCORING' | 'APPROVED' | 'REJECTED' | 'MANUAL_REVIEW';
+export type LoanStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'DISBURSED' | 'CLOSED' | 'DEFAULTED';
 
 export type LoanDecision = 'APPROVE' | 'REJECT';
 
