@@ -1,6 +1,6 @@
 // ---- Enums / Literals ----
 
-export type Role = 'OPERATOR' | 'REVIEWER' | 'MANAGER' | 'ADMIN';
+export type Role = 'OPERATOR' | 'REVIEWER' | 'ANALYST' | 'MANAGER' | 'ADMIN';
 
 export type TransactionStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'MANUAL_REVIEW';
 
@@ -391,4 +391,176 @@ export interface EtlJob {
 export interface TriggerEtlRequest {
     target_date: string;
     job_type: string;
+}
+
+// ---- Analyst: Thresholds ----
+
+export interface ThresholdItem {
+    model_name: string;
+    param_name: string;
+    param_value: number;
+    description: string | null;
+    updated_by: string | null;
+    updated_at: string;
+    version: number;
+}
+
+export interface ThresholdListResponse {
+    fraud: ThresholdItem[];
+    loan: ThresholdItem[];
+}
+
+export interface ThresholdUpdateItem {
+    model_name: 'fraud' | 'loan';
+    param_name: string;
+    param_value: number;
+}
+
+export interface ThresholdUpdateRequest {
+    updates: ThresholdUpdateItem[];
+}
+
+// ---- Analyst: Suppression Rules ----
+
+export interface SuppressionRule {
+    rule_id: string;
+    rule_type: 'MERCHANT' | 'CUSTOMER' | 'CARD_HASH';
+    entity_id: string;
+    reason: string;
+    created_by: string;
+    expires_at: string | null;
+    is_active: boolean;
+    created_at: string;
+}
+
+export interface SuppressionRuleCreateRequest {
+    rule_type: 'MERCHANT' | 'CUSTOMER' | 'CARD_HASH';
+    entity_id: string;
+    reason: string;
+    expires_at?: string;
+}
+
+// ---- Analyst: Model Performance ----
+
+export interface FraudScoreDistribution {
+    approved_count: number;
+    review_count: number;
+    rejected_count: number;
+    total: number;
+    approved_rate: number;
+    review_rate: number;
+    rejected_rate: number;
+    false_positive_count: number;
+    false_positive_rate: number;
+}
+
+export interface FraudModelPerformance {
+    period_days: number;
+    score_distribution: FraudScoreDistribution;
+    current_thresholds: Record<string, number>;
+}
+
+export interface LoanRiskDistribution {
+    low_risk_count: number;
+    medium_risk_count: number;
+    high_risk_count: number;
+    total: number;
+    low_risk_rate: number;
+    medium_risk_rate: number;
+    high_risk_rate: number;
+    approved_count: number;
+    rejected_count: number;
+    pending_count: number;
+}
+
+export interface LoanModelPerformance {
+    period_days: number;
+    risk_distribution: LoanRiskDistribution;
+    current_thresholds: Record<string, number>;
+}
+
+// ---- Analyst: Reports ----
+
+export interface AnalystReportSummary {
+    report_id: string;
+    title: string;
+    report_type: string;
+    status: string;
+    submitted_by: string;
+    submitted_at: string;
+    acknowledged_by: string | null;
+    acknowledged_at: string | null;
+}
+
+export interface AnalystReport extends AnalystReportSummary {
+    content_md: string;
+    note: string | null;
+}
+
+export interface AnalystReportCreateRequest {
+    title: string;
+    report_type: string;
+    content_md: string;
+}
+
+export interface AnalystReportAcknowledgeRequest {
+    note?: string;
+}
+
+// ---- DataLake ----
+
+export interface DataLakeSnapshot {
+    snapshot_id: string;
+    snapshot_type: string;
+    snapshot_date: string;
+    job_id: string | null;
+    source_label: string | null;
+    record_count: number;
+    total_amount: number | null;
+    status: string;
+    created_at: string;
+    data_summary: Record<string, unknown> | null;
+}
+
+// ---- Reconciliation ----
+
+export interface ReconciliationRun {
+    run_id: string;
+    period_start: string;
+    period_end: string;
+    pending_timeout_minutes: number;
+    status: string;
+    total_txn_count: number | null;
+    matched_count: number | null;
+    discrepancy_count: number | null;
+    total_amount: number | null;
+    error_message: string | null;
+    triggered_by: string | null;
+    completed_at: string | null;
+    created_at: string;
+}
+
+export interface ReconciliationItem {
+    item_id: string;
+    run_id: string;
+    txn_id: string | null;
+    item_type: string;
+    txn_status: string | null;
+    txn_amount: number | null;
+    minutes_pending: number | null;
+    status: string;
+    resolution_note: string | null;
+    resolved_by: string | null;
+    resolved_at: string | null;
+    created_at: string;
+}
+
+export interface ReconciliationDetail extends ReconciliationRun {
+    items: ReconciliationItem[];
+}
+
+export interface ReconciliationRunRequest {
+    period_start: string;
+    period_end: string;
+    pending_timeout_minutes: number;
 }

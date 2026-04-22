@@ -33,7 +33,7 @@ export type CaseSearchParams = z.infer<typeof caseSearchSchema>;
 
 export const userSearchSchema = z.object({
     ...paginationSchema,
-    role: z.enum(['OPERATOR', 'REVIEWER', 'MANAGER', 'ADMIN']).optional().catch(undefined),
+    role: z.enum(['OPERATOR', 'REVIEWER', 'ANALYST', 'MANAGER', 'ADMIN']).optional().catch(undefined),
     is_active: z.boolean().optional().catch(undefined),
 });
 export type UserSearchParams = z.infer<typeof userSearchSchema>;
@@ -81,3 +81,29 @@ export const reportSearchSchema = z.object({
     to_date: z.string().optional().catch(undefined),
 });
 export type ReportSearchParams = z.infer<typeof reportSearchSchema>;
+
+// ---- Analyst Reports ----
+
+export const analystReportSearchSchema = z.object({
+    ...paginationSchema,
+    status: z.string().optional().catch(undefined),
+    report_type: z.string().optional().catch(undefined),
+});
+export type AnalystReportSearchParams = z.infer<typeof analystReportSearchSchema>;
+
+// ---- DataLake Snapshots ----
+
+export const dataLakeSearchSchema = z.object({
+    ...paginationSchema,
+    snapshot_type: z.string().optional().catch(undefined),
+    status: z.string().optional().catch(undefined),
+});
+export type DataLakeSearchParams = z.infer<typeof dataLakeSearchSchema>;
+
+// ---- Reconciliation ----
+
+export const reconciliationSearchSchema = z.object({
+    ...paginationSchema,
+    status: z.string().optional().catch(undefined),
+});
+export type ReconciliationSearchParams = z.infer<typeof reconciliationSearchSchema>;
