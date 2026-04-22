@@ -24,7 +24,7 @@ from app.schemas.case import (
     CaseRuleHit,
     CaseTransactionSummary,
 )
-from app.models.scoring import RuleHit
+from app.models.scoring import RuleHit, RiskScoringResult
 from app.models.user import User
 from app.schemas.common import CaseStatus, PagedResponse, PaginationMeta
 from app.services.case_service import CaseService
@@ -143,7 +143,23 @@ def get_case(
 
     txn_summary = None
     if case.transaction:
+        import json as _json
         t = case.transaction
+
+        # Pull top AI risk factors from latest scoring result
+        top_risk_factors: list[str] = []
+        latest_score = (
+            db.query(RiskScoringResult)
+            .filter(RiskScoringResult.txn_id == t.txn_id)
+            .order_by(RiskScoringResult.score_time.desc())
+            .first()
+        )
+        if latest_score and latest_score.reason_json:
+            try:
+                top_risk_factors = _json.loads(latest_score.reason_json).get("top_features", [])
+            except Exception:
+                pass
+
         txn_summary = CaseTransactionSummary(
             txn_id=t.txn_id,
             amount=t.amount,
@@ -166,6 +182,7 @@ def get_case(
                 )
                 for rh in db.query(RuleHit).filter(RuleHit.txn_id == t.txn_id).all()
             ],
+            top_risk_factors=top_risk_factors,
         )
 
     assignee_name = None

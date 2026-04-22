@@ -202,6 +202,7 @@ export interface CaseDetail {
         source_ip: string | null;
         card_number_masked: string | null;
         rule_hits: CaseRuleHit[];
+        top_risk_factors: string[];
     };
     created_at: string;
     decided_at: string | null;

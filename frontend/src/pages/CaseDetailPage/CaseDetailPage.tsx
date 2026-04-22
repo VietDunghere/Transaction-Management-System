@@ -200,6 +200,20 @@ export function CaseDetailPage() {
                                     </span>
                                 }
                             />
+                            {caseData.transaction.top_risk_factors?.length > 0 && (
+                                <KeyValueRow
+                                    label="AI Risk Signals"
+                                    value={
+                                        <div className="flex flex-col gap-1">
+                                            {caseData.transaction.top_risk_factors.map((f: string, i: number) => (
+                                                <span key={i} className="text-xs bg-bg-secondary text-text-secondary px-2 py-0.5 rounded font-mono">
+                                                    {f}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    }
+                                />
+                            )}
                             <KeyValueRow label="Channel" value={caseData.transaction.channel_name ?? '—'} />
                             <KeyValueRow
                                 label="Transaction Time"

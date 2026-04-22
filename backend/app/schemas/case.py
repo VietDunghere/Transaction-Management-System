@@ -67,6 +67,7 @@ class CaseTransactionSummary(BaseModel):
     source_ip: Optional[str]
     card_number_masked: Optional[str]
     rule_hits: list[CaseRuleHit] = []
+    top_risk_factors: list[str] = []
 
     model_config = {"from_attributes": True}
 
