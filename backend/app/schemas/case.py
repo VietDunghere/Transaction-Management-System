@@ -6,7 +6,7 @@ Request/Response cho quản lý case review.
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from pydantic import BaseModel, Field
 
@@ -52,6 +52,25 @@ class CaseRuleHit(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CardVelocitySnapshot(BaseModel):
+    """Thống kê velocity của thẻ — dùng để reviewer đánh giá hành vi bình thường."""
+    avg_daily_txn: float
+    total_txn: int
+    avg_amt: float
+    std_amt: float
+
+
+class RecentTransaction(BaseModel):
+    """Giao dịch gần đây của customer — reviewer thấy pattern."""
+    txn_id: str
+    amount: Decimal
+    currency_code: str
+    merchant_name: Optional[str]
+    status: str
+    fraud_score: Optional[float]
+    txn_time: datetime
+
+
 class CaseTransactionSummary(BaseModel):
     """Tóm tắt giao dịch đính kèm trong case — reviewer cần thấy ngay."""
     txn_id: str
@@ -67,8 +86,8 @@ class CaseTransactionSummary(BaseModel):
     source_ip: Optional[str]
     card_number_masked: Optional[str]
     rule_hits: list[CaseRuleHit] = []
-    top_risk_factors: list[str] = []
-    risk_signal_values: dict[str, float] = {}
+    card_velocity: Optional[CardVelocitySnapshot] = None
+    recent_transactions: list[RecentTransaction] = []
 
     model_config = {"from_attributes": True}
 

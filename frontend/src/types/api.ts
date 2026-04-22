@@ -202,8 +202,21 @@ export interface CaseDetail {
         source_ip: string | null;
         card_number_masked: string | null;
         rule_hits: CaseRuleHit[];
-        top_risk_factors: string[];
-        risk_signal_values: Record<string, number>;
+        card_velocity: {
+            avg_daily_txn: number;
+            total_txn: number;
+            avg_amt: number;
+            std_amt: number;
+        } | null;
+        recent_transactions: {
+            txn_id: string;
+            amount: number;
+            currency_code: string;
+            merchant_name: string | null;
+            status: string;
+            fraud_score: number | null;
+            txn_time: string;
+        }[];
     };
     created_at: string;
     decided_at: string | null;

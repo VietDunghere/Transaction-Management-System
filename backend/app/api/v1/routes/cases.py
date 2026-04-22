@@ -18,13 +18,16 @@ from app.core.exceptions import PermissionDeniedError
 from app.db.deps import DbSession
 from app.schemas.auth import TokenPayload
 from app.schemas.case import (
+    CardVelocitySnapshot,
     CaseDecideRequest,
     CaseListItem,
     CaseResponse,
     CaseRuleHit,
     CaseTransactionSummary,
+    RecentTransaction,
 )
-from app.models.scoring import RuleHit, RiskScoringResult
+from app.models.card_velocity import CardVelocityStats
+from app.models.scoring import RuleHit
 from app.models.user import User
 from app.schemas.common import CaseStatus, PagedResponse, PaginationMeta
 from app.services.case_service import CaseService
@@ -143,33 +146,44 @@ def get_case(
 
     txn_summary = None
     if case.transaction:
-        import json as _json
+        from sqlalchemy import desc as _desc
+        from app.models.transaction import Transaction as _Txn
         t = case.transaction
 
-        # Pull top AI risk factors from latest scoring result
-        top_risk_factors: list[str] = []
-        latest_score = (
-            db.query(RiskScoringResult)
-            .filter(RiskScoringResult.txn_id == t.txn_id)
-            .order_by(RiskScoringResult.score_time.desc())
-            .first()
+        # Card velocity stats
+        card_velocity = None
+        if t.card_number_hash:
+            cv = db.query(CardVelocityStats).filter(
+                CardVelocityStats.card_hash == t.card_number_hash
+            ).first()
+            if cv:
+                card_velocity = CardVelocitySnapshot(
+                    avg_daily_txn=float(cv.avg_daily_txn),
+                    total_txn=cv.total_txn,
+                    avg_amt=float(cv.avg_amt),
+                    std_amt=float(cv.std_amt),
+                )
+
+        # 10 recent transactions of same customer (excluding current)
+        recent_rows = (
+            db.query(_Txn)
+            .filter(_Txn.customer_id == t.customer_id, _Txn.txn_id != t.txn_id)
+            .order_by(_desc(_Txn.txn_time))
+            .limit(10)
+            .all()
         )
-        risk_signal_values: dict[str, float] = {}
-        if latest_score and latest_score.reason_json:
-            try:
-                top_risk_factors = _json.loads(latest_score.reason_json).get("top_features", [])
-            except Exception:
-                pass
-        if latest_score and latest_score.feature_snapshot_json:
-            try:
-                snapshot = _json.loads(latest_score.feature_snapshot_json)
-                risk_signal_values = {
-                    k: round(float(v), 4)
-                    for k, v in snapshot.items()
-                    if k in top_risk_factors and isinstance(v, (int, float))
-                }
-            except Exception:
-                pass
+        recent_transactions = [
+            RecentTransaction(
+                txn_id=r.txn_id,
+                amount=r.amount,
+                currency_code=r.currency_code,
+                merchant_name=r.merchant.merchant_name if r.merchant else None,
+                status=r.status,
+                fraud_score=float(r.fraud_score) if r.fraud_score is not None else None,
+                txn_time=r.txn_time,
+            )
+            for r in recent_rows
+        ]
 
         txn_summary = CaseTransactionSummary(
             txn_id=t.txn_id,
@@ -193,8 +207,8 @@ def get_case(
                 )
                 for rh in db.query(RuleHit).filter(RuleHit.txn_id == t.txn_id).all()
             ],
-            top_risk_factors=top_risk_factors,
-            risk_signal_values=risk_signal_values,
+            card_velocity=card_velocity,
+            recent_transactions=recent_transactions,
         )
 
     assignee_name = None

@@ -19,48 +19,8 @@ const severityVariant: Record<string, 'danger' | 'warning' | 'info' | 'muted'> =
     HIGH: 'danger', MEDIUM: 'warning', LOW: 'info',
 };
 
-const formatSignalValue = (key: string, value: number): string => {
-    switch (key) {
-        case 'txn_hour':   return `${value}:00`;
-        case 'txn_dow':    return ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][Math.round(value)] ?? String(value);
-        case 'is_night':
-        case 'is_weekend':
-        case 'is_sus_dist': return value ? 'Yes' : 'No';
-        case 'dist_km':    return `${value.toFixed(1)} km`;
-        case 'amt':
-        case 'cc_avg_amt':
-        case 'cc_std_amt': return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
-        case 'amt_dev':    return `${value.toFixed(2)}× std dev`;
-        case 'age':        return `${Math.round(value)} years old`;
-        case 'city_pop':   return value.toLocaleString();
-        case 'cc_avg_daily':
-        case 'cc_total':   return String(Math.round(value));
-        default:           return String(value);
-    }
-};
-
-const RISK_SIGNAL_LABELS: Record<string, string> = {
-    amt:          'Transaction amount',
-    amt_dev:      'Amount deviation from customer average',
-    cc_avg_amt:   'Customer average transaction amount',
-    cc_std_amt:   'Volatility of customer spend',
-    cc_avg_daily: 'Daily transaction frequency',
-    cc_total:     'Total lifetime transactions',
-    dist_km:      'Distance from home to merchant (km)',
-    is_sus_dist:  'Suspicious distance (>100 km from home)',
-    txn_hour:     'Transaction hour (unusual time)',
-    txn_dow:      'Day of week',
-    txn_month:    'Month of transaction',
-    is_weekend:   'Transaction on weekend',
-    is_night:     'Transaction at night (11 PM – 6 AM)',
-    age:          'Customer age',
-    city_pop:     'City population (location risk)',
-    merchant:     'Merchant frequency pattern',
-    category:     'Merchant category risk',
-    job:          'Customer occupation',
-    city:         'Customer city',
-    state:        'Customer state',
-    gender:       'Customer gender pattern',
+const txnStatusVariant: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'muted'> = {
+    APPROVED: 'success', REJECTED: 'danger', MANUAL_REVIEW: 'warning', PENDING: 'info',
 };
 
 const statusVariant: Record<CaseStatus, 'default' | 'success' | 'danger' | 'warning' | 'info' | 'muted'> = {
@@ -244,30 +204,6 @@ export function CaseDetailPage() {
                                     </span>
                                 }
                             />
-                            {caseData.transaction.top_risk_factors?.length > 0 && (
-                                <KeyValueRow
-                                    label="AI Risk Signals"
-                                    value={
-                                        <div className="flex flex-col gap-1.5">
-                                            {caseData.transaction.top_risk_factors.map((f: string, i: number) => (
-                                                <div key={i} className="flex items-center justify-between gap-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-status-warning flex-shrink-0" />
-                                                        <span className="text-xs text-text-primary">
-                                                            {RISK_SIGNAL_LABELS[f] ?? f}
-                                                        </span>
-                                                    </div>
-                                                    {caseData.transaction.risk_signal_values?.[f] !== undefined && (
-                                                        <span className="text-xs font-mono font-semibold text-text-primary flex-shrink-0">
-                                                            {formatSignalValue(f, caseData.transaction.risk_signal_values[f])}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    }
-                                />
-                            )}
                             <KeyValueRow label="Channel" value={caseData.transaction.channel_name ?? '—'} />
                             <KeyValueRow
                                 label="Transaction Time"
@@ -290,6 +226,55 @@ export function CaseDetailPage() {
                                             {rh.severity && (
                                                 <Badge variant={severityVariant[rh.severity] ?? 'muted'}>{rh.severity}</Badge>
                                             )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {caseData.transaction.card_velocity && (
+                            <>
+                                <SectionHeader title="Card Velocity" className="mt-6" />
+                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                    <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
+                                        <span className="text-xs text-text-secondary">Avg Daily Txns</span>
+                                        <span className="text-base font-semibold">{caseData.transaction.card_velocity.avg_daily_txn.toFixed(1)}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
+                                        <span className="text-xs text-text-secondary">Total Transactions</span>
+                                        <span className="text-base font-semibold">{caseData.transaction.card_velocity.total_txn.toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
+                                        <span className="text-xs text-text-secondary">Avg Amount</span>
+                                        <span className="text-base font-semibold">{caseData.transaction.card_velocity.avg_amt.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
+                                        <span className="text-xs text-text-secondary">Std Deviation</span>
+                                        <span className="text-base font-semibold">±{caseData.transaction.card_velocity.std_amt.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {caseData.transaction.recent_transactions.length > 0 && (
+                            <>
+                                <SectionHeader title={`Recent Transactions (${caseData.transaction.recent_transactions.length})`} className="mt-6" />
+                                <div className="flex flex-col gap-1 mt-3">
+                                    {caseData.transaction.recent_transactions.map((r) => (
+                                        <div key={r.txn_id} className="flex items-center justify-between gap-3 py-2 border-b border-border-default last:border-0">
+                                            <div className="flex flex-col gap-0.5 min-w-0">
+                                                <span className="text-xs text-text-secondary truncate">{r.merchant_name ?? '—'}</span>
+                                                <span className="text-xs text-text-tertiary">{new Date(r.txn_time).toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                <span className="text-xs font-mono font-medium">{r.amount.toLocaleString()} {r.currency_code}</span>
+                                                <Badge variant={txnStatusVariant[r.status] ?? 'muted'}>{r.status}</Badge>
+                                                {r.fraud_score !== null && (
+                                                    <span className={`text-xs font-mono ${r.fraud_score >= 0.65 ? 'text-status-danger' : r.fraud_score >= 0.35 ? 'text-status-warning' : 'text-text-tertiary'}`}>
+                                                        {(r.fraud_score * 100).toFixed(0)}%
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
