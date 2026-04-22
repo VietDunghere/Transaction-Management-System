@@ -12,6 +12,8 @@ from sqlalchemy import and_, desc
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.loan import Loan
+from app.models.customer import Customer  # noqa: F401
+from app.models.user import User  # noqa: F401
 from app.schemas.common import LoanStatus
 
 
