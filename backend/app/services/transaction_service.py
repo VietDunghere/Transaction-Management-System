@@ -14,7 +14,17 @@ Orchestrate toàn bộ luồng submit giao dịch:
 import json
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Optional
+
+
+def _json_default(obj):
+    """Handle Decimal and datetime for json.dumps."""
+    if isinstance(obj, Decimal):
+        return float(obj)
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 from sqlalchemy.orm import Session
 
@@ -142,7 +152,7 @@ class TransactionService:
                 case_id=None,
             )
             if request.idempotency_key:
-                self._txn_repo.update_idempotency(key=request.idempotency_key, status="SUCCESS", txn_id=txn.txn_id, response_json=json.dumps(response.model_dump()))
+                self._txn_repo.update_idempotency(key=request.idempotency_key, status="SUCCESS", txn_id=txn.txn_id, response_json=json.dumps(response.model_dump(), default=_json_default))
                 self._db.commit()
             return response
 
@@ -224,8 +234,8 @@ class TransactionService:
             decision_suggested=scoring_result.decision,
             reject_threshold=scoring_result.reject_threshold,
             review_threshold=scoring_result.review_threshold,
-            feature_snapshot_json=json.dumps(scoring_result.feature_snapshot),
-            reason_json=json.dumps({"top_features": scoring_result.top_risk_factors}),
+            feature_snapshot_json=json.dumps(scoring_result.feature_snapshot, default=_json_default),
+            reason_json=json.dumps({"top_features": scoring_result.top_risk_factors}, default=_json_default),
         )
         self._db.add(risk_record)
 
@@ -264,7 +274,7 @@ class TransactionService:
                 "amount": float(request.amount),
                 "fraud_score": scoring_result.fraud_score,
                 "decision": scoring_result.decision,
-            }),
+            }, default=_json_default),
         )
         self._db.add(audit)
 
@@ -290,7 +300,7 @@ class TransactionService:
                 key=request.idempotency_key,
                 status="SUCCESS",
                 txn_id=txn.txn_id,
-                response_json=json.dumps(response.model_dump()),
+                response_json=json.dumps(response.model_dump(), default=_json_default),
             )
             self._db.commit()
 

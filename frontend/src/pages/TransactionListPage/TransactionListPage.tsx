@@ -62,11 +62,7 @@ export function TransactionListPage() {
         ),
         status: <Badge variant={statusVariant[txn.status]}>{txn.status}</Badge>,
         fraud_score: <span className="text-sm">{(txn.fraud_score * 100).toFixed(1)}%</span>,
-        txn_time: (
-            <span className="text-xs text-text-secondary">
-                {new Date(txn.txn_time).toLocaleString()}
-            </span>
-        ),
+        txn_time: <span className="text-xs text-text-secondary">{new Date(txn.txn_time).toLocaleString()}</span>,
     }));
 
     const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
@@ -101,12 +97,18 @@ export function TransactionListPage() {
                     <DateRangeShell
                         startValue={params.from_date}
                         endValue={params.to_date}
-                        onStartChange={(v) => setParams((p) => ({ ...p, from_date: v || undefined, period: undefined, page: 1 }))}
-                        onEndChange={(v) => setParams((p) => ({ ...p, to_date: v || undefined, period: undefined, page: 1 }))}
+                        onStartChange={(v) =>
+                            setParams((p) => ({ ...p, from_date: v || undefined, period: undefined, page: 1 }))
+                        }
+                        onEndChange={(v) =>
+                            setParams((p) => ({ ...p, to_date: v || undefined, period: undefined, page: 1 }))
+                        }
                     />
                     <QuickDateFilter
                         value={params.period as QuickPeriod | undefined}
-                        onChange={(period) => setParams((p) => ({ ...p, period, from_date: undefined, to_date: undefined, page: 1 }))}
+                        onChange={(period) =>
+                            setParams((p) => ({ ...p, period, from_date: undefined, to_date: undefined, page: 1 }))
+                        }
                     />
                 </FilterBar>
             }

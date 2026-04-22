@@ -35,17 +35,47 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
     { label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
-    { label: 'Transactions', icon: <ArrowLeftRight size={20} />, href: '/transactions', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
+    {
+        label: 'Transactions',
+        icon: <ArrowLeftRight size={20} />,
+        href: '/transactions',
+        roles: ['ANALYST', 'MANAGER', 'ADMIN'],
+    },
     { label: 'Cases', icon: <ShieldAlert size={20} />, href: '/cases', roles: ['REVIEWER', 'MANAGER', 'ADMIN'] },
-    { label: 'Loans', icon: <CreditCard size={20} />, href: '/loans', roles: ['OPERATOR', 'REVIEWER', 'MANAGER', 'ADMIN'] },
+    {
+        label: 'Loans',
+        icon: <CreditCard size={20} />,
+        href: '/loans',
+        roles: ['OPERATOR', 'REVIEWER', 'MANAGER', 'ADMIN'],
+    },
     { label: 'Users', icon: <Users size={20} />, href: '/users', roles: ['MANAGER', 'ADMIN'] },
 ];
 
 const analystNavItems: NavItem[] = [
-    { label: 'Thresholds', icon: <SlidersHorizontal size={20} />, href: '/analyst/thresholds', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
-    { label: 'Model Performance', icon: <Activity size={20} />, href: '/analyst/model-performance', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
-    { label: 'Suppression Rules', icon: <ShieldOff size={20} />, href: '/analyst/suppression-rules', roles: ['ANALYST', 'ADMIN'] },
-    { label: 'Analyst Reports', icon: <FileText size={20} />, href: '/analyst/reports', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
+    {
+        label: 'Thresholds',
+        icon: <SlidersHorizontal size={20} />,
+        href: '/analyst/thresholds',
+        roles: ['ANALYST', 'MANAGER', 'ADMIN'],
+    },
+    {
+        label: 'Model Performance',
+        icon: <Activity size={20} />,
+        href: '/analyst/model-performance',
+        roles: ['ANALYST', 'MANAGER', 'ADMIN'],
+    },
+    {
+        label: 'Suppression Rules',
+        icon: <ShieldOff size={20} />,
+        href: '/analyst/suppression-rules',
+        roles: ['ANALYST', 'ADMIN'],
+    },
+    {
+        label: 'Analyst Reports',
+        icon: <FileText size={20} />,
+        href: '/analyst/reports',
+        roles: ['ANALYST', 'MANAGER', 'ADMIN'],
+    },
 ];
 
 const secondaryNavItems: NavItem[] = [
@@ -152,7 +182,8 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                             )}
                             <ul className="flex flex-col gap-0.5">
                                 {visibleAnalyst.map((item) => {
-                                    const isActive = currentPath === item.href || currentPath.startsWith(item.href + '/');
+                                    const isActive =
+                                        currentPath === item.href || currentPath.startsWith(item.href + '/');
                                     return (
                                         <li key={item.href}>
                                             <Link

@@ -71,29 +71,58 @@ export function AnalystModelPerformancePage() {
                     <ErrorState onRetry={refetch} />
                 ) : tab === 'fraud' && fraud.data ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard label="Total Transactions" value={fraud.data.score_distribution.total} accent="purple" />
-                        <StatCard label="Auto Approved" value={pct(fraud.data.score_distribution.approved_rate)} accent="blue" />
-                        <StatCard label="Manual Review Rate" value={pct(fraud.data.score_distribution.review_rate)} accent="purple" />
-                        <StatCard label="False Positive Rate" value={pct(fraud.data.score_distribution.false_positive_rate)} accent="blue" />
+                        <StatCard
+                            label="Total Transactions"
+                            value={fraud.data.score_distribution.total}
+                            accent="purple"
+                        />
+                        <StatCard
+                            label="Auto Approved"
+                            value={pct(fraud.data.score_distribution.approved_rate)}
+                            accent="blue"
+                        />
+                        <StatCard
+                            label="Manual Review Rate"
+                            value={pct(fraud.data.score_distribution.review_rate)}
+                            accent="purple"
+                        />
+                        <StatCard
+                            label="False Positive Rate"
+                            value={pct(fraud.data.score_distribution.false_positive_rate)}
+                            accent="blue"
+                        />
                     </div>
                 ) : loan.data ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard label="Total Loans Scored" value={loan.data.risk_distribution.total} accent="purple" />
-                        <StatCard label="Low Risk" value={pct(loan.data.risk_distribution.low_risk_rate)} accent="blue" />
-                        <StatCard label="High Risk" value={pct(loan.data.risk_distribution.high_risk_rate)} accent="purple" />
+                        <StatCard
+                            label="Total Loans Scored"
+                            value={loan.data.risk_distribution.total}
+                            accent="purple"
+                        />
+                        <StatCard
+                            label="Low Risk"
+                            value={pct(loan.data.risk_distribution.low_risk_rate)}
+                            accent="blue"
+                        />
+                        <StatCard
+                            label="High Risk"
+                            value={pct(loan.data.risk_distribution.high_risk_rate)}
+                            accent="purple"
+                        />
                         <StatCard label="Approved" value={loan.data.risk_distribution.approved_count} accent="blue" />
                     </div>
                 ) : null
             }
             chartRow={
-                !isLoading && !isError && (
+                !isLoading &&
+                !isError && (
                     <Card>
                         <SectionHeader title="Current Thresholds" />
                         <div className="flex flex-col gap-1 mt-4">
                             {Object.entries(
                                 tab === 'fraud'
-                                    ? fraud.data?.current_thresholds ?? {}
-                                    : loan.data?.current_thresholds ?? {},
+                                    ? (fraud.data?.current_thresholds ?? {})
+                                    : (loan.data?.current_thresholds ?? {}),
                             ).map(([key, val]) => (
                                 <KeyValueRow
                                     key={key}
@@ -106,45 +135,78 @@ export function AnalystModelPerformancePage() {
                 )
             }
             secondaryCards={
-                !isLoading && !isError && (
+                !isLoading &&
+                !isError && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {tab === 'fraud' && fraud.data && (
                             <>
                                 <Card>
                                     <SectionHeader title="Score Distribution" />
                                     <div className="flex flex-col gap-1 mt-4">
-                                        <KeyValueRow label="Approved" value={
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant="success">{fraud.data.score_distribution.approved_count}</Badge>
-                                                <span className="text-xs text-text-secondary">{pct(fraud.data.score_distribution.approved_rate)}</span>
-                                            </div>
-                                        } />
-                                        <KeyValueRow label="Manual Review" value={
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant="warning">{fraud.data.score_distribution.review_count}</Badge>
-                                                <span className="text-xs text-text-secondary">{pct(fraud.data.score_distribution.review_rate)}</span>
-                                            </div>
-                                        } />
-                                        <KeyValueRow label="Rejected" value={
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant="danger">{fraud.data.score_distribution.rejected_count}</Badge>
-                                                <span className="text-xs text-text-secondary">{pct(fraud.data.score_distribution.rejected_rate)}</span>
-                                            </div>
-                                        } />
+                                        <KeyValueRow
+                                            label="Approved"
+                                            value={
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="success">
+                                                        {fraud.data.score_distribution.approved_count}
+                                                    </Badge>
+                                                    <span className="text-xs text-text-secondary">
+                                                        {pct(fraud.data.score_distribution.approved_rate)}
+                                                    </span>
+                                                </div>
+                                            }
+                                        />
+                                        <KeyValueRow
+                                            label="Manual Review"
+                                            value={
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="warning">
+                                                        {fraud.data.score_distribution.review_count}
+                                                    </Badge>
+                                                    <span className="text-xs text-text-secondary">
+                                                        {pct(fraud.data.score_distribution.review_rate)}
+                                                    </span>
+                                                </div>
+                                            }
+                                        />
+                                        <KeyValueRow
+                                            label="Rejected"
+                                            value={
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="danger">
+                                                        {fraud.data.score_distribution.rejected_count}
+                                                    </Badge>
+                                                    <span className="text-xs text-text-secondary">
+                                                        {pct(fraud.data.score_distribution.rejected_rate)}
+                                                    </span>
+                                                </div>
+                                            }
+                                        />
                                     </div>
                                 </Card>
                                 <Card>
                                     <SectionHeader title="False Positives" />
                                     <div className="flex flex-col gap-1 mt-4">
-                                        <KeyValueRow label="False Positive Count" value={
-                                            <Badge variant="warning">{fraud.data.score_distribution.false_positive_count}</Badge>
-                                        } />
-                                        <KeyValueRow label="False Positive Rate" value={
-                                            <span className="font-mono text-sm">{pct(fraud.data.score_distribution.false_positive_rate)}</span>
-                                        } />
-                                        <KeyValueRow label="Analysis Period" value={
-                                            <span className="text-sm">{fraud.data.period_days} days</span>
-                                        } />
+                                        <KeyValueRow
+                                            label="False Positive Count"
+                                            value={
+                                                <Badge variant="warning">
+                                                    {fraud.data.score_distribution.false_positive_count}
+                                                </Badge>
+                                            }
+                                        />
+                                        <KeyValueRow
+                                            label="False Positive Rate"
+                                            value={
+                                                <span className="font-mono text-sm">
+                                                    {pct(fraud.data.score_distribution.false_positive_rate)}
+                                                </span>
+                                            }
+                                        />
+                                        <KeyValueRow
+                                            label="Analysis Period"
+                                            value={<span className="text-sm">{fraud.data.period_days} days</span>}
+                                        />
                                     </div>
                                 </Card>
                             </>
@@ -154,32 +216,74 @@ export function AnalystModelPerformancePage() {
                                 <Card>
                                     <SectionHeader title="Risk Distribution" />
                                     <div className="flex flex-col gap-1 mt-4">
-                                        <KeyValueRow label="Low Risk" value={
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant="success">{loan.data.risk_distribution.low_risk_count}</Badge>
-                                                <span className="text-xs text-text-secondary">{pct(loan.data.risk_distribution.low_risk_rate)}</span>
-                                            </div>
-                                        } />
-                                        <KeyValueRow label="Medium Risk" value={
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant="warning">{loan.data.risk_distribution.medium_risk_count}</Badge>
-                                                <span className="text-xs text-text-secondary">{pct(loan.data.risk_distribution.medium_risk_rate)}</span>
-                                            </div>
-                                        } />
-                                        <KeyValueRow label="High Risk" value={
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant="danger">{loan.data.risk_distribution.high_risk_count}</Badge>
-                                                <span className="text-xs text-text-secondary">{pct(loan.data.risk_distribution.high_risk_rate)}</span>
-                                            </div>
-                                        } />
+                                        <KeyValueRow
+                                            label="Low Risk"
+                                            value={
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="success">
+                                                        {loan.data.risk_distribution.low_risk_count}
+                                                    </Badge>
+                                                    <span className="text-xs text-text-secondary">
+                                                        {pct(loan.data.risk_distribution.low_risk_rate)}
+                                                    </span>
+                                                </div>
+                                            }
+                                        />
+                                        <KeyValueRow
+                                            label="Medium Risk"
+                                            value={
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="warning">
+                                                        {loan.data.risk_distribution.medium_risk_count}
+                                                    </Badge>
+                                                    <span className="text-xs text-text-secondary">
+                                                        {pct(loan.data.risk_distribution.medium_risk_rate)}
+                                                    </span>
+                                                </div>
+                                            }
+                                        />
+                                        <KeyValueRow
+                                            label="High Risk"
+                                            value={
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="danger">
+                                                        {loan.data.risk_distribution.high_risk_count}
+                                                    </Badge>
+                                                    <span className="text-xs text-text-secondary">
+                                                        {pct(loan.data.risk_distribution.high_risk_rate)}
+                                                    </span>
+                                                </div>
+                                            }
+                                        />
                                     </div>
                                 </Card>
                                 <Card>
                                     <SectionHeader title="Loan Outcomes" />
                                     <div className="flex flex-col gap-1 mt-4">
-                                        <KeyValueRow label="Approved" value={<Badge variant="success">{loan.data.risk_distribution.approved_count}</Badge>} />
-                                        <KeyValueRow label="Rejected" value={<Badge variant="danger">{loan.data.risk_distribution.rejected_count}</Badge>} />
-                                        <KeyValueRow label="Pending" value={<Badge variant="info">{loan.data.risk_distribution.pending_count}</Badge>} />
+                                        <KeyValueRow
+                                            label="Approved"
+                                            value={
+                                                <Badge variant="success">
+                                                    {loan.data.risk_distribution.approved_count}
+                                                </Badge>
+                                            }
+                                        />
+                                        <KeyValueRow
+                                            label="Rejected"
+                                            value={
+                                                <Badge variant="danger">
+                                                    {loan.data.risk_distribution.rejected_count}
+                                                </Badge>
+                                            }
+                                        />
+                                        <KeyValueRow
+                                            label="Pending"
+                                            value={
+                                                <Badge variant="info">
+                                                    {loan.data.risk_distribution.pending_count}
+                                                </Badge>
+                                            }
+                                        />
                                     </div>
                                 </Card>
                             </>

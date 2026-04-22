@@ -33,10 +33,7 @@ export function AnalystReportDetailPage() {
     const [note, setNote] = useState('');
 
     function handleAcknowledge() {
-        acknowledge.mutate(
-            { reportId, data: { note: note || undefined } },
-            { onSuccess: () => setAckModal(false) },
-        );
+        acknowledge.mutate({ reportId, data: { note: note || undefined } }, { onSuccess: () => setAckModal(false) });
     }
 
     function handleDownloadPdf() {
@@ -61,11 +58,15 @@ export function AnalystReportDetailPage() {
                         subtitle={`${data.report_type.replace(/_/g, ' ')} · ${new Date(data.submitted_at).toLocaleDateString()}`}
                         actions={
                             <div className="flex items-center gap-2">
-                                <Button variant="secondary" onClick={handleDownloadPdf}>Download PDF</Button>
+                                <Button variant="secondary" onClick={handleDownloadPdf}>
+                                    Download PDF
+                                </Button>
                                 {canAcknowledge && data.status === 'PENDING_REVIEW' && (
                                     <Button onClick={() => setAckModal(true)}>Acknowledge</Button>
                                 )}
-                                <Button variant="ghost" onClick={() => navigate({ to: '/analyst/reports' })}>Back</Button>
+                                <Button variant="ghost" onClick={() => navigate({ to: '/analyst/reports' })}>
+                                    Back
+                                </Button>
                             </div>
                         }
                     />
@@ -74,7 +75,9 @@ export function AnalystReportDetailPage() {
                     <div className="flex flex-col gap-5">
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-medium text-text-secondary">Status</span>
-                            <Badge variant={statusVariant[data.status] ?? 'muted'}>{data.status.replace(/_/g, ' ')}</Badge>
+                            <Badge variant={statusVariant[data.status] ?? 'muted'}>
+                                {data.status.replace(/_/g, ' ')}
+                            </Badge>
                         </div>
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-medium text-text-secondary">Type</span>
@@ -96,7 +99,9 @@ export function AnalystReportDetailPage() {
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <span className="text-xs font-medium text-text-secondary">Acknowledged At</span>
-                                    <span className="text-sm">{data.acknowledged_at ? new Date(data.acknowledged_at).toLocaleString() : '—'}</span>
+                                    <span className="text-sm">
+                                        {data.acknowledged_at ? new Date(data.acknowledged_at).toLocaleString() : '—'}
+                                    </span>
                                 </div>
                             </>
                         )}
@@ -126,14 +131,19 @@ export function AnalystReportDetailPage() {
                 title="Acknowledge Report"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <Button variant="ghost" onClick={() => setAckModal(false)}>Cancel</Button>
-                        <Button onClick={handleAcknowledge} loading={acknowledge.isPending}>Confirm</Button>
+                        <Button variant="ghost" onClick={() => setAckModal(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleAcknowledge} loading={acknowledge.isPending}>
+                            Confirm
+                        </Button>
                     </div>
                 }
             >
                 <div className="flex flex-col gap-4">
                     <p className="text-sm text-text-secondary">
-                        Confirm that you have read and reviewed this analyst report. The status will change to ACKNOWLEDGED.
+                        Confirm that you have read and reviewed this analyst report. The status will change to
+                        ACKNOWLEDGED.
                     </p>
                     <Textarea
                         label="Response Note (optional)"

@@ -46,8 +46,7 @@ export function LoanDetailPage() {
     if (isError || !loan) return <ErrorState onRetry={refetch} />;
 
     const canDecide =
-        (user?.role === 'REVIEWER' || user?.role === 'MANAGER' || user?.role === 'ADMIN') &&
-        loan.status === 'PENDING';
+        (user?.role === 'REVIEWER' || user?.role === 'MANAGER' || user?.role === 'ADMIN') && loan.status === 'PENDING';
 
     const handleDecision = () => {
         if (!decisionModal.decision || !reviewNote.trim()) return;
@@ -139,7 +138,9 @@ export function LoanDetailPage() {
                                             {loan.customer_name && (
                                                 <span className="font-medium mr-2">{loan.customer_name}</span>
                                             )}
-                                            <span className="font-mono text-xs text-text-tertiary">{loan.customer_id.slice(0, 12)}…</span>
+                                            <span className="font-mono text-xs text-text-tertiary">
+                                                {loan.customer_id.slice(0, 12)}…
+                                            </span>
                                         </span>
                                     }
                                 />
@@ -206,7 +207,10 @@ export function LoanDetailPage() {
                                         <KeyValueRow label="Home Ownership" value={loan.person_home_ownership} />
                                     )}
                                     {loan.person_emp_length !== null && (
-                                        <KeyValueRow label="Employment Length" value={`${loan.person_emp_length} years`} />
+                                        <KeyValueRow
+                                            label="Employment Length"
+                                            value={`${loan.person_emp_length} years`}
+                                        />
                                     )}
                                     {loan.loan_grade && (
                                         <KeyValueRow
@@ -217,8 +221,8 @@ export function LoanDetailPage() {
                                                         ['A', 'B'].includes(loan.loan_grade)
                                                             ? 'success'
                                                             : ['C', 'D'].includes(loan.loan_grade)
-                                                            ? 'warning'
-                                                            : 'danger'
+                                                              ? 'warning'
+                                                              : 'danger'
                                                     }
                                                 >
                                                     {loan.loan_grade}
@@ -226,14 +230,16 @@ export function LoanDetailPage() {
                                             }
                                         />
                                     )}
-                                    {loan.loan_intent && (
-                                        <KeyValueRow label="Loan Intent" value={loan.loan_intent} />
-                                    )}
+                                    {loan.loan_intent && <KeyValueRow label="Loan Intent" value={loan.loan_intent} />}
                                     {loan.cb_person_default_on_file && (
                                         <KeyValueRow
                                             label="Prior Default"
                                             value={
-                                                <Badge variant={loan.cb_person_default_on_file === 'Y' ? 'danger' : 'success'}>
+                                                <Badge
+                                                    variant={
+                                                        loan.cb_person_default_on_file === 'Y' ? 'danger' : 'success'
+                                                    }
+                                                >
                                                     {loan.cb_person_default_on_file === 'Y' ? 'Yes' : 'No'}
                                                 </Badge>
                                             }
@@ -253,9 +259,7 @@ export function LoanDetailPage() {
                             <Card>
                                 <SectionHeader title="Customer Profile" />
                                 <div className="flex flex-col gap-1 mt-4">
-                                    {loan.customer_job && (
-                                        <KeyValueRow label="Occupation" value={loan.customer_job} />
-                                    )}
+                                    {loan.customer_job && <KeyValueRow label="Occupation" value={loan.customer_job} />}
                                     {loan.customer_kyc_status && (
                                         <KeyValueRow
                                             label="KYC Status"
@@ -265,8 +269,8 @@ export function LoanDetailPage() {
                                                         loan.customer_kyc_status === 'VERIFIED'
                                                             ? 'success'
                                                             : loan.customer_kyc_status === 'PENDING'
-                                                            ? 'warning'
-                                                            : 'danger'
+                                                              ? 'warning'
+                                                              : 'danger'
                                                     }
                                                 >
                                                     {loan.customer_kyc_status}
@@ -287,19 +291,27 @@ export function LoanDetailPage() {
                                 <div className="grid grid-cols-2 gap-3 mt-4">
                                     <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
                                         <span className="text-xs text-text-secondary">Total Previous</span>
-                                        <span className="text-lg font-semibold">{loan.customer_loan_stats.total_loans}</span>
+                                        <span className="text-lg font-semibold">
+                                            {loan.customer_loan_stats.total_loans}
+                                        </span>
                                     </div>
                                     <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
                                         <span className="text-xs text-text-secondary">Approved</span>
-                                        <span className="text-lg font-semibold text-status-success">{loan.customer_loan_stats.approved}</span>
+                                        <span className="text-lg font-semibold text-status-success">
+                                            {loan.customer_loan_stats.approved}
+                                        </span>
                                     </div>
                                     <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
                                         <span className="text-xs text-text-secondary">Rejected</span>
-                                        <span className="text-lg font-semibold text-status-danger">{loan.customer_loan_stats.rejected}</span>
+                                        <span className="text-lg font-semibold text-status-danger">
+                                            {loan.customer_loan_stats.rejected}
+                                        </span>
                                     </div>
                                     <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
                                         <span className="text-xs text-text-secondary">Active / Pending</span>
-                                        <span className="text-lg font-semibold text-status-warning">{loan.customer_loan_stats.active}</span>
+                                        <span className="text-lg font-semibold text-status-warning">
+                                            {loan.customer_loan_stats.active}
+                                        </span>
                                     </div>
                                 </div>
                             </Card>

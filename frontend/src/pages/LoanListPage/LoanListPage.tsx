@@ -66,7 +66,9 @@ export function LoanListPage() {
         loan_id: <span className="text-xs font-mono">{loan.loan_id.slice(0, 8)}...</span>,
         customer_id: (
             <span className="text-sm">
-                {loan.customer_name ?? <span className="font-mono text-xs text-text-tertiary">{loan.customer_id.slice(0, 8)}…</span>}
+                {loan.customer_name ?? (
+                    <span className="font-mono text-xs text-text-tertiary">{loan.customer_id.slice(0, 8)}…</span>
+                )}
             </span>
         ),
         amount: (
@@ -82,9 +84,7 @@ export function LoanListPage() {
         ),
         status: <Badge variant={statusVariant[loan.status]}>{loan.status}</Badge>,
         created_at: (
-            <span className="text-xs text-text-secondary">
-                {new Date(loan.created_at).toLocaleDateString()}
-            </span>
+            <span className="text-xs text-text-secondary">{new Date(loan.created_at).toLocaleDateString()}</span>
         ),
     }));
 

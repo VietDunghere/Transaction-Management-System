@@ -50,7 +50,12 @@ export function AnalystSuppressionRulesPage() {
     });
 
     function handleCreate() {
-        createRule.mutate(form, { onSuccess: () => { setCreateModal(false); setForm({ rule_type: 'MERCHANT', entity_id: '', reason: '' }); } });
+        createRule.mutate(form, {
+            onSuccess: () => {
+                setCreateModal(false);
+                setForm({ rule_type: 'MERCHANT', entity_id: '', reason: '' });
+            },
+        });
     }
 
     const rules = data ?? [];
@@ -64,16 +69,22 @@ export function AnalystSuppressionRulesPage() {
             </span>
         ),
         status: <Badge variant={rule.is_active ? 'success' : 'muted'}>{rule.is_active ? 'Active' : 'Disabled'}</Badge>,
-        created_at: <span className="text-xs text-text-secondary">{new Date(rule.created_at).toLocaleDateString()}</span>,
-        actions: rule.is_active && canEdit ? (
-            <Button
-                size="sm"
-                variant="ghost"
-                onClick={(e) => { e.stopPropagation(); disableRule.mutate(rule.rule_id); }}
-            >
-                Disable
-            </Button>
-        ) : null,
+        created_at: (
+            <span className="text-xs text-text-secondary">{new Date(rule.created_at).toLocaleDateString()}</span>
+        ),
+        actions:
+            rule.is_active && canEdit ? (
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        disableRule.mutate(rule.rule_id);
+                    }}
+                >
+                    Disable
+                </Button>
+            ) : null,
     }));
 
     return (
@@ -83,11 +94,7 @@ export function AnalystSuppressionRulesPage() {
                     <PageHeader
                         title="Suppression Rules"
                         subtitle={`${rules.filter((r) => r.is_active).length} active rules`}
-                        actions={
-                            canEdit ? (
-                                <Button onClick={() => setCreateModal(true)}>New Rule</Button>
-                            ) : undefined
-                        }
+                        actions={canEdit ? <Button onClick={() => setCreateModal(true)}>New Rule</Button> : undefined}
                     />
                 }
                 filterBar={
@@ -108,7 +115,10 @@ export function AnalystSuppressionRulesPage() {
                     ) : isError ? (
                         <ErrorState onRetry={refetch} />
                     ) : rows.length === 0 ? (
-                        <EmptyState title="No suppression rules" description="Create a rule to suppress flagged transactions." />
+                        <EmptyState
+                            title="No suppression rules"
+                            description="Create a rule to suppress flagged transactions."
+                        />
                     ) : (
                         <TableShell columns={columns} data={rows} />
                     )
@@ -121,8 +131,12 @@ export function AnalystSuppressionRulesPage() {
                 title="New Suppression Rule"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <Button variant="ghost" onClick={() => setCreateModal(false)}>Cancel</Button>
-                        <Button onClick={handleCreate} loading={createRule.isPending}>Create</Button>
+                        <Button variant="ghost" onClick={() => setCreateModal(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleCreate} loading={createRule.isPending}>
+                            Create
+                        </Button>
                     </div>
                 }
             >

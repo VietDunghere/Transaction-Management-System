@@ -55,28 +55,17 @@ export function AuditLogListPage() {
         actor: (
             <span className="text-sm">
                 {log.actor_name}{' '}
-                <span className="text-xs text-text-tertiary">
-                    ({log.actor_user_id.slice(0, 8)}...)
-                </span>
+                <span className="text-xs text-text-tertiary">({log.actor_user_id.slice(0, 8)}...)</span>
             </span>
         ),
-        timestamp: (
-            <span className="text-xs text-text-secondary">
-                {new Date(log.event_ts).toLocaleString()}
-            </span>
-        ),
+        timestamp: <span className="text-xs text-text-secondary">{new Date(log.event_ts).toLocaleString()}</span>,
     }));
 
     const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
 
     return (
         <ListPageTemplate
-            header={
-                <PageHeader
-                    title="Audit Logs"
-                    subtitle={data ? `${data.total} total entries` : undefined}
-                />
-            }
+            header={<PageHeader title="Audit Logs" subtitle={data ? `${data.total} total entries` : undefined} />}
             filterBar={
                 <FilterBar>
                     <Select
