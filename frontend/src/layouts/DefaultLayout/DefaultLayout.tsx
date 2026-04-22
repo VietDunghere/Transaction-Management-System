@@ -11,7 +11,7 @@ export function DefaultLayout({ children }: PropsWithChildren) {
     useMe();
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-primary">
+        <div className="flex w-screen overflow-hidden bg-primary">
             {/* Sidebar */}
             <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
 
