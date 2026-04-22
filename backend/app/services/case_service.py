@@ -130,7 +130,7 @@ class CaseService:
         case = self._get_open_case(case_id)
 
         # Case phải ở trạng thái ASSIGNED trước khi có thể quyết định.
-        # MANAGER có thể override nhưng case vẫn phải qua bước assign
+        # MANAGER và ADMIN có thể override nhưng case vẫn phải qua bước assign
         # để đảm bảo audit trail đầy đủ.
         if case.case_status == CaseStatus.OPEN.value:
             raise ConflictError(
@@ -139,8 +139,8 @@ class CaseService:
             )
 
         # REVIEWER chỉ quyết định được case được giao cho mình.
-        # MANAGER có thể quyết định bất kỳ case nào (override/giám sát).
-        is_privileged = "MANAGER" in actor_roles
+        # MANAGER và ADMIN có thể quyết định bất kỳ case nào (override/giám sát).
+        is_privileged = "MANAGER" in actor_roles or "ADMIN" in actor_roles
         if not is_privileged and case.assigned_to != actor_user_id:
             raise PermissionDeniedError("Case này không được giao cho bạn.")
 

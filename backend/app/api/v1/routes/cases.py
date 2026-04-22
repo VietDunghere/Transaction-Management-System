@@ -4,7 +4,7 @@ Router: Cases (Manual Review)
 GET  /cases              — danh sách case (REVIEWER, MANAGER)
 GET  /cases/{id}         — chi tiết case (REVIEWER, MANAGER)
 POST /cases/{id}/assign  — REVIEWER tự nhận case (self-assign)
-POST /cases/{id}/decide  — quyết định (REVIEWER, MANAGER)
+POST /cases/{id}/decide  — quyết định (REVIEWER, MANAGER, ADMIN)
 """
 
 import math
@@ -36,7 +36,7 @@ router = APIRouter(prefix="/cases", tags=["Cases"])
 )
 def list_cases(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER")),
+    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
     case_status: Optional[CaseStatus] = Query(None),
     assigned_to: Optional[str] = Query(None, description="Lọc theo reviewer user_id"),
     page: int = Query(default=1, ge=1),
@@ -103,7 +103,7 @@ def list_cases(
 def get_case(
     case_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER")),
+    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
 ) -> CaseResponse:
     svc = CaseService(db)
     case = svc.get_case(case_id)
@@ -178,7 +178,7 @@ def decide_case(
     case_id: str,
     body: CaseDecideRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER")),
+    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
 ) -> CaseResponse:
     svc = CaseService(db)
     svc.decide(case_id, body, actor_user_id=token.sub, actor_roles=token.roles)
