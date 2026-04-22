@@ -2,7 +2,7 @@ from __future__ import annotations
 """
 Router: SSE Stream
 GET /stream/transactions — real-time feed giao dịch mới (OPERATOR, MANAGER, ADMIN, REVIEWER)
-GET /stream/dashboard   — real-time dashboard summary (MANAGER, ADMIN)
+GET /stream/dashboard   — real-time dashboard summary (MANAGER, ANALYST)
 
 Dùng trong demo: Faker gửi POST liên tục → SSE đẩy kết quả về frontend ngay lập tức.
 Không cần WebSocket vì chỉ cần server → client (1 chiều).
@@ -98,7 +98,7 @@ async def stream_transactions(
     ),
 )
 async def stream_dashboard(
-    token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("MANAGER", "ANALYST")),
     interval: float = Query(default=5.0, ge=1.0, le=30.0, description="Poll interval (giây)"),
 ) -> StreamingResponse:
     async def generator():

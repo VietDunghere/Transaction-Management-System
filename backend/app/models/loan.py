@@ -18,8 +18,8 @@ from app.db.base import Base
 class Loan(Base):
     """
     Bảng loans — khoản vay của khách hàng.
-    OPERATOR tạo đơn vay (submitted_by), MANAGER phê duyệt (reviewed_by).
-    Sử dụng optimistic locking (version) để tránh race condition khi 2 MANAGER
+    OPERATOR tạo đơn vay (submitted_by), REVIEWER phê duyệt (reviewed_by).
+    Sử dụng optimistic locking (version) để tránh race condition khi 2 REVIEWER
     cùng phê duyệt 1 khoản vay.
     """
 

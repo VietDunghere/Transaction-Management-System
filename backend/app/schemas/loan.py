@@ -59,16 +59,16 @@ class LoanApplyRequest(BaseModel):
 
 class LoanDecisionRequest(BaseModel):
     """
-    Request body khi MANAGER phê duyệt hoặc từ chối khoản vay.
+    Request body khi REVIEWER phê duyệt hoặc từ chối khoản vay.
     Client phải gửi version hiện tại của loan để đảm bảo optimistic locking —
-    nếu version không khớp (MANAGER khác đã sửa), server trả 409 Conflict.
+    nếu version không khớp (REVIEWER khác đã sửa), server trả 409 Conflict.
     """
     decision: LoanDecision = Field(
         ..., description="APPROVE hoặc REJECT"
     )
     review_note: Optional[str] = Field(
         None, max_length=500,
-        description="Ghi chú của MANAGER — bắt buộc khi REJECT (best practice)",
+        description="Ghi chú của REVIEWER — bắt buộc khi REJECT (best practice)",
     )
     version: int = Field(
         ..., ge=1,

@@ -2,10 +2,10 @@ from __future__ import annotations
 """
 Router: Loans
 POST   /loans                    — tạo đơn vay (OPERATOR)
-GET    /loans                    — danh sách khoản vay (role-based)
-POST   /loans/simulate           — AI PD Score simulation (any role)
-GET    /loans/{loan_id}          — chi tiết khoản vay
-PATCH  /loans/{loan_id}/decision — phê duyệt / từ chối (MANAGER, ADMIN)
+GET    /loans                    — danh sách khoản vay (OPERATOR, REVIEWER)
+POST   /loans/simulate           — AI PD Score simulation (OPERATOR, REVIEWER)
+GET    /loans/{loan_id}          — chi tiết khoản vay (OPERATOR, REVIEWER)
+PATCH  /loans/{loan_id}/decision — phê duyệt / từ chối (REVIEWER)
 """
 
 import math

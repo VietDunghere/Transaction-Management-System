@@ -2,9 +2,9 @@ from __future__ import annotations
 """
 Router: Transactions
 POST /transactions/submit    — submit giao dịch mới (OPERATOR)
-GET  /transactions           — danh sách giao dịch (OPERATOR, MANAGER)
-GET  /transactions/{id}      — chi tiết giao dịch (OPERATOR, MANAGER)
-GET  /transactions/{id}/state-history — audit trail trạng thái
+GET  /transactions           — danh sách giao dịch (ANALYST, MANAGER, ADMIN)
+GET  /transactions/{id}      — chi tiết giao dịch (OPERATOR, ANALYST, MANAGER, ADMIN)
+GET  /transactions/{id}/state-history — audit trail trạng thái (MANAGER, ADMIN)
 """
 
 import json

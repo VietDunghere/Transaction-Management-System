@@ -130,7 +130,7 @@ class CaseService:
         case = self._get_open_case(case_id)
 
         # Case phải ở trạng thái ASSIGNED trước khi có thể quyết định.
-        # MANAGER/ADMIN có thể override nhưng case vẫn phải qua bước assign
+        # MANAGER có thể override nhưng case vẫn phải qua bước assign
         # để đảm bảo audit trail đầy đủ.
         if case.case_status == CaseStatus.OPEN.value:
             raise ConflictError(

@@ -1,10 +1,10 @@
 from __future__ import annotations
 """
 Router: Dashboard
-GET /dashboard/summary       — tổng quan hệ thống (MANAGER, ADMIN)
-GET /dashboard/fraud-trend   — biểu đồ trend giao dịch theo ngày (MANAGER, ADMIN)
+GET /dashboard/summary       — tổng quan hệ thống (MANAGER, ANALYST)
+GET /dashboard/fraud-trend   — biểu đồ trend giao dịch theo ngày (MANAGER, ANALYST)
 
-Tất cả endpoints đều read-only, chỉ MANAGER và ADMIN mới truy cập được.
+Tất cả endpoints đều read-only, chỉ MANAGER và ANALYST mới truy cập được.
 """
 
 from fastapi import APIRouter, Depends, Query

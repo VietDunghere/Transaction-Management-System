@@ -4,7 +4,7 @@ Router: Cases (Manual Review)
 GET  /cases              — danh sách case (REVIEWER, MANAGER)
 GET  /cases/{id}         — chi tiết case (REVIEWER, MANAGER)
 POST /cases/{id}/assign  — REVIEWER tự nhận case (self-assign)
-POST /cases/{id}/decide  — quyết định (REVIEWER, MANAGER, ADMIN)
+POST /cases/{id}/decide  — quyết định (REVIEWER, MANAGER)
 """
 
 import math
