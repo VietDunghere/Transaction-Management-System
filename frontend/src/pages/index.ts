@@ -21,18 +21,11 @@ export { LoanDetailPage } from './LoanDetailPage';
 export { LoanSimulatePage } from './LoanSimulatePage';
 export { AuditLogListPage } from './AuditLogListPage';
 export { AuditLogDetailPage } from './AuditLogDetailPage';
-export { EtlLogListPage } from './EtlLogListPage';
 
 // Wave 3
 export { ForbiddenPage } from './ForbiddenPage';
 export { NotFoundPage } from './NotFoundPage';
 
-// Wave 4 — Analyst, DataLake, Reconciliation
+// Wave 4 — Analyst
 export { AnalystThresholdsPage } from './AnalystThresholdsPage/AnalystThresholdsPage';
 export { AnalystModelPerformancePage } from './AnalystModelPerformancePage/AnalystModelPerformancePage';
-export { AnalystSuppressionRulesPage } from './AnalystSuppressionRulesPage/AnalystSuppressionRulesPage';
-export { AnalystReportsListPage } from './AnalystReportsListPage/AnalystReportsListPage';
-export { AnalystReportDetailPage } from './AnalystReportDetailPage/AnalystReportDetailPage';
-export { DataLakeSnapshotsPage } from './DataLakeSnapshotsPage/DataLakeSnapshotsPage';
-export { ReconciliationPage } from './ReconciliationPage/ReconciliationPage';
-export { ReconciliationDetailPage } from './ReconciliationDetailPage/ReconciliationDetailPage';

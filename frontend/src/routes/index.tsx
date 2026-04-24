@@ -21,17 +21,10 @@ import {
     LoanSimulatePage,
     AuditLogListPage,
     AuditLogDetailPage,
-    EtlLogListPage,
     ForbiddenPage,
     NotFoundPage,
     AnalystThresholdsPage,
     AnalystModelPerformancePage,
-    AnalystSuppressionRulesPage,
-    AnalystReportsListPage,
-    AnalystReportDetailPage,
-    DataLakeSnapshotsPage,
-    ReconciliationPage,
-    ReconciliationDetailPage,
 } from '~/pages';
 import { useAuthStore } from '~/stores/useAuthStore';
 import { getAccessToken } from '~/utils/localStorage';
@@ -77,9 +70,10 @@ const loginRoute = createRoute({
 });
 
 const loanSimulateRoute = createRoute({
-    getParentRoute: () => publicLayoutRoute,
+    getParentRoute: () => authLayoutRoute,
     path: '/loans/simulate',
     component: LoanSimulatePage,
+    beforeLoad: () => guardRole(['OPERATOR', 'REVIEWER', 'MANAGER', 'ADMIN']),
 });
 
 // ============================================================
@@ -245,14 +239,6 @@ const reportsRoute = createRoute({
     beforeLoad: () => guardRole(['MANAGER', 'ADMIN']),
 });
 
-// -- ETL (ADMIN only) --
-const etlRoute = createRoute({
-    getParentRoute: () => authLayoutRoute,
-    path: '/etl',
-    component: EtlLogListPage,
-    beforeLoad: () => guardRole(['ADMIN']),
-});
-
 // -- Analyst Module (ANALYST, MANAGER, ADMIN) --
 const analystThresholdsRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
@@ -266,50 +252,6 @@ const analystModelPerfRoute = createRoute({
     path: '/analyst/model-performance',
     component: AnalystModelPerformancePage,
     beforeLoad: () => guardRole(['ANALYST', 'MANAGER', 'ADMIN']),
-});
-
-const analystSuppressionRoute = createRoute({
-    getParentRoute: () => authLayoutRoute,
-    path: '/analyst/suppression-rules',
-    component: AnalystSuppressionRulesPage,
-    beforeLoad: () => guardRole(['ANALYST', 'ADMIN']),
-});
-
-const analystReportsRoute = createRoute({
-    getParentRoute: () => authLayoutRoute,
-    path: '/analyst/reports',
-    component: AnalystReportsListPage,
-    beforeLoad: () => guardRole(['ANALYST', 'MANAGER', 'ADMIN']),
-});
-
-const analystReportDetailRoute = createRoute({
-    getParentRoute: () => authLayoutRoute,
-    path: '/analyst/reports/$reportId',
-    component: AnalystReportDetailPage,
-    beforeLoad: () => guardRole(['ANALYST', 'MANAGER', 'ADMIN']),
-});
-
-// -- DataLake (ADMIN only) --
-const dataLakeRoute = createRoute({
-    getParentRoute: () => authLayoutRoute,
-    path: '/datalake',
-    component: DataLakeSnapshotsPage,
-    beforeLoad: () => guardRole(['ADMIN']),
-});
-
-// -- Reconciliation (ADMIN only) --
-const reconciliationRoute = createRoute({
-    getParentRoute: () => authLayoutRoute,
-    path: '/reconciliation',
-    component: ReconciliationPage,
-    beforeLoad: () => guardRole(['ADMIN']),
-});
-
-const reconciliationDetailRoute = createRoute({
-    getParentRoute: () => authLayoutRoute,
-    path: '/reconciliation/$runId',
-    component: ReconciliationDetailPage,
-    beforeLoad: () => guardRole(['ADMIN']),
 });
 
 // -- UI Demo (dev only) --
@@ -331,7 +273,7 @@ const notFoundRoute = createRoute({
 // ============================================================
 
 const routeTree = rootRoute.addChildren([
-    publicLayoutRoute.addChildren([loginRoute, loanSimulateRoute]),
+    publicLayoutRoute.addChildren([loginRoute]),
     authLayoutRoute.addChildren([
         dashboardRoute,
         profileRoute,
@@ -347,18 +289,12 @@ const routeTree = rootRoute.addChildren([
         loansRoute,
         loanCreateRoute,
         loanDetailRoute,
+        loanSimulateRoute,
         auditLogsRoute,
         auditLogDetailRoute,
         reportsRoute,
-        etlRoute,
         analystThresholdsRoute,
         analystModelPerfRoute,
-        analystSuppressionRoute,
-        analystReportsRoute,
-        analystReportDetailRoute,
-        dataLakeRoute,
-        reconciliationRoute,
-        reconciliationDetailRoute,
         uiDemoRoute,
         notFoundRoute,
     ]),

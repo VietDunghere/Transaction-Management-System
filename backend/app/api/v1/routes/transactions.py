@@ -19,7 +19,7 @@ from app.api.v1.deps import require_roles
 from app.db.deps import DbSession
 from app.repositories.transaction_repo import TransactionRepository
 from app.schemas.auth import TokenPayload
-from app.schemas.common import PagedResponse, PaginationMeta, TransactionStatus
+from app.schemas.common import PagedResponse, TransactionStatus
 from app.schemas.transaction import (
     FraudScoreDetail,
     TransactionResponse,
@@ -93,12 +93,9 @@ def list_transactions(
     )
     return PagedResponse(
         data=[TransactionResponse.model_validate(t) for t in items],
-        pagination=PaginationMeta(
-            page=page,
-            page_size=limit,
-            total_items=total,
-            total_pages=math.ceil(total / limit) if total > 0 else 0,
-        ),
+        total=total,
+        page=page,
+        limit=limit,
     )
 
 

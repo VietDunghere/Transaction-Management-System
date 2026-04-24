@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, Query
 from app.api.v1.deps import require_roles
 from app.db.deps import DbSession
 from app.schemas.auth import TokenPayload
-from app.schemas.common import PagedResponse, PaginationMeta
+from app.schemas.common import PagedResponse
 from app.schemas.user import (
     CreateUserRequest,
     CreateUserResponse,
@@ -62,12 +62,9 @@ def list_users(
 
     return PagedResponse(
         data=data,
-        pagination=PaginationMeta(
-            page=page,
-            page_size=limit,
-            total_items=total,
-            total_pages=math.ceil(total / limit) if total > 0 else 0,
-        ),
+        total=total,
+        page=page,
+        limit=limit,
     )
 
 

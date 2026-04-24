@@ -65,18 +65,12 @@ class LoanDecision(str, Enum):
 # Response wrappers
 # ============================================================
 
-class PaginationMeta(BaseModel):
-    """Metadata phân trang — đính kèm trong mọi response list."""
-    page: int
-    page_size: int
-    total_items: int
-    total_pages: int
-
-
 class PagedResponse(BaseModel, Generic[T]):
-    """Generic response cho list APIs."""
+    """Generic response cho list APIs — flat format."""
     data: List[T]
-    pagination: PaginationMeta
+    total: int
+    page: int
+    limit: int
 
 
 class ErrorDetail(BaseModel):

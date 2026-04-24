@@ -45,7 +45,7 @@ export type UserSearchParams = z.infer<typeof userSearchSchema>;
 export const loanSearchSchema = z.object({
     ...paginationSchema,
     customer_id: z.string().optional().catch(undefined),
-    status: z.enum(['PENDING', 'SCORING', 'APPROVED', 'REJECTED', 'MANUAL_REVIEW']).optional().catch(undefined),
+    status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'DISBURSED', 'CLOSED', 'DEFAULTED']).optional().catch(undefined),
     period: z.enum(['D', 'W', 'M']).optional().catch(undefined),
 });
 export type LoanSearchParams = z.infer<typeof loanSearchSchema>;
@@ -62,16 +62,6 @@ export const auditLogSearchSchema = z.object({
 });
 export type AuditLogSearchParams = z.infer<typeof auditLogSearchSchema>;
 
-// ---- ETL Logs ----
-
-export const etlLogSearchSchema = z.object({
-    ...paginationSchema,
-    job_type: z.string().optional().catch(undefined),
-    status: z.enum(['SUCCESS', 'FAILED', 'RUNNING']).optional().catch(undefined),
-    from_date: z.string().optional().catch(undefined),
-});
-export type EtlLogSearchParams = z.infer<typeof etlLogSearchSchema>;
-
 // ---- Reports ----
 
 export const reportSearchSchema = z.object({
@@ -85,28 +75,3 @@ export const reportSearchSchema = z.object({
 });
 export type ReportSearchParams = z.infer<typeof reportSearchSchema>;
 
-// ---- Analyst Reports ----
-
-export const analystReportSearchSchema = z.object({
-    ...paginationSchema,
-    status: z.string().optional().catch(undefined),
-    report_type: z.string().optional().catch(undefined),
-});
-export type AnalystReportSearchParams = z.infer<typeof analystReportSearchSchema>;
-
-// ---- DataLake Snapshots ----
-
-export const dataLakeSearchSchema = z.object({
-    ...paginationSchema,
-    snapshot_type: z.string().optional().catch(undefined),
-    status: z.string().optional().catch(undefined),
-});
-export type DataLakeSearchParams = z.infer<typeof dataLakeSearchSchema>;
-
-// ---- Reconciliation ----
-
-export const reconciliationSearchSchema = z.object({
-    ...paginationSchema,
-    status: z.string().optional().catch(undefined),
-});
-export type ReconciliationSearchParams = z.infer<typeof reconciliationSearchSchema>;

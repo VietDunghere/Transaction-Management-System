@@ -29,7 +29,7 @@ from app.schemas.case import (
 from app.models.card_velocity import CardVelocityStats
 from app.models.scoring import RuleHit
 from app.models.user import User
-from app.schemas.common import CaseStatus, PagedResponse, PaginationMeta
+from app.schemas.common import CaseStatus, PagedResponse
 from app.services.case_service import CaseService
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
@@ -112,12 +112,9 @@ def list_cases(
 
     return PagedResponse(
         data=list_data,
-        pagination=PaginationMeta(
-            page=page,
-            page_size=limit,
-            total_items=total,
-            total_pages=math.ceil(total / limit) if total > 0 else 0,
-        ),
+        total=total,
+        page=page,
+        limit=limit,
     )
 
 

@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, Query
 from app.api.v1.deps import require_roles
 from app.db.deps import DbSession
 from app.schemas.auth import TokenPayload
-from app.schemas.common import LoanStatus, PagedResponse, PaginationMeta
+from app.schemas.common import LoanStatus, PagedResponse
 from app.models.loan import Loan
 from app.schemas.loan import (
     CustomerLoanStats,
@@ -122,12 +122,9 @@ def list_loans(
 
     return PagedResponse(
         data=list_data,
-        pagination=PaginationMeta(
-            page=page,
-            page_size=limit,
-            total_items=total,
-            total_pages=math.ceil(total / limit) if total > 0 else 0,
-        ),
+        total=total,
+        page=page,
+        limit=limit,
     )
 
 

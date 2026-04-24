@@ -4,7 +4,6 @@ Service: AnalystService
 Cung cấp các chức năng dành riêng cho ANALYST:
   1. Threshold management — xem/cập nhật ngưỡng fraud & loan
   2. Model performance — thống kê score distribution, false positive rate
-  3. Suppression rules — tạo/vô hiệu hóa whitelist bypass fraud scoring
 """
 
 import json
@@ -15,22 +14,16 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessValidationError, NotFoundError
 from app.core.logging import get_logger
-from app.models.analyst import AnalystReport, ModelConfig, SuppressionRule
 from app.models.case import ReviewCase
 from app.models.loan import Loan
 from app.models.scoring import AuditLog
 from app.models.transaction import Transaction
-from app.repositories.analyst_repo import ModelConfigRepository, SuppressionRepository
+from app.repositories.analyst_repo import ModelConfigRepository
 from app.schemas.analyst import (
-    AnalystReportAcknowledgeRequest,
-    AnalystReportCreateRequest,
-    AnalystReportResponse,
-    AnalystReportSummary,
     FraudModelPerformanceResponse,
     FraudScoreDistribution,
     LoanModelPerformanceResponse,
     LoanRiskDistribution,
-    SuppressionRuleCreateRequest,
     ThresholdListResponse,
     ThresholdUpdateRequest,
 )
@@ -42,7 +35,6 @@ class AnalystService:
     def __init__(self, db: Session) -> None:
         self._db = db
         self._config_repo = ModelConfigRepository(db)
-        self._suppression_repo = SuppressionRepository(db)
 
     # ============================================================
     # 1. Threshold management
@@ -54,13 +46,11 @@ class AnalystService:
         return ThresholdListResponse(fraud=fraud_cfgs, loan=loan_cfgs)
 
     def update_thresholds(self, request: ThresholdUpdateRequest, actor_user_id: str) -> ThresholdListResponse:
-        # Apply updates vào dict tạm để cross-validate trước khi commit
         pending: dict[tuple[str, str], float] = {
             (item.model_name, item.param_name): item.param_value for item in request.updates
         }
 
         def _resolved(model: str, param: str) -> float:
-            """Lấy giá trị mới nếu có trong batch, không thì lấy từ DB."""
             if (model, param) in pending:
                 return pending[(model, param)]
             cfg = self._config_repo.get(model, param)
@@ -106,7 +96,6 @@ class AnalystService:
         cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
 
         txns = self._db.query(Transaction).filter(Transaction.created_at >= cutoff).all()
-        total = len(txns)
 
         reject_cfg = self._config_repo.get("fraud", "reject_threshold")
         review_cfg = self._config_repo.get("fraud", "review_threshold")
@@ -117,9 +106,8 @@ class AnalystService:
         approved = sum(1 for t in scored_txns if float(t.fraud_score) < review_th)
         rejected = sum(1 for t in scored_txns if float(t.fraud_score) >= reject_th)
         review = len(scored_txns) - approved - rejected
-        total = len(scored_txns)  # chỉ tính trên txn đã chấm điểm
+        total = len(scored_txns)
 
-        # False positive: case MANUAL_REVIEW mà reviewer quyết định APPROVED
         fp_count = self._db.query(ReviewCase).filter(
             ReviewCase.created_at >= cutoff,
             ReviewCase.decision == "APPROVE",
@@ -182,128 +170,3 @@ class AnalystService:
                 "medium_risk_threshold": float(medium_cfg.param_value) if medium_cfg else 0.20,
             },
         )
-
-    # ============================================================
-    # 3. Suppression rules
-    # ============================================================
-
-    def list_suppression_rules(self, include_inactive: bool = False) -> list[SuppressionRule]:
-        return self._suppression_repo.list_all(include_inactive=include_inactive)
-
-    def create_suppression_rule(self, request: SuppressionRuleCreateRequest, actor_user_id: str) -> SuppressionRule:
-        rule = SuppressionRule(
-            rule_id=str(uuid.uuid4()),
-            rule_type=request.rule_type,
-            entity_id=request.entity_id,
-            reason=request.reason,
-            created_by=actor_user_id,
-            expires_at=request.expires_at,
-            is_active=True,
-        )
-        self._suppression_repo.create(rule)
-        self._db.add(AuditLog(
-            log_id=str(uuid.uuid4()),
-            event_type="SUPPRESSION_RULE_CREATED",
-            entity_type="SuppressionRule",
-            entity_id=rule.rule_id,
-            actor_user_id=actor_user_id,
-            detail_json=json.dumps({"rule_type": rule.rule_type, "entity_id": rule.entity_id}),
-        ))
-        self._db.commit()
-        self._db.refresh(rule)
-        logger.info("suppression_rule_created", rule_id=rule.rule_id, actor=actor_user_id)
-        return rule
-
-    # ============================================================
-    # 4. Analyst reports
-    # ============================================================
-
-    def create_report(self, request: AnalystReportCreateRequest, actor_user_id: str) -> AnalystReport:
-        report = AnalystReport(
-            report_id=str(uuid.uuid4()),
-            title=request.title,
-            report_type=request.report_type,
-            content_md=request.content_md,
-            status="PENDING_REVIEW",
-            submitted_by=actor_user_id,
-        )
-        self._db.add(report)
-        self._db.add(AuditLog(
-            log_id=str(uuid.uuid4()),
-            event_type="ANALYST_REPORT_SUBMITTED",
-            entity_type="AnalystReport",
-            entity_id=report.report_id,
-            actor_user_id=actor_user_id,
-            detail_json=json.dumps({"title": report.title, "report_type": report.report_type}),
-        ))
-        self._db.commit()
-        self._db.refresh(report)
-        logger.info("analyst_report_created", report_id=report.report_id, actor=actor_user_id)
-        return report
-
-    def list_reports(
-        self,
-        status: str | None = None,
-        report_type: str | None = None,
-        submitted_by: str | None = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> tuple[list[AnalystReport], int]:
-        q = self._db.query(AnalystReport)
-        if status:
-            q = q.filter(AnalystReport.status == status)
-        if report_type:
-            q = q.filter(AnalystReport.report_type == report_type)
-        if submitted_by:
-            q = q.filter(AnalystReport.submitted_by == submitted_by)
-        total = q.count()
-        items = q.order_by(AnalystReport.submitted_at.desc()).offset(offset).limit(limit).all()
-        return items, total
-
-    def get_report(self, report_id: str) -> AnalystReport:
-        report = self._db.query(AnalystReport).filter(AnalystReport.report_id == report_id).first()
-        if report is None:
-            raise NotFoundError("AnalystReport")
-        return report
-
-    def acknowledge_report(
-        self,
-        report_id: str,
-        request: AnalystReportAcknowledgeRequest,
-        actor_user_id: str,
-    ) -> AnalystReport:
-        report = self.get_report(report_id)
-        if report.status == "ACKNOWLEDGED":
-            raise BusinessValidationError("Báo cáo này đã được xác nhận trước đó.")
-        report.status = "ACKNOWLEDGED"
-        report.acknowledged_by = actor_user_id
-        report.acknowledged_at = datetime.now(timezone.utc).replace(tzinfo=None)
-        report.note = request.note
-        self._db.add(AuditLog(
-            log_id=str(uuid.uuid4()),
-            event_type="ANALYST_REPORT_ACKNOWLEDGED",
-            entity_type="AnalystReport",
-            entity_id=report_id,
-            actor_user_id=actor_user_id,
-            detail_json=json.dumps({"report_id": report_id, "note": request.note}),
-        ))
-        self._db.commit()
-        self._db.refresh(report)
-        logger.info("analyst_report_acknowledged", report_id=report_id, actor=actor_user_id)
-        return report
-
-    def deactivate_suppression_rule(self, rule_id: str, actor_user_id: str) -> SuppressionRule:
-        rule = self._suppression_repo.deactivate(rule_id)
-        if rule is None:
-            raise NotFoundError("SuppressionRule")
-        self._db.add(AuditLog(
-            log_id=str(uuid.uuid4()),
-            event_type="SUPPRESSION_RULE_DEACTIVATED",
-            entity_type="SuppressionRule",
-            entity_id=rule_id,
-            actor_user_id=actor_user_id,
-            detail_json=json.dumps({"rule_id": rule_id}),
-        ))
-        self._db.commit()
-        logger.info("suppression_rule_deactivated", rule_id=rule_id, actor=actor_user_id)
-        return rule

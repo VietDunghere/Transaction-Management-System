@@ -24,7 +24,7 @@ from app.db.deps import DbSession
 from app.repositories.audit_repo import VALID_ENTITY_TYPES
 from app.schemas.audit_log import AuditLogListItem, AuditLogResponse
 from app.schemas.auth import TokenPayload
-from app.schemas.common import PagedResponse, PaginationMeta
+from app.schemas.common import PagedResponse
 from app.services.audit_service import AuditService
 
 router = APIRouter(prefix="/audit-logs", tags=["Audit Logs"])
@@ -81,12 +81,9 @@ def list_audit_logs(
     )
     return PagedResponse(
         data=[AuditLogListItem.model_validate(log) for log in items],
-        pagination=PaginationMeta(
-            page=page,
-            page_size=limit,
-            total_items=total,
-            total_pages=math.ceil(total / limit) if total > 0 else 0,
-        ),
+        total=total,
+        page=page,
+        limit=limit,
     )
 
 
@@ -119,12 +116,9 @@ def list_entity_audit_logs(
     )
     return PagedResponse(
         data=[AuditLogResponse.model_validate(log) for log in items],
-        pagination=PaginationMeta(
-            page=page,
-            page_size=limit,
-            total_items=total,
-            total_pages=math.ceil(total / limit) if total > 0 else 0,
-        ),
+        total=total,
+        page=page,
+        limit=limit,
     )
 
 

@@ -10,13 +10,9 @@ from app.api.v1.routes import (
     auth,
     cases,
     dashboard,
-    datalake,
-    etl,
     health,
     loan,
-    reconciliation,
     reports,
-    stream,
     transactions,
     users,
 )
@@ -32,8 +28,4 @@ router.include_router(loan.router)
 router.include_router(audit_logs.router)
 router.include_router(dashboard.router)
 router.include_router(reports.router)
-router.include_router(etl.router)
-router.include_router(datalake.router)
-router.include_router(reconciliation.router)
-router.include_router(stream.router)
 router.include_router(health.router)

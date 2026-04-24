@@ -15,7 +15,7 @@ const submitSchema = z.object({
     customer_id: z.string().min(1, 'Customer ID is required'),
     merchant_id: z.string().min(1, 'Merchant ID is required'),
     channel_id: z.string().min(1, 'Channel ID is required'),
-    card_number_masked: z.string().min(1, 'Card number is required'),
+    card_number: z.string().min(13, 'Card number must be at least 13 characters'),
     amount: z.string().min(1, 'Amount is required'),
     currency_code: z.string().min(1, 'Currency is required'),
     txn_time: z.string().min(1, 'Transaction time is required'),
@@ -95,10 +95,10 @@ export function TransactionSubmitPage() {
                                 {...register('channel_id')}
                             />
                             <Input
-                                label="Card Number (masked)"
-                                placeholder="4111********1111"
-                                error={errors.card_number_masked?.message}
-                                {...register('card_number_masked')}
+                                label="Card Number"
+                                placeholder="4111111111111111"
+                                error={errors.card_number?.message}
+                                {...register('card_number')}
                             />
                             <Input
                                 label="Amount"

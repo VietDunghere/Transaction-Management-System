@@ -14,8 +14,6 @@ export type LoanDecision = 'APPROVE' | 'REJECT';
 
 export type RiskLevel = 'LOW RISK' | 'MEDIUM RISK' | 'HIGH RISK';
 
-export type EtlJobStatus = 'RUNNING' | 'SUCCESS' | 'FAILED';
-
 export type AuditEntityType = 'Transaction' | 'User' | 'ReviewCase' | 'Loan';
 
 // ---- Common ----
@@ -114,7 +112,7 @@ export interface TransactionSubmitRequest {
     customer_id: string;
     merchant_id: string;
     channel_id: number;
-    card_number_masked: string;
+    card_number: string;
     amount: number;
     currency_code: string;
     txn_time: string;
@@ -304,19 +302,19 @@ export interface LoanSimulateRequest {
     person_income: number;
     person_home_ownership: string;
     person_emp_length: number;
-    loan_amount: number;
+    loan_amnt: number;
+    loan_int_rate: number;
     loan_grade: string;
     loan_intent: string;
     cb_person_default_on_file: string;
     cb_person_cred_hist_length: number;
-    requested_term_months: number;
 }
 
 export interface LoanSimulateResponse {
     pd_score: number;
     risk_level: RiskLevel;
-    decision: string;
-    confidence: number;
+    top_risk_factors: string[];
+    model_version: string;
 }
 
 export interface LoanDecisionRequest {
@@ -328,10 +326,9 @@ export interface LoanDecisionRequest {
 export interface LoanDecisionResponse {
     loan_id: string;
     status: LoanStatus;
-    decision: LoanDecision;
-    monthly_payment: number;
-    maturity_date: string;
-    reviewed_at: string;
+    monthly_payment: number | null;
+    maturity_date: string | null;
+    reviewed_at: string | null;
     version: number;
 }
 
@@ -424,26 +421,6 @@ export interface FraudReportEntry {
     fraud_rate: number;
 }
 
-// ---- UC09: ETL ----
-
-export interface EtlJob {
-    job_id: string;
-    target_date: string;
-    job_type: string;
-    status: EtlJobStatus;
-    records_extracted: number | null;
-    records_transformed: number | null;
-    records_loaded: number | null;
-    started_at: string;
-    completed_at: string | null;
-    error_message: string | null;
-}
-
-export interface TriggerEtlRequest {
-    target_date: string;
-    job_type: string;
-}
-
 // ---- Analyst: Thresholds ----
 
 export interface ThresholdItem {
@@ -469,26 +446,6 @@ export interface ThresholdUpdateItem {
 
 export interface ThresholdUpdateRequest {
     updates: ThresholdUpdateItem[];
-}
-
-// ---- Analyst: Suppression Rules ----
-
-export interface SuppressionRule {
-    rule_id: string;
-    rule_type: 'MERCHANT' | 'CUSTOMER' | 'CARD_HASH';
-    entity_id: string;
-    reason: string;
-    created_by: string;
-    expires_at: string | null;
-    is_active: boolean;
-    created_at: string;
-}
-
-export interface SuppressionRuleCreateRequest {
-    rule_type: 'MERCHANT' | 'CUSTOMER' | 'CARD_HASH';
-    entity_id: string;
-    reason: string;
-    expires_at?: string;
 }
 
 // ---- Analyst: Model Performance ----
@@ -530,88 +487,3 @@ export interface LoanModelPerformance {
     current_thresholds: Record<string, number>;
 }
 
-// ---- Analyst: Reports ----
-
-export interface AnalystReportSummary {
-    report_id: string;
-    title: string;
-    report_type: string;
-    status: string;
-    submitted_by: string;
-    submitted_at: string;
-    acknowledged_by: string | null;
-    acknowledged_at: string | null;
-}
-
-export interface AnalystReport extends AnalystReportSummary {
-    content_md: string;
-    note: string | null;
-}
-
-export interface AnalystReportCreateRequest {
-    title: string;
-    report_type: string;
-    content_md: string;
-}
-
-export interface AnalystReportAcknowledgeRequest {
-    note?: string;
-}
-
-// ---- DataLake ----
-
-export interface DataLakeSnapshot {
-    snapshot_id: string;
-    snapshot_type: string;
-    snapshot_date: string;
-    job_id: string | null;
-    source_label: string | null;
-    record_count: number;
-    total_amount: number | null;
-    status: string;
-    created_at: string;
-    data_summary: Record<string, unknown> | null;
-}
-
-// ---- Reconciliation ----
-
-export interface ReconciliationRun {
-    run_id: string;
-    period_start: string;
-    period_end: string;
-    pending_timeout_minutes: number;
-    status: string;
-    total_txn_count: number | null;
-    matched_count: number | null;
-    discrepancy_count: number | null;
-    total_amount: number | null;
-    error_message: string | null;
-    triggered_by: string | null;
-    completed_at: string | null;
-    created_at: string;
-}
-
-export interface ReconciliationItem {
-    item_id: string;
-    run_id: string;
-    txn_id: string | null;
-    item_type: string;
-    txn_status: string | null;
-    txn_amount: number | null;
-    minutes_pending: number | null;
-    status: string;
-    resolution_note: string | null;
-    resolved_by: string | null;
-    resolved_at: string | null;
-    created_at: string;
-}
-
-export interface ReconciliationDetail extends ReconciliationRun {
-    items: ReconciliationItem[];
-}
-
-export interface ReconciliationRunRequest {
-    period_start: string;
-    period_end: string;
-    pending_timeout_minutes: number;
-}

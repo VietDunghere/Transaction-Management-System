@@ -2,7 +2,6 @@ from __future__ import annotations
 """
 Schemas: Analyst module
 - ThresholdResponse / ThresholdUpdateRequest
-- SuppressionRuleResponse / SuppressionRuleCreateRequest
 - ModelPerformanceResponse (fraud + loan)
 """
 
@@ -56,42 +55,18 @@ class ThresholdListResponse(BaseModel):
 
 
 # ================================================================
-# Suppression rule schemas
-# ================================================================
-
-class SuppressionRuleResponse(BaseModel):
-    rule_id: str
-    rule_type: str
-    entity_id: str
-    reason: str
-    created_by: str
-    expires_at: Optional[datetime] = None
-    is_active: bool
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-class SuppressionRuleCreateRequest(BaseModel):
-    rule_type: str = Field(..., pattern="^(MERCHANT|CUSTOMER|CARD_HASH)$")
-    entity_id: str = Field(..., min_length=1, max_length=255)
-    reason: str = Field(..., min_length=5, max_length=1000)
-    expires_at: Optional[datetime] = None
-
-
-# ================================================================
 # Model performance schemas
 # ================================================================
 
 class FraudScoreDistribution(BaseModel):
-    approved_count: int       # fraud_score < review_threshold
-    review_count: int         # review_threshold <= fraud_score < reject_threshold
-    rejected_count: int       # fraud_score >= reject_threshold
+    approved_count: int
+    review_count: int
+    rejected_count: int
     total: int
     approved_rate: float
     review_rate: float
     rejected_rate: float
-    false_positive_count: int  # MANUAL_REVIEW case → reviewer quyết APPROVED (model over-flagged)
+    false_positive_count: int
     false_positive_rate: float
 
 
@@ -118,62 +93,3 @@ class LoanModelPerformanceResponse(BaseModel):
     period_days: int
     risk_distribution: LoanRiskDistribution
     current_thresholds: dict[str, float]
-
-
-# ================================================================
-# Analyst report schemas
-# ================================================================
-
-VALID_REPORT_TYPES = {
-    "FRAUD_ANALYSIS",
-    "LOAN_ANALYSIS",
-    "THRESHOLD_RECOMMENDATION",
-    "SUPPRESSION_REVIEW",
-    "GENERAL",
-}
-
-
-class AnalystReportCreateRequest(BaseModel):
-    title: str = Field(..., min_length=5, max_length=255)
-    report_type: str = Field(..., description="FRAUD_ANALYSIS | LOAN_ANALYSIS | THRESHOLD_RECOMMENDATION | SUPPRESSION_REVIEW | GENERAL")
-    content_md: str = Field(..., min_length=20, description="Nội dung báo cáo định dạng Markdown")
-
-    @field_validator("report_type")
-    @classmethod
-    def validate_report_type(cls, v: str) -> str:
-        if v not in VALID_REPORT_TYPES:
-            raise ValueError(f"report_type phải là một trong: {', '.join(sorted(VALID_REPORT_TYPES))}")
-        return v
-
-
-class AnalystReportAcknowledgeRequest(BaseModel):
-    note: Optional[str] = Field(None, max_length=1000, description="Ghi chú phản hồi của MANAGER")
-
-
-class AnalystReportResponse(BaseModel):
-    report_id: str
-    title: str
-    report_type: str
-    content_md: str
-    status: str
-    submitted_by: str
-    submitted_at: datetime
-    acknowledged_by: Optional[str] = None
-    acknowledged_at: Optional[datetime] = None
-    note: Optional[str] = None
-
-    model_config = {"from_attributes": True}
-
-
-class AnalystReportSummary(BaseModel):
-    """Trả về trong list — không bao gồm content_md để tránh payload lớn."""
-    report_id: str
-    title: str
-    report_type: str
-    status: str
-    submitted_by: str
-    submitted_at: datetime
-    acknowledged_by: Optional[str] = None
-    acknowledged_at: Optional[datetime] = None
-
-    model_config = {"from_attributes": True}

@@ -6,15 +6,10 @@ import {
     Users,
     CreditCard,
     ScrollText,
-    Database,
     User,
     Component,
     SlidersHorizontal,
     Activity,
-    ShieldOff,
-    FileText,
-    Layers,
-    GitCompare,
 } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { cn } from '~/utils/cn';
@@ -64,26 +59,11 @@ const analystNavItems: NavItem[] = [
         href: '/analyst/model-performance',
         roles: ['ANALYST', 'MANAGER', 'ADMIN'],
     },
-    {
-        label: 'Suppression Rules',
-        icon: <ShieldOff size={20} />,
-        href: '/analyst/suppression-rules',
-        roles: ['ANALYST', 'ADMIN'],
-    },
-    {
-        label: 'Analyst Reports',
-        icon: <FileText size={20} />,
-        href: '/analyst/reports',
-        roles: ['ANALYST', 'MANAGER', 'ADMIN'],
-    },
 ];
 
 const secondaryNavItems: NavItem[] = [
     { label: 'Reports', icon: <BarChart3 size={20} />, href: '/reports', roles: ['MANAGER', 'ADMIN'] },
     { label: 'Audit Logs', icon: <ScrollText size={20} />, href: '/audit-logs', roles: ['MANAGER', 'ADMIN'] },
-    { label: 'ETL Pipeline', icon: <Database size={20} />, href: '/etl', roles: ['ADMIN'] },
-    { label: 'Data Lake', icon: <Layers size={20} />, href: '/datalake', roles: ['ADMIN'] },
-    { label: 'Reconciliation', icon: <GitCompare size={20} />, href: '/reconciliation', roles: ['ADMIN'] },
     { label: 'Profile', icon: <User size={20} />, href: '/profile' },
     { label: 'UI Demo', icon: <Component size={20} />, href: '/ui-demo' },
 ];
