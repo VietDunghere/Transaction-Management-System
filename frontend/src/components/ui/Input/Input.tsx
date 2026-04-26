@@ -1,17 +1,26 @@
 import type { InputHTMLAttributes } from 'react';
 import { cn } from '~/utils/cn';
 
+type InputSize = 'sm' | 'md' | 'lg';
+
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
     error?: string;
     hint?: string;
+    inputSize?: InputSize;
 }
 
-export function Input({ label, error, hint, className, id, ...rest }: InputProps) {
+const sizeStyles: Record<InputSize, string> = {
+    sm: 'px-3 py-1.5 text-sm',
+    md: 'px-4 py-2.5 text-sm',
+    lg: 'px-4 py-3 text-base',
+};
+
+export function Input({ label, error, hint, inputSize = 'md', className, id, ...rest }: InputProps) {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
             {label && (
                 <label htmlFor={inputId} className="text-sm font-semibold text-text-primary">
                     {label}
@@ -20,8 +29,8 @@ export function Input({ label, error, hint, className, id, ...rest }: InputProps
             <input
                 id={inputId}
                 className={cn(
-                    'w-full px-4 py-3',
-                    'text-base',
+                    'w-full',
+                    sizeStyles[inputSize],
                     'bg-primary',
                     'border border-border-default',
                     'rounded-lg',

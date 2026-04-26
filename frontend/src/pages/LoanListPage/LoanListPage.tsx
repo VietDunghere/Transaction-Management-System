@@ -88,7 +88,7 @@ export function LoanListPage() {
         ),
     }));
 
-    const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
+    const totalPages = data?.pagination?.total_pages ?? 0;
     const canCreate = userRole === 'OPERATOR' || userRole === 'MANAGER' || userRole === 'ADMIN';
 
     return (
@@ -96,7 +96,7 @@ export function LoanListPage() {
             header={
                 <PageHeader
                     title="Loans"
-                    subtitle={data ? `${data.total} total loans` : undefined}
+                    subtitle={data ? `${data.pagination.total_items} total loans` : undefined}
                     actions={
                         canCreate ? (
                             <Button onClick={() => navigate({ to: '/loans/create' })}>Create Loan</Button>

@@ -1,0 +1,29 @@
+Visual Test 26/04/2026
+
+- Shared issue:
+	- No pagination (Marked as `P` below)
+	- Profile Page needs to remove Email
+- Check role:
+	- Operator:
+		- Loan Page & Loan Detail (View & filter only) `P`
+		- Profile (Got change password)
+	- Manager:
+		- Dashboard Page (With data, %, no chart) `P`
+		- Transaction Page & Transaction Detail (View & filter only, undefined total transactions) `P`
+		- User Page & User Detail Page (View & filter only, undefined total users) `P`
+		- Audit Logs & Audit Detail Page (View & filter only, undefined total entries) `P` 
+		- Profile (Got change password)
+	- Reviewer: 
+		- Case & Case Detail (View ALL case, filter, Assign case to me, approve/reject case) `P`
+		- Loan & Loan Detail Page (View ALL loan, filter, approve/reject case) `P`
+		- Profile (Got change password)
+	- Analyst:
+		- Dashboard Page (With data, %, no chart, same as Manager) `P`
+		- Transaction Page & Transaction Detail (View & filter only, undefined total transactions) `P`
+		- Model Threshold (View, Update both model)
+		- Model Performance (View, no chart)
+		- Profile (Got change password)
+	- Admin:
+		- User (View, filter, Update role, deactivate account)
+		- Audit Logs & Audit Detail Page (View & filter only, undefined total entries) `P` 
+		- Profile (Got change password)

@@ -1,9 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 import { transactionService } from '~/services/transactionService';
-import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { TransactionSearchParams } from '~/types/searchParams';
-import type { TransactionSubmitRequest } from '~/types/api';
 
 export const transactionKeys = {
     all: ['transactions'] as const,
@@ -32,21 +29,5 @@ export function useTransactionStates(txnId: string) {
         queryKey: transactionKeys.states(txnId),
         queryFn: () => transactionService.getTransactionStates(txnId),
         enabled: !!txnId,
-    });
-}
-
-export function useSubmitTransaction() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: (data: TransactionSubmitRequest) => transactionService.submitTransaction(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: transactionKeys.all });
-            toastSuccessWithActivity('Transaction submitted successfully');
-        },
-        onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
-        },
     });
 }

@@ -1,12 +1,127 @@
+import { useMemo } from 'react';
+import ReactEChartsCore from 'echarts-for-react/lib/core';
+import * as echarts from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import {
+    GridComponent,
+    TooltipComponent,
+    LegendComponent,
+    DataZoomComponent,
+    ToolboxComponent,
+} from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import { useDashboardSummary, useFraudTrend } from '~/hooks/useDashboard';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
 import { DashboardTemplate } from '~/components/templates/DashboardTemplate/DashboardTemplate';
 import { StatCard } from '~/components/ui/StatCard/StatCard';
 import { Card } from '~/components/ui/Card/Card';
 import { SectionHeader } from '~/components/ui/SectionHeader/SectionHeader';
-import { TableShell } from '~/components/ui/TableShell/TableShell';
 import { LoadingSkeleton } from '~/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
+
+echarts.use([
+    LineChart,
+    GridComponent,
+    TooltipComponent,
+    LegendComponent,
+    DataZoomComponent,
+    ToolboxComponent,
+    CanvasRenderer,
+]);
+
+interface TrendPoint {
+    period_label: string;
+    approved: number;
+    rejected: number;
+    manual_review: number;
+}
+
+function FraudTrendChart({ data }: { data: TrendPoint[] }) {
+    const option = useMemo(
+        () => ({
+            tooltip: {
+                trigger: 'axis' as const,
+                axisPointer: { type: 'cross' as const },
+            },
+            legend: {
+                data: ['Approved', 'Rejected', 'Manual Review'],
+                bottom: 0,
+                textStyle: { color: '#888' },
+            },
+            toolbox: {
+                feature: {
+                    saveAsImage: { title: 'Save' },
+                },
+            },
+            grid: {
+                left: 48,
+                right: 24,
+                top: 16,
+                bottom: 80,
+                containLabel: false,
+            },
+            dataZoom: [
+                {
+                    type: 'slider' as const,
+                    start: 0,
+                    end: 100,
+                    bottom: 30,
+                    height: 20,
+                },
+                { type: 'inside' as const },
+            ],
+            xAxis: {
+                type: 'category' as const,
+                data: data.map((d) => d.period_label),
+                axisLabel: { fontSize: 11, color: '#888' },
+            },
+            yAxis: {
+                type: 'value' as const,
+                axisLabel: { fontSize: 11, color: '#888' },
+                splitLine: { lineStyle: { color: 'rgba(128,128,128,0.15)' } },
+            },
+            series: [
+                {
+                    name: 'Approved',
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'circle',
+                    symbolSize: 5,
+                    areaStyle: { opacity: 0.15 },
+                    itemStyle: { color: '#22c55e' },
+                    data: data.map((d) => d.approved),
+                },
+                {
+                    name: 'Rejected',
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'circle',
+                    symbolSize: 5,
+                    areaStyle: { opacity: 0.15 },
+                    itemStyle: { color: '#ef4444' },
+                    data: data.map((d) => d.rejected),
+                },
+                {
+                    name: 'Manual Review',
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'circle',
+                    symbolSize: 5,
+                    areaStyle: { opacity: 0.15 },
+                    itemStyle: { color: '#f59e0b' },
+                    data: data.map((d) => d.manual_review),
+                },
+            ],
+        }),
+        [data],
+    );
+
+    return (
+        <div className="mt-4">
+            <ReactEChartsCore echarts={echarts} option={option} style={{ height: 350 }} />
+        </div>
+    );
+}
 
 export function DashboardPage() {
     const {
@@ -45,28 +160,7 @@ export function DashboardPage() {
                     {trendLoading ? (
                         <LoadingSkeleton variant="chart" />
                     ) : trend && trend.data.length > 0 ? (
-                        <div className="mt-4 overflow-x-auto">
-                            <TableShell
-                                columns={[
-                                    { key: 'date', label: 'Date' },
-                                    { key: 'total_txn', label: 'Total', align: 'right' },
-                                    { key: 'approved', label: 'Approved', align: 'right' },
-                                    { key: 'rejected', label: 'Rejected', align: 'right' },
-                                    { key: 'manual_review', label: 'Review', align: 'right' },
-                                    { key: 'fraud_rate', label: 'Fraud %', align: 'right' },
-                                ]}
-                                data={trend.data.slice(0, 10).map((d) => ({
-                                    date: <span className="text-xs">{d.period_label}</span>,
-                                    total_txn: <span className="text-sm">{d.total_txn}</span>,
-                                    approved: <span className="text-sm text-status-success">{d.approved}</span>,
-                                    rejected: <span className="text-sm text-status-danger">{d.rejected}</span>,
-                                    manual_review: (
-                                        <span className="text-sm text-status-warning">{d.manual_review}</span>
-                                    ),
-                                    fraud_rate: <span className="text-sm">{(d.fraud_rate * 100).toFixed(2)}%</span>,
-                                }))}
-                            />
-                        </div>
+                        <FraudTrendChart data={trend.data} />
                     ) : (
                         <p className="text-sm text-text-secondary mt-4">No trend data available.</p>
                     )}

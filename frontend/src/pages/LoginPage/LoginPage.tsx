@@ -84,19 +84,19 @@ export function LoginPage() {
                                 </div>
 
                                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                                    <div>
-                                        <Input
-                                            className="py-6 text-base border-2 bg-transparent transition-colors duration-700 ease-in-out"
-                                            label="Username"
-                                            placeholder="Enter your username"
-                                            error={errors.username?.message}
-                                            {...register('username')}
-                                        />
-                                    </div>
+                                    <Input
+                                        inputSize="lg"
+                                        className="border-2 bg-transparent transition-colors duration-700 ease-in-out"
+                                        label="Username"
+                                        placeholder="Enter your username"
+                                        error={errors.username?.message}
+                                        {...register('username')}
+                                    />
 
                                     <div>
                                         <Input
-                                            className="py-6 text-base border-2 bg-transparent transition-colors duration-700 ease-in-out"
+                                            inputSize="lg"
+                                            className="border-2 bg-transparent transition-colors duration-700 ease-in-out"
                                             label="Password"
                                             type="password"
                                             placeholder="Enter your password"
@@ -124,7 +124,7 @@ export function LoginPage() {
                                         type="submit"
                                         variant="primary"
                                         loading={login.isPending}
-                                        className="w-full mt-2 py-6 text-base rounded-xl shadow-md transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl active:scale-95"
+                                        className="w-full mt-2 py-3 text-base rounded-xl shadow-md transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl active:scale-95"
                                     >
                                         Login
                                     </Button>

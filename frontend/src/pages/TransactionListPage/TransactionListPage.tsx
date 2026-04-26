@@ -65,14 +65,14 @@ export function TransactionListPage() {
         txn_time: <span className="text-xs text-text-secondary">{new Date(txn.txn_time).toLocaleString()}</span>,
     }));
 
-    const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
+    const totalPages = data?.pagination?.total_pages ?? 0;
 
     return (
         <ListPageTemplate
             header={
                 <PageHeader
                     title="Transactions"
-                    subtitle={data ? `${data.total} total transactions` : undefined}
+                    subtitle={data ? `${data.pagination.total_items} total transactions` : undefined}
                     actions={
                         userRole === 'OPERATOR' ? (
                             <Button onClick={() => navigate({ to: '/transactions/submit' })}>Submit Transaction</Button>

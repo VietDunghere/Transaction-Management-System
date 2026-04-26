@@ -65,14 +65,14 @@ export function UserListPage() {
         created_at: <span className="text-xs text-text-secondary">{new Date(u.created_at).toLocaleDateString()}</span>,
     }));
 
-    const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
+    const totalPages = data?.pagination?.total_pages ?? 0;
 
     return (
         <ListPageTemplate
             header={
                 <PageHeader
                     title="Users"
-                    subtitle={data ? `${data.total} total users` : undefined}
+                    subtitle={data ? `${data.pagination.total_items} total users` : undefined}
                     actions={
                         userRole === 'ADMIN' ? (
                             <Button onClick={() => navigate({ to: '/users/create' })}>Create User</Button>

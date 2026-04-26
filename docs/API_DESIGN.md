@@ -153,7 +153,7 @@ Kiểm tra trạng thái hệ thống, phục vụ load balancer & health probes
 ```json
 {
   "user_id": "uuid",
-  "username": "string",
+  "username": "string", 
   "full_name": "string",
   "role": "OPERATOR | REVIEWER | MANAGER | ADMIN",
   "is_active": true

@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { loanService } from '~/services/loanService';
 import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { LoanSearchParams } from '~/types/searchParams';
-import type { CreateLoanRequest, LoanSimulateRequest, LoanDecisionRequest } from '~/types/api';
+import type { LoanDecisionRequest } from '~/types/api';
 
 export const loanKeys = {
     all: ['loans'] as const,
@@ -23,31 +23,6 @@ export function useLoan(loanId: string) {
         queryKey: loanKeys.detail(loanId),
         queryFn: () => loanService.getLoan(loanId),
         enabled: !!loanId,
-    });
-}
-
-export function useCreateLoan() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: (data: CreateLoanRequest) => loanService.createLoan(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: loanKeys.all });
-            toastSuccessWithActivity('Loan application created');
-        },
-        onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
-        },
-    });
-}
-
-export function useSimulateLoan() {
-    return useMutation({
-        mutationFn: (data: LoanSimulateRequest) => loanService.simulateLoan(data),
-        onError: () => {
-            toast.error('Simulation failed. Please check your inputs.');
-        },
     });
 }
 

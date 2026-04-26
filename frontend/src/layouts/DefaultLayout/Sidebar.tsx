@@ -2,19 +2,12 @@ import {
     LayoutDashboard,
     ArrowLeftRight,
     ShieldAlert,
-    BarChart3,
     Users,
     CreditCard,
     ScrollText,
-    Database,
     User,
-    Component,
     SlidersHorizontal,
     Activity,
-    ShieldOff,
-    FileText,
-    Layers,
-    GitCompare,
 } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { cn } from '~/utils/cn';
@@ -34,19 +27,19 @@ interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-    { label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/', roles: ['ANALYST', 'MANAGER', 'ADMIN'] },
+    { label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/', roles: ['ANALYST', 'MANAGER'] },
     {
         label: 'Transactions',
         icon: <ArrowLeftRight size={20} />,
         href: '/transactions',
-        roles: ['ANALYST', 'MANAGER', 'ADMIN'],
+        roles: ['ANALYST', 'MANAGER'],
     },
-    { label: 'Cases', icon: <ShieldAlert size={20} />, href: '/cases', roles: ['REVIEWER', 'MANAGER', 'ADMIN'] },
+    { label: 'Cases', icon: <ShieldAlert size={20} />, href: '/cases', roles: ['REVIEWER'] },
     {
         label: 'Loans',
         icon: <CreditCard size={20} />,
         href: '/loans',
-        roles: ['OPERATOR', 'REVIEWER', 'MANAGER', 'ADMIN'],
+        roles: ['OPERATOR', 'REVIEWER'],
     },
     { label: 'Users', icon: <Users size={20} />, href: '/users', roles: ['MANAGER', 'ADMIN'] },
 ];
@@ -56,41 +49,39 @@ const analystNavItems: NavItem[] = [
         label: 'Thresholds',
         icon: <SlidersHorizontal size={20} />,
         href: '/analyst/thresholds',
-        roles: ['ANALYST', 'MANAGER', 'ADMIN'],
+        roles: ['ANALYST'],
     },
     {
         label: 'Model Performance',
         icon: <Activity size={20} />,
         href: '/analyst/model-performance',
-        roles: ['ANALYST', 'MANAGER', 'ADMIN'],
-    },
-    {
-        label: 'Suppression Rules',
-        icon: <ShieldOff size={20} />,
-        href: '/analyst/suppression-rules',
-        roles: ['ANALYST', 'ADMIN'],
-    },
-    {
-        label: 'Analyst Reports',
-        icon: <FileText size={20} />,
-        href: '/analyst/reports',
-        roles: ['ANALYST', 'MANAGER', 'ADMIN'],
+        roles: ['ANALYST'],
     },
 ];
 
 const secondaryNavItems: NavItem[] = [
-    { label: 'Reports', icon: <BarChart3 size={20} />, href: '/reports', roles: ['MANAGER', 'ADMIN'] },
     { label: 'Audit Logs', icon: <ScrollText size={20} />, href: '/audit-logs', roles: ['MANAGER', 'ADMIN'] },
-    { label: 'ETL Pipeline', icon: <Database size={20} />, href: '/etl', roles: ['ADMIN'] },
-    { label: 'Data Lake', icon: <Layers size={20} />, href: '/datalake', roles: ['ADMIN'] },
-    { label: 'Reconciliation', icon: <GitCompare size={20} />, href: '/reconciliation', roles: ['ADMIN'] },
     { label: 'Profile', icon: <User size={20} />, href: '/profile' },
-    { label: 'UI Demo', icon: <Component size={20} />, href: '/ui-demo' },
 ];
 
 function filterByRole(items: NavItem[], role: Role | undefined): NavItem[] {
     if (!role) return [];
     return items.filter((item) => !item.roles || item.roles.includes(role));
+}
+
+function isRouteActive(currentPath: string, href: string): boolean {
+    if (href === '/') return currentPath === '/';
+    return currentPath === href || currentPath.startsWith(`${href}/`);
+}
+
+function getNavLinkClass(isActive: boolean, isOpen: boolean): string {
+    return cn(
+        'group flex items-center gap-2 rounded-md py-2 text-sm transition-colors duration-150',
+        isOpen ? 'px-4' : 'justify-center px-2',
+        isActive
+            ? 'bg-subtle text-text-primary font-semibold'
+            : 'text-text-secondary hover:bg-subtle/70 hover:text-text-primary',
+    );
 }
 
 export function Sidebar({ isOpen, onToggle }: SidebarProps) {
@@ -108,20 +99,24 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     return (
         <>
             {/* Mobile overlay */}
-            {isOpen && <div className="fixed inset-0 z-40 bg-black/20 md:hidden" onClick={onToggle} />}
+            {isOpen && (
+                <button
+                    type="button"
+                    aria-label="Close sidebar"
+                    className="fixed inset-0 z-40 bg-black/20 md:hidden"
+                    onClick={onToggle}
+                />
+            )}
 
             <aside
                 className={cn(
-                    'flex flex-col bg-primary',
+                    'flex flex-col bg-primary p-4',
                     'border-r border-border-default',
                     'transition-all duration-300',
-                    'z-50 shrink-0',
+                    'z-50 shrink-0 overflow-hidden',
                     'fixed inset-y-0 left-0 md:relative',
-                    isOpen
-                        ? 'w-[var(--sidebar-width)] translate-x-0'
-                        : 'w-[var(--sidebar-collapsed)] -translate-x-full md:translate-x-0',
+                    isOpen ? 'w-sidebar translate-x-0' : 'w-sidebar-collapsed -translate-x-full md:translate-x-0',
                 )}
-                style={{ padding: 16 }}
             >
                 {/* User row */}
                 <div className="flex items-center gap-3 px-2 py-2 mb-2">
@@ -147,20 +142,14 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     )}
                     <ul className="flex flex-col gap-0.5">
                         {visibleMain.map((item) => {
-                            const isActive =
-                                currentPath === item.href ||
-                                (item.href !== '/' && currentPath.startsWith(item.href + '/'));
+                            const isActive = isRouteActive(currentPath, item.href);
                             return (
                                 <li key={item.href}>
                                     <Link
                                         to={item.href}
-                                        className={cn(
-                                            'flex items-center gap-2 px-5 py-2',
-                                            'rounded-sm text-sm transition-colors duration-150',
-                                            isActive
-                                                ? 'text-text-primary font-semibold'
-                                                : 'text-text-secondary hover:text-text-primary',
-                                        )}
+                                        title={!isOpen ? item.label : undefined}
+                                        aria-current={isActive ? 'page' : undefined}
+                                        className={getNavLinkClass(isActive, isOpen)}
                                     >
                                         <span className="shrink-0">{item.icon}</span>
                                         {isOpen && <span className="truncate">{item.label}</span>}
@@ -182,19 +171,14 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                             )}
                             <ul className="flex flex-col gap-0.5">
                                 {visibleAnalyst.map((item) => {
-                                    const isActive =
-                                        currentPath === item.href || currentPath.startsWith(item.href + '/');
+                                    const isActive = isRouteActive(currentPath, item.href);
                                     return (
                                         <li key={item.href}>
                                             <Link
                                                 to={item.href}
-                                                className={cn(
-                                                    'flex items-center gap-2 px-5 py-2',
-                                                    'rounded-sm text-sm transition-colors duration-150',
-                                                    isActive
-                                                        ? 'text-text-primary font-semibold'
-                                                        : 'text-text-secondary hover:text-text-primary',
-                                                )}
+                                                title={!isOpen ? item.label : undefined}
+                                                aria-current={isActive ? 'page' : undefined}
+                                                className={getNavLinkClass(isActive, isOpen)}
                                             >
                                                 <span className="shrink-0">{item.icon}</span>
                                                 {isOpen && <span className="truncate">{item.label}</span>}
@@ -216,18 +200,14 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     )}
                     <ul className="flex flex-col gap-0.5">
                         {visibleSecondary.map((item) => {
-                            const isActive = currentPath === item.href || currentPath.startsWith(item.href + '/');
+                            const isActive = isRouteActive(currentPath, item.href);
                             return (
                                 <li key={item.href}>
                                     <Link
                                         to={item.href}
-                                        className={cn(
-                                            'flex items-center gap-2 px-5 py-2',
-                                            'rounded-sm text-sm transition-colors duration-150',
-                                            isActive
-                                                ? 'text-text-primary font-semibold'
-                                                : 'text-text-secondary hover:text-text-primary',
-                                        )}
+                                        title={!isOpen ? item.label : undefined}
+                                        aria-current={isActive ? 'page' : undefined}
+                                        className={getNavLinkClass(isActive, isOpen)}
                                     >
                                         <span className="shrink-0">{item.icon}</span>
                                         {isOpen && <span className="truncate">{item.label}</span>}
@@ -237,16 +217,6 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                         })}
                     </ul>
                 </nav>
-
-                {/* Footer — HuzaFraud logo */}
-                {isOpen && (
-                    <div className="flex items-center gap-2 px-2 py-2 mt-2">
-                        <div className="flex size-5 items-center justify-center rounded-sm bg-accent-indigo">
-                            <span className="text-[0.5rem] font-semibold text-white">H</span>
-                        </div>
-                        <span className="text-xs text-text-secondary">HuzaFraud</span>
-                    </div>
-                )}
             </aside>
         </>
     );
