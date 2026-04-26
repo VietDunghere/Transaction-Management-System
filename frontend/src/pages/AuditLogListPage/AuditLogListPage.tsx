@@ -61,16 +61,11 @@ export function AuditLogListPage() {
         timestamp: <span className="text-xs text-text-secondary">{new Date(log.event_ts).toLocaleString()}</span>,
     }));
 
-    const totalPages = data?.pagination?.total_pages ?? 0;
+    const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
 
     return (
         <ListPageTemplate
-            header={
-                <PageHeader
-                    title="Audit Logs"
-                    subtitle={data ? `${data.pagination.total_items} total entries` : undefined}
-                />
-            }
+            header={<PageHeader title="Audit Logs" subtitle={data ? `${data.total} total entries` : undefined} />}
             filterBar={
                 <FilterBar>
                     <Select

@@ -18,16 +18,11 @@ export type AuditEntityType = 'Transaction' | 'User' | 'ReviewCase' | 'Loan';
 
 // ---- Common ----
 
-export interface PaginationMeta {
-    page: number;
-    page_size: number;
-    total_items: number;
-    total_pages: number;
-}
-
 export interface PagedResponse<T> {
+    total: number;
+    page: number;
+    limit: number;
     data: T[];
-    pagination: PaginationMeta;
 }
 
 export interface ErrorResponse {

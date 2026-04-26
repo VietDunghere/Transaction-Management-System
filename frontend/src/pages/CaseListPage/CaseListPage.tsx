@@ -61,13 +61,11 @@ export function CaseListPage() {
         created_at: <span className="text-xs text-text-secondary">{new Date(c.created_at).toLocaleString()}</span>,
     }));
 
-    const totalPages = data?.pagination?.total_pages ?? 0;
+    const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
 
     return (
         <ListPageTemplate
-            header={
-                <PageHeader title="Cases" subtitle={data ? `${data.pagination.total_items} total cases` : undefined} />
-            }
+            header={<PageHeader title="Cases" subtitle={data ? `${data.total} total cases` : undefined} />}
             filterBar={
                 <FilterBar>
                     <Select

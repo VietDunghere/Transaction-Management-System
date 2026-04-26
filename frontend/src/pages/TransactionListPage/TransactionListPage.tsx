@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTransactions } from '~/hooks/useTransactions';
-import { useAuthStore } from '~/stores/useAuthStore';
 import type { TransactionSearchParams } from '~/types/searchParams';
 import type { TransactionStatus } from '~/types/api';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
@@ -14,7 +13,6 @@ import { QuickDateFilter } from '~/components/ui/QuickDateFilter/QuickDateFilter
 import type { QuickPeriod } from '~/components/ui/QuickDateFilter/QuickDateFilter';
 import { Pagination } from '~/components/ui/Pagination/Pagination';
 import { Badge } from '~/components/ui/Badge/Badge';
-import { Button } from '~/components/ui/Button/Button';
 import { LoadingSkeleton } from '~/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
 import { EmptyState } from '~/components/ui/EmptyState/EmptyState';
@@ -44,7 +42,6 @@ const columns = [
 
 export function TransactionListPage() {
     const navigate = useNavigate();
-    const userRole = useAuthStore((s) => s.user?.role);
 
     const [params, setParams] = useState<TransactionSearchParams>({
         page: 1,
@@ -65,20 +62,12 @@ export function TransactionListPage() {
         txn_time: <span className="text-xs text-text-secondary">{new Date(txn.txn_time).toLocaleString()}</span>,
     }));
 
-    const totalPages = data?.pagination?.total_pages ?? 0;
+    const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
 
     return (
         <ListPageTemplate
             header={
-                <PageHeader
-                    title="Transactions"
-                    subtitle={data ? `${data.pagination.total_items} total transactions` : undefined}
-                    actions={
-                        userRole === 'OPERATOR' ? (
-                            <Button onClick={() => navigate({ to: '/transactions/submit' })}>Submit Transaction</Button>
-                        ) : undefined
-                    }
-                />
+                <PageHeader title="Transactions" subtitle={data ? `${data.total} total transactions` : undefined} />
             }
             filterBar={
                 <FilterBar>
