@@ -14,4 +14,12 @@ export const loanService = {
     decideLoan(loanId: string, data: LoanDecisionRequest) {
         return apiClient.patch<unknown, LoanDecisionResponse>(`/loans/${loanId}/decision`, data);
     },
+
+    createLoan(data: Record<string, unknown>) {
+        return apiClient.post<unknown, Loan>('/loans', data);
+    },
+
+    simulateLoan(data: Record<string, unknown>) {
+        return apiClient.post<unknown, { pd_score: number; risk_level: string; decision: string; confidence: number }>('/loans/simulate', data);
+    },
 };

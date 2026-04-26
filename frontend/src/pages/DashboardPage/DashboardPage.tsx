@@ -1,15 +1,5 @@
 import { useMemo } from 'react';
-import ReactEChartsCore from 'echarts-for-react/lib/core';
-import * as echarts from 'echarts/core';
-import { LineChart } from 'echarts/charts';
-import {
-    GridComponent,
-    TooltipComponent,
-    LegendComponent,
-    DataZoomComponent,
-    ToolboxComponent,
-} from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
+import ReactECharts from 'echarts-for-react';
 import { useDashboardSummary, useFraudTrend } from '~/hooks/useDashboard';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
 import { DashboardTemplate } from '~/components/templates/DashboardTemplate/DashboardTemplate';
@@ -18,16 +8,6 @@ import { Card } from '~/components/ui/Card/Card';
 import { SectionHeader } from '~/components/ui/SectionHeader/SectionHeader';
 import { LoadingSkeleton } from '~/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
-
-echarts.use([
-    LineChart,
-    GridComponent,
-    TooltipComponent,
-    LegendComponent,
-    DataZoomComponent,
-    ToolboxComponent,
-    CanvasRenderer,
-]);
 
 interface TrendPoint {
     period_label: string;
@@ -118,7 +98,7 @@ function FraudTrendChart({ data }: { data: TrendPoint[] }) {
 
     return (
         <div className="mt-4">
-            <ReactEChartsCore echarts={echarts} option={option} style={{ height: 350 }} />
+            <ReactECharts option={option} style={{ height: 350 }} />
         </div>
     );
 }

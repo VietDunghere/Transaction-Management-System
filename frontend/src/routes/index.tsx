@@ -7,6 +7,7 @@ import {
     DashboardPage,
     TransactionListPage,
     TransactionDetailPage,
+    TransactionSubmitPage,
     CaseListPage,
     CaseDetailPage,
     UserListPage,
@@ -14,6 +15,8 @@ import {
     UserDetailPage,
     LoanListPage,
     LoanDetailPage,
+    LoanCreatePage,
+    LoanSimulatePage,
     AuditLogListPage,
     AuditLogDetailPage,
     ForbiddenPage,
@@ -127,6 +130,13 @@ const transactionsRoute = createRoute({
     beforeLoad: () => guardRole(['ANALYST', 'MANAGER']),
 });
 
+const transactionSubmitRoute = createRoute({
+    getParentRoute: () => authLayoutRoute,
+    path: '/transactions/submit',
+    component: TransactionSubmitPage,
+    beforeLoad: () => guardRole(['OPERATOR']),
+});
+
 const transactionDetailRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/transactions/$txnId',
@@ -154,6 +164,20 @@ const loansRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/loans',
     component: LoanListPage,
+    beforeLoad: () => guardRole(['OPERATOR', 'REVIEWER']),
+});
+
+const loanCreateRoute = createRoute({
+    getParentRoute: () => authLayoutRoute,
+    path: '/loans/create',
+    component: LoanCreatePage,
+    beforeLoad: () => guardRole(['OPERATOR']),
+});
+
+const loanSimulateRoute = createRoute({
+    getParentRoute: () => authLayoutRoute,
+    path: '/loans/simulate',
+    component: LoanSimulatePage,
     beforeLoad: () => guardRole(['OPERATOR', 'REVIEWER']),
 });
 
@@ -234,10 +258,13 @@ const routeTree = rootRoute.addChildren([
         profileRoute,
         forbiddenRoute,
         transactionsRoute,
+        transactionSubmitRoute,
         transactionDetailRoute,
         casesRoute,
         caseDetailRoute,
         loansRoute,
+        loanCreateRoute,
+        loanSimulateRoute,
         loanDetailRoute,
         usersRoute,
         userCreateRoute,

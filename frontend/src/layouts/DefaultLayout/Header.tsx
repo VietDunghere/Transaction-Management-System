@@ -22,10 +22,9 @@ const breadcrumbMap: Record<string, string> = {
     '/loans/create': 'Create Loan',
     '/loans/simulate': 'Loan Simulator',
     '/audit-logs': 'Audit Logs',
-    '/reports': 'Reports',
-    '/etl': 'ETL Pipeline',
+    '/analyst/thresholds': 'Thresholds',
+    '/analyst/model-performance': 'Model Performance',
     '/profile': 'Profile',
-    '/ui-demo': 'UI Demo',
 };
 
 function getBreadcrumbs(pathname: string) {

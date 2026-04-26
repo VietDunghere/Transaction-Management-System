@@ -26,6 +26,32 @@ export function useLoan(loanId: string) {
     });
 }
 
+export function useCreateLoan() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: Record<string, unknown>) => loanService.createLoan(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: loanKeys.all });
+            toastSuccessWithActivity('Loan application submitted');
+        },
+        onError: (error: unknown) => {
+            const apiMsg = (error as any)?.response?.data?.message;
+            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+        },
+    });
+}
+
+export function useSimulateLoan() {
+    return useMutation({
+        mutationFn: (data: Record<string, unknown>) => loanService.simulateLoan(data),
+        onError: (error: unknown) => {
+            const apiMsg = (error as any)?.response?.data?.message;
+            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+        },
+    });
+}
+
 export function useDecideLoan() {
     const queryClient = useQueryClient();
 

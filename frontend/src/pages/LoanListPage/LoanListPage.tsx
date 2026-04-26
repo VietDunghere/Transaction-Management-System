@@ -89,7 +89,6 @@ export function LoanListPage() {
     }));
 
     const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
-    const canCreate = userRole === 'OPERATOR' || userRole === 'MANAGER' || userRole === 'ADMIN';
 
     return (
         <ListPageTemplate
@@ -98,8 +97,15 @@ export function LoanListPage() {
                     title="Loans"
                     subtitle={data ? `${data.total} total loans` : undefined}
                     actions={
-                        canCreate ? (
-                            <Button onClick={() => navigate({ to: '/loans/create' })}>Create Loan</Button>
+                        userRole === 'OPERATOR' || userRole === 'REVIEWER' ? (
+                            <div className="flex gap-2">
+                                <Button variant="ghost" onClick={() => navigate({ to: '/loans/simulate' })}>
+                                    Simulate
+                                </Button>
+                                {userRole === 'OPERATOR' && (
+                                    <Button onClick={() => navigate({ to: '/loans/create' })}>Create Loan</Button>
+                                )}
+                            </div>
                         ) : undefined
                     }
                 />

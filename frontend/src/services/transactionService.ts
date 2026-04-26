@@ -14,4 +14,8 @@ export const transactionService = {
     getTransactionStates(txnId: string) {
         return apiClient.get<unknown, TxnStateHistoryItem[]>(`/transactions/${txnId}/state-history`);
     },
+
+    submitTransaction(data: Record<string, unknown>) {
+        return apiClient.post<unknown, { txn_id: string; status: string; fraud_score: number }>('/transactions/submit', data);
+    },
 };
