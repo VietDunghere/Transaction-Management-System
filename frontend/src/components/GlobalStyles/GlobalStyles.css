@@ -1,2 +1,8 @@
 /* Tailwind v4 preflight handles the reset. Do NOT add unlayered
    * { padding: 0 } here — it overrides @layer utilities. */
+
+@theme {
+    /* Tailwind v4 aliases to avoid arbitrary width classes in Sidebar. */
+    --spacing-sidebar: var(--sidebar-width);
+    --spacing-sidebar-collapsed: var(--sidebar-collapsed);
+}

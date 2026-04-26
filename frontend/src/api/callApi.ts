@@ -39,8 +39,10 @@ export function createAxiosInstance(baseURL: string): AxiosInstance {
             const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
             const status = error.response?.status;
 
-            // 401 → attempt token refresh (once)
-            if (status === 401 && !originalRequest._retry) {
+            // 401 → attempt token refresh (once), but skip for auth endpoints
+            const isAuthRequest =
+                originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh');
+            if (status === 401 && !originalRequest._retry && !isAuthRequest) {
                 const refreshToken = getRefreshToken();
 
                 if (!refreshToken) {

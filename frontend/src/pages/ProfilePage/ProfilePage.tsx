@@ -54,7 +54,6 @@ export function ProfilePage() {
                         <div className="flex flex-col gap-1 mt-4">
                             <KeyValueRow label="Username" value={user?.username ?? '-'} />
                             <KeyValueRow label="Full Name" value={user?.full_name ?? '-'} />
-                            <KeyValueRow label="Email" value={user?.email ?? '-'} />
                             <KeyValueRow label="Role" value={user?.role ?? '-'} />
                         </div>
                     </Card>
@@ -83,9 +82,7 @@ export function ProfilePage() {
                             />
 
                             {changePassword.isSuccess && (
-                                <p className="text-xs text-status-success">
-                                    Password changed successfully.
-                                </p>
+                                <p className="text-xs text-status-success">Password changed successfully.</p>
                             )}
                             {changePassword.isError && (
                                 <p className="text-xs text-status-danger">
@@ -102,7 +99,6 @@ export function ProfilePage() {
                     </Card>
                 </div>
             }
-            footer={<div />}
         />
     );
 }

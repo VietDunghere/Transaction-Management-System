@@ -18,11 +18,16 @@ export type AuditEntityType = 'Transaction' | 'User' | 'ReviewCase' | 'Loan';
 
 // ---- Common ----
 
-export interface PagedResponse<T> {
-    total: number;
+export interface PaginationMeta {
     page: number;
-    limit: number;
+    page_size: number;
+    total_items: number;
+    total_pages: number;
+}
+
+export interface PagedResponse<T> {
     data: T[];
+    pagination: PaginationMeta;
 }
 
 export interface ErrorResponse {
@@ -108,32 +113,14 @@ export interface TransactionDetail extends Transaction {
     updated_at: string;
 }
 
-export interface TransactionSubmitRequest {
-    customer_id: string;
-    merchant_id: string;
-    channel_id: number;
-    card_number: string;
-    amount: number;
-    currency_code: string;
-    txn_time: string;
-    source_ip: string;
-}
-
-export interface TransactionSubmitResponse {
-    txn_id: string;
-    status: TransactionStatus;
-    fraud_score: number;
-    reason_code: string;
-    created_at: string;
-}
-
-export interface StateHistoryEntry {
+export interface TxnStateHistoryItem {
     state_hist_id: string;
     txn_id: string;
-    old_status: TransactionStatus | null;
-    new_status: TransactionStatus;
-    changed_at: string;
+    old_status: string | null;
+    new_status: string;
     changed_by_user_id: string | null;
+    changed_at: string;
+    change_reason: string | null;
 }
 
 // ---- UC04: Users ----
@@ -288,35 +275,6 @@ export interface LoanDetail extends Loan {
     cb_person_cred_hist_length: number | null;
 }
 
-export interface CreateLoanRequest {
-    customer_id: string;
-    principal_amount: number;
-    currency_code: string;
-    interest_rate: number;
-    term_months: number;
-    purpose: string;
-}
-
-export interface LoanSimulateRequest {
-    person_age: number;
-    person_income: number;
-    person_home_ownership: string;
-    person_emp_length: number;
-    loan_amnt: number;
-    loan_int_rate: number;
-    loan_grade: string;
-    loan_intent: string;
-    cb_person_default_on_file: string;
-    cb_person_cred_hist_length: number;
-}
-
-export interface LoanSimulateResponse {
-    pd_score: number;
-    risk_level: RiskLevel;
-    top_risk_factors: string[];
-    model_version: string;
-}
-
 export interface LoanDecisionRequest {
     decision: LoanDecision;
     review_note: string;
@@ -400,27 +358,6 @@ export interface FraudTrendResponse {
     as_of: string;
 }
 
-export interface TransactionReportEntry {
-    txn_id: string;
-    customer_id: string;
-    merchant_id: string;
-    amount: number;
-    currency_code: string;
-    status: TransactionStatus;
-    fraud_score: number;
-    txn_time: string;
-}
-
-export interface FraudReportEntry {
-    date: string;
-    total_txn: number;
-    approved: number;
-    rejected: number;
-    manual_review: number;
-    fraud_count: number;
-    fraud_rate: number;
-}
-
 // ---- Analyst: Thresholds ----
 
 export interface ThresholdItem {
@@ -486,4 +423,3 @@ export interface LoanModelPerformance {
     risk_distribution: LoanRiskDistribution;
     current_thresholds: Record<string, number>;
 }
-

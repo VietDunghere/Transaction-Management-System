@@ -61,17 +61,3 @@ export const auditLogSearchSchema = z.object({
     to_date: z.string().optional().catch(undefined),
 });
 export type AuditLogSearchParams = z.infer<typeof auditLogSearchSchema>;
-
-// ---- Reports ----
-
-export const reportSearchSchema = z.object({
-    format: z
-        .enum(['json', 'csv'])
-        .default('json')
-        .catch('json' as const),
-    status: z.string().optional().catch(undefined),
-    from_date: z.string().optional().catch(undefined),
-    to_date: z.string().optional().catch(undefined),
-});
-export type ReportSearchParams = z.infer<typeof reportSearchSchema>;
-

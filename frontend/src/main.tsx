@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from '@tanstack/react-router';
 import { Toaster } from 'sonner';
 import './index.css';
+import './components/GlobalStyles/GlobalStyles.css';
 import { queryClient } from './lib/queryClient';
 import { router } from './routes';
 
