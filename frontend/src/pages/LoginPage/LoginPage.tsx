@@ -141,7 +141,7 @@ export function LoginPage() {
                 <div className="rounded-[26px]">
                     {/* The main card */}
                     <div
-                        className={`flex flex-col md:flex-row rounded-[24px] overflow-hidden max-h-[calc(100vh-3rem)] relative animate-in fade-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-transparent' : 'backdrop-blur-xs shadow-2xl bg-white/10 shadow-black/10'}`}
+                        className={`flex flex-col md:flex-row rounded-[24px] overflow-hidden max-h-[calc(100vh-3rem)] relative animate-in fade-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-transparent' : 'backdrop-blur-sm shadow-2xl bg-white/10 shadow-black/10'}`}
                     >
                         {/* Theme Toggle Icon Button - Placed at bottom right of the card, visible on both Mobile and Desktop */}
                         <button

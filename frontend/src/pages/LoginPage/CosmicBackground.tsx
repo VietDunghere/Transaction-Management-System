@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 const COLORS = ['#00b8a9', '#f8f3d4', '#f6416c', '#ffde7d'];
-const PARTICLE_COUNT = 60;
+const PARTICLE_COUNT = 100;
 
 function randomRange(min: number, max: number): number {
     return Math.random() * (max - min) + min;
