@@ -10,6 +10,7 @@ from app.api.v1.routes import (
     auth,
     cases,
     dashboard,
+    demo,
     health,
     loan,
     reports,
@@ -27,5 +28,6 @@ router.include_router(cases.router)
 router.include_router(loan.router)
 router.include_router(audit_logs.router)
 router.include_router(dashboard.router)
+router.include_router(demo.router)
 router.include_router(reports.router)
 router.include_router(health.router)

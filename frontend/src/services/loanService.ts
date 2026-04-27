@@ -20,6 +20,9 @@ export const loanService = {
     },
 
     simulateLoan(data: Record<string, unknown>) {
-        return apiClient.post<unknown, { pd_score: number; risk_level: string; decision: string; confidence: number }>('/loans/simulate', data);
+        return apiClient.post<unknown, { pd_score: number; risk_level: string; decision: string; confidence: number }>(
+            '/loans/simulate',
+            data,
+        );
     },
 };

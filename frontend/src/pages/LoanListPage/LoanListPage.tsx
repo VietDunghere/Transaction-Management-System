@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useLoans } from '~/hooks/useLoans';
+import { useDemoRunning } from '~/hooks/useDemoRunning';
 import { useAuthStore } from '~/stores/useAuthStore';
 import type { LoanSearchParams } from '~/types/searchParams';
 import type { LoanStatus, RiskLevel } from '~/types/api';
@@ -60,7 +61,8 @@ export function LoanListPage() {
         limit: 20,
     });
 
-    const { data, isLoading, isError, refetch } = useLoans(params);
+    const demoRunning = useDemoRunning();
+    const { data, isLoading, isError, refetch } = useLoans(params, demoRunning ? 1000 : false);
 
     const rows = (data?.data ?? []).map((loan) => ({
         loan_id: <span className="text-xs font-mono">{loan.loan_id.slice(0, 8)}...</span>,

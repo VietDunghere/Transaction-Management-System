@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useCases } from '~/hooks/useCases';
+import { useDemoRunning } from '~/hooks/useDemoRunning';
 import type { CaseSearchParams } from '~/types/searchParams';
 import type { CaseStatus } from '~/types/api';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
@@ -48,7 +49,8 @@ export function CaseListPage() {
         limit: 20,
     });
 
-    const { data, isLoading, isError, refetch } = useCases(params);
+    const demoRunning = useDemoRunning();
+    const { data, isLoading, isError, refetch } = useCases(params, demoRunning ? 1000 : false);
 
     const rows = (data?.data ?? []).map((c) => ({
         case_id: <span className="text-xs font-mono">{c.case_id.slice(0, 8)}...</span>,

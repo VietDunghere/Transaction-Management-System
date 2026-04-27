@@ -8,6 +8,7 @@ import {
     User,
     SlidersHorizontal,
     Activity,
+    Play,
 } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { cn } from '~/utils/cn';
@@ -42,6 +43,7 @@ const mainNavItems: NavItem[] = [
         roles: ['OPERATOR', 'REVIEWER'],
     },
     { label: 'Users', icon: <Users size={20} />, href: '/users', roles: ['MANAGER', 'ADMIN'] },
+    { label: 'Demo Runner', icon: <Play size={20} />, href: '/demo', roles: ['OPERATOR'] },
 ];
 
 const analystNavItems: NavItem[] = [

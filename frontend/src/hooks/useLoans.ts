@@ -11,10 +11,11 @@ export const loanKeys = {
     detail: (loanId: string) => ['loans', 'detail', loanId] as const,
 };
 
-export function useLoans(params: LoanSearchParams) {
+export function useLoans(params: LoanSearchParams, refetchInterval?: number | false) {
     return useQuery({
         queryKey: loanKeys.list(params),
         queryFn: () => loanService.getLoans(params),
+        refetchInterval,
     });
 }
 
