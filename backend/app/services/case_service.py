@@ -220,12 +220,15 @@ class CaseService:
         return case
 
     def _write_audit(self, entity_id: str, actor: str, event_type: str, detail: dict) -> None:
+        from app.models.user import User
+        user = self._db.query(User.full_name).filter(User.user_id == actor).first()
         audit = AuditLog(
             log_id=str(uuid.uuid4()),
             event_type=event_type,
             entity_type="ReviewCase",
             entity_id=entity_id,
             actor_user_id=actor,
+            actor_name=user.full_name if user else None,
             detail_json=json.dumps(detail),
         )
         self._db.add(audit)

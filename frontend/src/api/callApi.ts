@@ -2,7 +2,12 @@ import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axio
 import { getAccessToken, getRefreshToken, setAccessToken, clearTokens } from '~/utils/localStorage';
 
 let isRefreshing = false;
+let isLoggingOut = false;
 let failedQueue: { resolve: (token: string) => void; reject: (err: unknown) => void }[] = [];
+
+export function setLoggingOut(value: boolean) {
+    isLoggingOut = value;
+}
 
 function processQueue(error: unknown, token: string | null) {
     failedQueue.forEach((prom) => {
@@ -46,8 +51,10 @@ export function createAxiosInstance(baseURL: string): AxiosInstance {
                 const refreshToken = getRefreshToken();
 
                 if (!refreshToken) {
-                    clearTokens();
-                    window.location.href = '/login';
+                    if (!isLoggingOut) {
+                        clearTokens();
+                        window.location.href = '/login';
+                    }
                     return Promise.reject(error);
                 }
 
@@ -75,8 +82,10 @@ export function createAxiosInstance(baseURL: string): AxiosInstance {
                     return instance(originalRequest);
                 } catch (refreshError) {
                     processQueue(refreshError, null);
-                    clearTokens();
-                    window.location.href = '/login';
+                    if (!isLoggingOut) {
+                        clearTokens();
+                        window.location.href = '/login';
+                    }
                     return Promise.reject(refreshError);
                 } finally {
                     isRefreshing = false;

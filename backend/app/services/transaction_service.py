@@ -38,6 +38,7 @@ from app.repositories.transaction_repo import TransactionRepository
 from app.repositories.velocity_repo import CustomerRepository, MerchantRepository, VelocityRepository
 from app.schemas.transaction import TransactionSubmitRequest, TransactionSubmitResponse
 from app.services.fraud_scoring_service import FraudScoringInput, FraudScoringService
+from app.models.user import User
 from app.utils.card import hash_card_number, mask_card_number
 
 logger = get_logger(__name__)
@@ -129,12 +130,14 @@ class TransactionService:
                 changed_by_user_id=submitted_by_user_id,
                 change_reason="Suppression rule — bypassed fraud scoring",
             ))
+            actor_user = self._db.query(User.full_name).filter(User.user_id == submitted_by_user_id).first()
             audit = AuditLog(
                 log_id=str(uuid.uuid4()),
                 event_type="TRANSACTION_SUBMITTED",
                 entity_type="Transaction",
                 entity_id=txn.txn_id,
                 actor_user_id=submitted_by_user_id,
+                actor_name=actor_user.full_name if actor_user else None,
                 detail_json=json.dumps({"amount": float(request.amount), "fraud_score": 0.0, "decision": "APPROVED", "suppressed": True}),
             )
             self._db.add(audit)
@@ -264,12 +267,14 @@ class TransactionService:
         self._txn_repo.append_state_history(history)
 
         # ---- Bước 11: Ghi audit log ----
+        actor_user = self._db.query(User.full_name).filter(User.user_id == submitted_by_user_id).first()
         audit = AuditLog(
             log_id=str(uuid.uuid4()),
             event_type="TRANSACTION_SUBMITTED",
             entity_type="Transaction",
             entity_id=txn.txn_id,
             actor_user_id=submitted_by_user_id,
+            actor_name=actor_user.full_name if actor_user else None,
             detail_json=json.dumps({
                 "amount": float(request.amount),
                 "fraud_score": scoring_result.fraud_score,

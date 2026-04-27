@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { authService } from '~/services/authService';
@@ -66,7 +66,6 @@ export function useLogin() {
 export function useLogout() {
     const clearAuth = useAuthStore((s) => s.clearAuth);
     const clearActivities = useActivityStore((s) => s.clearActivities);
-    const queryClient = useQueryClient();
     const navigate = useNavigate();
 
     return useMutation({
@@ -75,7 +74,6 @@ export function useLogout() {
             clearTokens();
             clearAuth();
             clearActivities();
-            queryClient.clear();
             navigate({ to: '/login' });
         },
     });

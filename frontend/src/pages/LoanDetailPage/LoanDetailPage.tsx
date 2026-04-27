@@ -3,6 +3,7 @@ import { useParams, useNavigate } from '@tanstack/react-router';
 import { useLoan, useDecideLoan } from '~/hooks/useLoans';
 import { useAuthStore } from '~/stores/useAuthStore';
 import type { LoanStatus, RiskLevel, LoanDecision } from '~/types/api';
+import { riskLabel } from '~/types/api';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
 import { DetailPageTemplate } from '~/components/templates/DetailPageTemplate/DetailPageTemplate';
 import { Card } from '~/components/ui/Card/Card';
@@ -16,11 +17,12 @@ import { LoadingSkeleton } from '~/components/ui/LoadingSkeleton/LoadingSkeleton
 import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
 
 const statusVariant: Record<LoanStatus, 'success' | 'danger' | 'warning' | 'info' | 'muted'> = {
+    PENDING: 'info',
     APPROVED: 'success',
     REJECTED: 'danger',
-    MANUAL_REVIEW: 'warning',
-    PENDING: 'info',
-    SCORING: 'muted',
+    DISBURSED: 'info',
+    CLOSED: 'muted',
+    DEFAULTED: 'danger',
 };
 
 const riskVariant: Record<RiskLevel, 'success' | 'warning' | 'danger'> = {
@@ -71,8 +73,8 @@ export function LoanDetailPage() {
             <DetailPageTemplate
                 header={
                     <PageHeader
-                        title={`Loan ${loan.loan_id.slice(0, 8)}...`}
-                        subtitle={`Created ${new Date(loan.created_at).toLocaleString()}`}
+                        title="Loan Detail"
+                        subtitle={`${loan.principal_amount.toLocaleString()} ${loan.currency_code} · ${loan.interest_rate}% · ${loan.term_months}mo · ${loan.risk_level ? riskLabel[loan.risk_level] : loan.status} · Created ${new Date(loan.created_at).toLocaleString()}`}
                         actions={
                             <div className="flex items-center gap-2">
                                 {canDecide && (
@@ -98,32 +100,8 @@ export function LoanDetailPage() {
                         }
                     />
                 }
-                summary={
-                    <div className="flex flex-col gap-5">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Principal</span>
-                            <span className="text-lg font-semibold">
-                                {loan.principal_amount.toLocaleString()} {loan.currency_code}
-                            </span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Interest Rate</span>
-                            <span className="text-lg font-semibold">{loan.interest_rate}%</span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Term</span>
-                            <span className="text-lg font-semibold">{loan.term_months} months</span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">PD Score</span>
-                            <span className="text-lg font-semibold">
-                                {loan.pd_score !== null ? `${(loan.pd_score * 100).toFixed(1)}%` : '—'}
-                            </span>
-                        </div>
-                    </div>
-                }
-                info={
-                    <div className="flex flex-col gap-4">
+                main={
+                    <>
                         <Card>
                             <SectionHeader title="Loan Details" />
                             <div className="flex flex-col gap-1 mt-4">
@@ -152,7 +130,9 @@ export function LoanDetailPage() {
                                     label="Risk Level"
                                     value={
                                         loan.risk_level ? (
-                                            <Badge variant={riskVariant[loan.risk_level]}>{loan.risk_level}</Badge>
+                                            <Badge variant={riskVariant[loan.risk_level]}>
+                                                {riskLabel[loan.risk_level]}
+                                            </Badge>
                                         ) : (
                                             '—'
                                         )
@@ -180,11 +160,6 @@ export function LoanDetailPage() {
                                 <KeyValueRow
                                     label="Maturity Date"
                                     value={loan.maturity_date ? new Date(loan.maturity_date).toLocaleDateString() : '—'}
-                                />
-                                <KeyValueRow label="Reviewed By" value={loan.reviewed_by ?? '—'} />
-                                <KeyValueRow
-                                    label="Reviewed At"
-                                    value={loan.reviewed_at ? new Date(loan.reviewed_at).toLocaleString() : '—'}
                                 />
                                 <KeyValueRow label="Created At" value={new Date(loan.created_at).toLocaleString()} />
                             </div>
@@ -254,7 +229,10 @@ export function LoanDetailPage() {
                                 </div>
                             </Card>
                         )}
-
+                    </>
+                }
+                aside={
+                    <>
                         {(loan.customer_job || loan.customer_kyc_status || loan.customer_income_level) && (
                             <Card>
                                 <SectionHeader title="Customer Profile" />
@@ -285,38 +263,50 @@ export function LoanDetailPage() {
                             </Card>
                         )}
 
-                        {loan.customer_loan_stats && (
-                            <Card>
-                                <SectionHeader title="Loan History (This Bank)" />
-                                <div className="grid grid-cols-2 gap-3 mt-4">
-                                    <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
-                                        <span className="text-xs text-text-secondary">Total Previous</span>
-                                        <span className="text-lg font-semibold">
-                                            {loan.customer_loan_stats.total_loans}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
-                                        <span className="text-xs text-text-secondary">Approved</span>
-                                        <span className="text-lg font-semibold text-status-success">
-                                            {loan.customer_loan_stats.approved}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
-                                        <span className="text-xs text-text-secondary">Rejected</span>
-                                        <span className="text-lg font-semibold text-status-danger">
-                                            {loan.customer_loan_stats.rejected}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
-                                        <span className="text-xs text-text-secondary">Active / Pending</span>
-                                        <span className="text-lg font-semibold text-status-warning">
-                                            {loan.customer_loan_stats.active}
-                                        </span>
-                                    </div>
+                        <Card>
+                            <SectionHeader title="Review Info" />
+                            <div className="flex flex-col gap-1 mt-4">
+                                <KeyValueRow label="Reviewed By" value={loan.reviewed_by ?? '—'} />
+                                <KeyValueRow
+                                    label="Reviewed At"
+                                    value={loan.reviewed_at ? new Date(loan.reviewed_at).toLocaleString() : '—'}
+                                />
+                            </div>
+                        </Card>
+                    </>
+                }
+                fullWidth={
+                    loan.customer_loan_stats ? (
+                        <Card>
+                            <SectionHeader title="Loan History (This Bank)" />
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                                <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
+                                    <span className="text-xs text-text-secondary">Total Previous</span>
+                                    <span className="text-lg font-semibold">
+                                        {loan.customer_loan_stats.total_loans}
+                                    </span>
                                 </div>
-                            </Card>
-                        )}
-                    </div>
+                                <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
+                                    <span className="text-xs text-text-secondary">Approved</span>
+                                    <span className="text-lg font-semibold text-status-success">
+                                        {loan.customer_loan_stats.approved}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
+                                    <span className="text-xs text-text-secondary">Rejected</span>
+                                    <span className="text-lg font-semibold text-status-danger">
+                                        {loan.customer_loan_stats.rejected}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
+                                    <span className="text-xs text-text-secondary">Active / Pending</span>
+                                    <span className="text-lg font-semibold text-status-warning">
+                                        {loan.customer_loan_stats.active}
+                                    </span>
+                                </div>
+                            </div>
+                        </Card>
+                    ) : undefined
                 }
             />
 

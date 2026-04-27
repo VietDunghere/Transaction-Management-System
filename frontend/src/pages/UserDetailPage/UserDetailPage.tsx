@@ -103,29 +103,7 @@ export function UserDetailPage() {
                         }
                     />
                 }
-                summary={
-                    <div className="flex flex-col gap-5">
-                        <div className="flex flex-col items-start gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Role</span>
-                            <Badge variant={roleVariant[userData.role]}>{userData.role}</Badge>
-                        </div>
-                        <div className="flex flex-col items-start gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Status</span>
-                            <Badge variant={userData.is_active ? 'success' : 'muted'} dot>
-                                {userData.is_active ? 'Active' : 'Disabled'}
-                            </Badge>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Email</span>
-                            <span className="text-sm break-all">{userData.email}</span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Joined</span>
-                            <span className="text-sm">{new Date(userData.created_at).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                }
-                info={
+                main={
                     <Card>
                         <SectionHeader title="User Details" />
                         <div className="flex flex-col gap-1 mt-4">

@@ -30,7 +30,7 @@ function createBall(container: HTMLDivElement): Ball {
     const speed = 2 + Math.random() * 6;
     const vx = Math.random() * speed - Math.random() * speed;
     const vy = Math.random() * speed - Math.random() * speed;
-    const radius = 10 + Math.round(Math.random() * 50);
+    const radius = 30 + Math.round(Math.random() * 90);
     const x = (w - radius) / 2;
     const y = (h - radius) / 2;
 
@@ -59,7 +59,7 @@ function moveBall(ball: Ball, w: number, h: number): void {
     ball.el.style.transform = `rotate(${ball.y}deg)`;
 }
 
-const PARTICLE_COUNT = 60;
+const PARTICLE_COUNT = 30;
 
 export function GeometricBackground() {
     const containerRef = useRef<HTMLDivElement>(null);

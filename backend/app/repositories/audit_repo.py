@@ -13,6 +13,7 @@ from sqlalchemy import and_, desc
 from sqlalchemy.orm import Session
 
 from app.models.scoring import AuditLog
+from app.models.user import User
 
 
 # Danh sách entity_type hợp lệ để validate đầu vào
@@ -21,7 +22,21 @@ VALID_ENTITY_TYPES = frozenset({
     "ReviewCase",
     "Loan",
     "User",
+    "Auth",
 })
+
+
+def _hydrate_actor_name(db: Session, logs: list[AuditLog]) -> list[AuditLog]:
+    """Backfill actor_name from User table for logs that have it null."""
+    missing = [log for log in logs if log.actor_name is None and log.actor_user_id]
+    if not missing:
+        return logs
+    user_ids = list({log.actor_user_id for log in missing})
+    rows = db.query(User.user_id, User.full_name).filter(User.user_id.in_(user_ids)).all()
+    name_map = {r.user_id: r.full_name for r in rows}
+    for log in missing:
+        log.actor_name = name_map.get(log.actor_user_id)
+    return logs
 
 
 class AuditLogRepository:
@@ -32,11 +47,14 @@ class AuditLogRepository:
 
     def get_by_id(self, log_id: str) -> Optional[AuditLog]:
         """Lấy 1 audit log event theo primary key."""
-        return (
+        log = (
             self._db.query(AuditLog)
             .filter(AuditLog.log_id == log_id)
             .first()
         )
+        if log:
+            _hydrate_actor_name(self._db, [log])
+        return log
 
     def list_logs(
         self,
@@ -79,6 +97,7 @@ class AuditLogRepository:
             .limit(page_size)
             .all()
         )
+        _hydrate_actor_name(self._db, items)
         return items, total
 
     def list_by_entity(
@@ -111,4 +130,5 @@ class AuditLogRepository:
             .limit(page_size)
             .all()
         )
+        _hydrate_actor_name(self._db, items)
         return items, total

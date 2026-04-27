@@ -5,6 +5,7 @@ import { useDemoRunning } from '~/hooks/useDemoRunning';
 import { useAuthStore } from '~/stores/useAuthStore';
 import type { LoanSearchParams } from '~/types/searchParams';
 import type { LoanStatus, RiskLevel } from '~/types/api';
+import { riskLabel } from '~/types/api';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
 import { ListPageTemplate } from '~/components/templates/ListPageTemplate/ListPageTemplate';
 import { TableShell } from '~/components/ui/TableShell/TableShell';
@@ -20,11 +21,12 @@ import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
 import { EmptyState } from '~/components/ui/EmptyState/EmptyState';
 
 const statusVariant: Record<LoanStatus, 'success' | 'danger' | 'warning' | 'info' | 'muted'> = {
+    PENDING: 'info',
     APPROVED: 'success',
     REJECTED: 'danger',
-    MANUAL_REVIEW: 'warning',
-    PENDING: 'info',
-    SCORING: 'muted',
+    DISBURSED: 'info',
+    CLOSED: 'muted',
+    DEFAULTED: 'danger',
 };
 
 const riskVariant: Record<RiskLevel, 'success' | 'warning' | 'danger'> = {
@@ -36,18 +38,19 @@ const riskVariant: Record<RiskLevel, 'success' | 'warning' | 'danger'> = {
 const statusOptions = [
     { label: 'All Status', value: '' },
     { label: 'Pending', value: 'PENDING' },
-    { label: 'Scoring', value: 'SCORING' },
     { label: 'Approved', value: 'APPROVED' },
     { label: 'Rejected', value: 'REJECTED' },
-    { label: 'Manual Review', value: 'MANUAL_REVIEW' },
+    { label: 'Disbursed', value: 'DISBURSED' },
+    { label: 'Closed', value: 'CLOSED' },
+    { label: 'Defaulted', value: 'DEFAULTED' },
 ];
 
 const columns = [
-    { key: 'loan_id', label: 'Loan ID', width: '180px' },
-    { key: 'customer_id', label: 'Customer', width: '150px' },
-    { key: 'amount', label: 'Principal', align: 'right' as const },
+    { key: 'loan_id', label: 'Loan ID' },
+    { key: 'customer_id', label: 'Customer', width: '180px' },
+    { key: 'amount', label: 'Principal', align: 'left' as const, width: '150px' },
     { key: 'term', label: 'Term' },
-    { key: 'risk', label: 'Risk Level' },
+    { key: 'risk', label: 'Risk Level', width: '150px' },
     { key: 'status', label: 'Status' },
     { key: 'created_at', label: 'Created' },
 ];
@@ -80,7 +83,7 @@ export function LoanListPage() {
         ),
         term: <span className="text-sm">{loan.term_months} months</span>,
         risk: loan.risk_level ? (
-            <Badge variant={riskVariant[loan.risk_level]}>{loan.risk_level}</Badge>
+            <Badge variant={riskVariant[loan.risk_level]}>{riskLabel[loan.risk_level]}</Badge>
         ) : (
             <span className="text-xs text-text-tertiary">—</span>
         ),

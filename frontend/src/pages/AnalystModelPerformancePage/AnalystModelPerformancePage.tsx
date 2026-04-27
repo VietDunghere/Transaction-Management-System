@@ -42,7 +42,7 @@ function FraudDonutChart({ dist }: { dist: { approved_count: number; review_coun
                     innerRadius={60}
                     outerRadius={100}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                 >
                     {data.map((_, i) => (
                         <Cell key={i} fill={DONUT_COLORS[i]} />

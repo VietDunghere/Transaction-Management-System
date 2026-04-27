@@ -40,12 +40,14 @@ def _write_user_audit(
     detail: dict,
 ) -> None:
     """Ghi audit log cho user lifecycle events — gọi trước commit."""
+    user = db.query(User.full_name).filter(User.user_id == actor_user_id).first()
     db.add(AuditLog(
         log_id=str(uuid.uuid4()),
         event_type=event_type,
         entity_type="User",
         entity_id=entity_id,
         actor_user_id=actor_user_id,
+        actor_name=user.full_name if user else None,
         detail_json=json.dumps(detail),
     ))
 
