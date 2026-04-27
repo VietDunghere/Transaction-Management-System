@@ -47,7 +47,11 @@ function eventToRow(e: DemoEvent) {
                 {e.type}
             </Badge>
         ),
-        result: <Badge variant={RESULT_BADGE[e.result] ?? 'muted'} dot>{e.result}</Badge>,
+        result: (
+            <Badge variant={RESULT_BADGE[e.result] ?? 'muted'} dot>
+                {e.result}
+            </Badge>
+        ),
         score: <span className="font-mono text-sm">{formatScore(e.score)}</span>,
         amount: <span className="font-mono text-sm">${formatAmount(e.amount)}</span>,
         info: <span className="text-sm text-text-secondary truncate max-w-50 inline-block">{e.info}</span>,
@@ -160,11 +164,7 @@ export function DemoPage() {
                                 Stop Demo
                             </Button>
                         ) : (
-                            <Button
-                                icon={<Play size={16} />}
-                                onClick={handleStart}
-                                loading={startMut.isPending}
-                            >
+                            <Button icon={<Play size={16} />} onClick={handleStart} loading={startMut.isPending}>
                                 Start Demo
                             </Button>
                         )}
@@ -173,9 +173,7 @@ export function DemoPage() {
                     {/* Config form — always visible, disabled when running */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-text-secondary">
-                                Rate (req/s): {rate}
-                            </label>
+                            <label className="text-sm font-medium text-text-secondary">Rate (req/s): {rate}</label>
                             <input
                                 type="range"
                                 min={0.5}
@@ -193,9 +191,7 @@ export function DemoPage() {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-text-secondary">
-                                Count (empty = unlimited)
-                            </label>
+                            <label className="text-sm font-medium text-text-secondary">Count (empty = unlimited)</label>
                             <input
                                 type="number"
                                 min={1}
@@ -209,9 +205,7 @@ export function DemoPage() {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-text-secondary">
-                                Loan %: {loanPct}%
-                            </label>
+                            <label className="text-sm font-medium text-text-secondary">Loan %: {loanPct}%</label>
                             <input
                                 type="range"
                                 min={0}

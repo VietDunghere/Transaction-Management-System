@@ -8,7 +8,8 @@ import { useUIStore } from '~/stores/useUIStore';
 import { Button } from '~/components/ui/Button/Button';
 import { Input } from '~/components/ui/Input/Input';
 import { Sun, Moon } from 'lucide-react';
-import { ShaderBackground } from './ShaderBackground';
+import { GeometricBackground } from './GeometricBackground';
+import { CosmicBackground } from './CosmicBackground';
 import iconLogo from '~/assets/icon.png';
 
 const loginSchema = z.object({
@@ -41,16 +42,16 @@ export function LoginPage() {
 
     return (
         <div className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-            {/* Full-page animated shader background */}
-            <div className="fixed inset-0 -z-10">
-                <ShaderBackground />
+            {/* Full-page animated background — geometric shapes (light) or cosmic lines (dark) */}
+            <div className="fixed inset-0 z-0">
+                {theme === 'light' ? <GeometricBackground /> : <CosmicBackground />}
             </div>
 
             <div className="w-full max-w-300 mx-auto p-4 md:p-6 relative z-10">
                 <div className="rounded-[26px] transition-all duration-700 ease-in-out">
                     {/* The main card */}
                     <div
-                        className={`flex flex-col md:flex-row rounded-[24px] overflow-hidden max-h-[calc(100vh-3rem)] transition-colors duration-700 ease-in-out relative ${theme === 'dark' ? 'bg-transparent' : 'bg-primary'}`}
+                        className={`flex flex-col md:flex-row rounded-[24px] overflow-hidden max-h-[calc(100vh-3rem)] transition-all duration-700 ease-in-out relative ${theme === 'dark' ? 'bg-transparent' : 'backdrop-blur-3xl shadow-2xl bg-white/30 shadow-black/10'}`}
                     >
                         {/* Theme Toggle Icon Button - Placed at bottom right of the card, visible on both Mobile and Desktop */}
                         <button
