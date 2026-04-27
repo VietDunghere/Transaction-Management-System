@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,9 +9,12 @@ import { useUIStore } from '~/stores/useUIStore';
 import { Button } from '~/components/ui/Button/Button';
 import { Input } from '~/components/ui/Input/Input';
 import { Sun, Moon } from 'lucide-react';
-import { GeometricBackground } from './GeometricBackground';
+import { GeometricBackground, type GeometricBackgroundHandle } from './GeometricBackground';
 import { CosmicBackground } from './CosmicBackground';
 import iconLogo from '~/assets/icon.png';
+
+const TRANSITION_MS = 500;
+const BG_FADE_MS = 1000;
 
 const loginSchema = z.object({
     username: z.string().min(1, 'Username is required'),
@@ -25,12 +28,60 @@ export function LoginPage() {
     const login = useLogin();
     const { theme, toggleTheme } = useUIStore();
 
+    const geometricRef = useRef<GeometricBackgroundHandle>(null);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const transitionTimeoutRef = useRef<number | null>(null);
+
     const [mountedLight, setMountedLight] = useState(theme === 'light');
     const [mountedDark, setMountedDark] = useState(theme === 'dark');
     useEffect(() => {
         if (theme === 'light') setMountedLight(true);
         else setMountedDark(true);
     }, [theme]);
+
+    // Edge case 3: cleanup transition timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+        };
+    }, []);
+
+    const handleToggleTheme = () => {
+        // Edge case 1: transition lock — prevent overlapping animations
+        if (isTransitioning) return;
+
+        if (theme === 'light') {
+            // Phase 1: Shapes zoom to center, bg fade kicks in near the end
+            setIsTransitioning(true);
+            geometricRef.current?.implode();
+
+            // Start bg crossfade 200ms before implosion ends
+            transitionTimeoutRef.current = window.setTimeout(() => {
+                setMountedDark(true);
+                toggleTheme();
+                // Unlock after bg fade finishes
+                transitionTimeoutRef.current = window.setTimeout(() => {
+                    setIsTransitioning(false);
+                    transitionTimeoutRef.current = null;
+                }, BG_FADE_MS);
+            }, TRANSITION_MS - 200);
+        } else {
+            // Phase 2: Dark → Light — bg fades first, then particles spawn
+            setIsTransitioning(true);
+            setMountedLight(true);
+            toggleTheme(); // theme → 'light', starts bg opacity fade immediately
+
+            // Start particle explosion 200ms before bg fade ends (overlap)
+            transitionTimeoutRef.current = window.setTimeout(() => {
+                requestAnimationFrame(() => {
+                    geometricRef.current?.explode(() => {
+                        setIsTransitioning(false);
+                        transitionTimeoutRef.current = null;
+                    });
+                });
+            }, TRANSITION_MS - 200);
+        }
+    };
 
     const {
         register,
@@ -50,16 +101,38 @@ export function LoginPage() {
 
     return (
         <div className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-            {/* Full-page animated background — crossfade between geometric (light) and cosmic (dark) */}
-            <div className="fixed inset-0 z-0">
+            {/* Background layers: color layers crossfade, particles are a separate non-fading layer */}
+            <div className="fixed inset-0 z-0" style={{ background: '#000' }}>
+                {/* Light bg color — fades */}
                 {mountedLight && (
-                    <div style={{ display: theme === 'light' ? 'block' : 'none' }}>
-                        <GeometricBackground />
+                    <div
+                        style={{
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundColor: '#E4EAF1',
+                            opacity: theme === 'light' ? 1 : 0,
+                            transition: `opacity ${BG_FADE_MS}ms ease`,
+                        }}
+                    />
+                )}
+                {/* Dark bg (cosmic) — fades */}
+                {mountedDark && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            inset: 0,
+                            opacity: theme === 'dark' ? 1 : 0,
+                            transition: `opacity ${BG_FADE_MS}ms ease`,
+                            pointerEvents: theme === 'dark' ? 'auto' : 'none',
+                        }}
+                    >
+                        <CosmicBackground />
                     </div>
                 )}
-                {mountedDark && (
-                    <div style={{ display: theme === 'dark' ? 'block' : 'none' }}>
-                        <CosmicBackground />
+                {/* Light particles — separate layer, never faded by wrapper */}
+                {mountedLight && (
+                    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+                        <GeometricBackground ref={geometricRef} />
                     </div>
                 )}
             </div>
@@ -72,8 +145,9 @@ export function LoginPage() {
                     >
                         {/* Theme Toggle Icon Button - Placed at bottom right of the card, visible on both Mobile and Desktop */}
                         <button
-                            onClick={toggleTheme}
-                            className="absolute bottom-3 right-3 md:bottom-5 md:right-5 z-50 flex size-8 md:size-11 items-center justify-center rounded-full bg-text-primary/10 md:bg-white/10 hover:bg-text-primary/20 md:hover:bg-white/20 backdrop-blur-xl border border-border-default md:border-white/20 text-text-primary md:text-white shadow-xl transition-all duration-300 cursor-pointer focus:outline-none hover:scale-110 active:scale-95"
+                            onClick={handleToggleTheme}
+                            disabled={isTransitioning}
+                            className={`absolute bottom-3 right-3 md:bottom-5 md:right-5 z-50 flex size-8 md:size-11 items-center justify-center rounded-full bg-text-primary/10 md:bg-white/10 hover:bg-text-primary/20 md:hover:bg-white/20 backdrop-blur-xl border border-border-default md:border-white/20 text-text-primary md:text-white shadow-xl transition-all duration-300 focus:outline-none hover:scale-110 active:scale-95 ${isTransitioning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                             aria-label="Toggle theme"
                         >
                             {theme === 'light' ? (

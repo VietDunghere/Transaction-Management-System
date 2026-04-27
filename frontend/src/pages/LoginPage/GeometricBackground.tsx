@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 
 const circleSvg =
     '<svg viewBox="0 0 11.4 11.9" width="100%" height="100%"><path fill="#ED412D" d="M5.7,0.1C2.6,0.1,0,2.8,0,6s2.6,5.9,5.7,5.9s5.7-2.7,5.7-5.9S8.9,0.1,5.7,0.1L5.7,0.1z M5.7,8.8 C4.2,8.8,3,7.6,3,6s1.2-2.8,2.7-2.8S8.4,4.4,8.4,6S7.2,8.8,5.7,8.8L5.7,8.8z"/></svg>';
@@ -24,6 +24,16 @@ interface Ball {
     y: number;
 }
 
+export interface GeometricBackgroundHandle {
+    /** Phase 1 — freeze physics, 3D tunnel drop to vanishing point */
+    implode: () => void;
+    /** Phase 2 — spawn deep in tunnel, pull forward + scatter, resume physics */
+    explode: (onComplete: () => void) => void;
+}
+
+const PARTICLE_COUNT = 30;
+const TRANSITION_MS = 500;
+
 function createBall(container: HTMLDivElement): Ball {
     const w = container.clientWidth;
     const h = container.clientHeight;
@@ -42,6 +52,7 @@ function createBall(container: HTMLDivElement): Ball {
     el.style.height = `${radius}px`;
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
+    el.style.backfaceVisibility = 'hidden';
     container.appendChild(el);
 
     return { el, speed, vx, vy, radius, x, y };
@@ -56,22 +67,141 @@ function moveBall(ball: Ball, w: number, h: number): void {
 
     ball.el.style.left = `${ball.x}px`;
     ball.el.style.top = `${ball.y}px`;
-    ball.el.style.transform = `rotate(${ball.y}deg)`;
+    ball.el.style.transform = `translateZ(0px) scale(1) rotate(${ball.y}deg)`;
 }
 
-const PARTICLE_COUNT = 30;
-
-export function GeometricBackground() {
+export const GeometricBackground = forwardRef<GeometricBackgroundHandle>(function GeometricBackground(_props, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
+    const ballsRef = useRef<Ball[]>([]);
+    const pausedRef = useRef(false);
+    const timeoutsRef = useRef<number[]>([]);
+
+    const clearPendingTimeouts = () => {
+        timeoutsRef.current.forEach(clearTimeout);
+        timeoutsRef.current = [];
+    };
+
+    const addTimeout = (fn: () => void, ms: number) => {
+        const id = window.setTimeout(fn, ms);
+        timeoutsRef.current.push(id);
+        return id;
+    };
+
+    useImperativeHandle(
+        ref,
+        () => ({
+            implode: () => {
+                const container = containerRef.current;
+                const balls = ballsRef.current;
+                if (!container || balls.length === 0) return;
+
+                clearPendingTimeouts();
+
+                // Physics Freeze
+                pausedRef.current = true;
+
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+
+                // Engine Handoff: enable CSS transitions
+                for (const ball of balls) {
+                    ball.el.style.transition = `all ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 1, 1)`;
+                }
+                void container.offsetHeight;
+
+                // The Slide: zoom to center, plunge into Z-axis, scale to 0%
+                for (const ball of balls) {
+                    ball.el.style.left = `${(w - ball.radius) / 2}px`;
+                    ball.el.style.top = `${(h - ball.radius) / 2}px`;
+                    ball.el.style.transform = `translateZ(-3000px) scale(0) rotate(${ball.y}deg)`;
+                }
+                // LoginPage owns the timeout that triggers The Swap
+            },
+
+            explode: (onComplete: () => void) => {
+                const container = containerRef.current;
+                const balls = ballsRef.current;
+                if (!container || balls.length === 0) {
+                    onComplete();
+                    return;
+                }
+
+                clearPendingTimeouts();
+                pausedRef.current = true;
+
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+
+                if (w === 0 || h === 0) {
+                    pausedRef.current = false;
+                    onComplete();
+                    return;
+                }
+
+                // Deep Spawning: place all shapes at vanishing point deep in Z
+                for (const ball of balls) {
+                    ball.el.style.transition = 'none';
+                    ball.el.style.left = `${(w - ball.radius) / 2}px`;
+                    ball.el.style.top = `${(h - ball.radius) / 2}px`;
+                    ball.el.style.transform = 'translateZ(-3000px) scale(0) rotate(0deg)';
+                }
+
+                // Wait 1 frame so browser registers the deep-spawn state
+                addTimeout(() => {
+                    // Edge case 5: tab hidden — skip animation, jump to final state
+                    if (document.hidden) {
+                        for (const ball of balls) {
+                            const tx = Math.random() * Math.max(1, w - ball.radius);
+                            const ty = Math.random() * Math.max(1, h - ball.radius);
+                            ball.x = tx;
+                            ball.y = ty;
+                            ball.el.style.left = `${tx}px`;
+                            ball.el.style.top = `${ty}px`;
+                            ball.el.style.transform = `translateZ(0px) scale(1) rotate(${ty}deg)`;
+                        }
+                        pausedRef.current = false;
+                        onComplete();
+                        return;
+                    }
+
+                    // The Pull + Stand & Scatter: fly forward, upright, to random positions
+                    for (const ball of balls) {
+                        ball.el.style.transition = `all ${TRANSITION_MS}ms ease-out`;
+                        const tx = Math.random() * Math.max(1, w - ball.radius);
+                        const ty = Math.random() * Math.max(1, h - ball.radius);
+                        // Coordinate Sync: write targets directly to physics state
+                        ball.x = tx;
+                        ball.y = ty;
+                        ball.el.style.left = `${tx}px`;
+                        ball.el.style.top = `${ty}px`;
+                        ball.el.style.transform = `translateZ(0px) scale(1) rotate(${ty}deg)`;
+                    }
+
+                    // Engine Restoration: strip transitions, resume rAF
+                    addTimeout(() => {
+                        for (const ball of balls) {
+                            ball.el.style.transition = 'none';
+                        }
+                        pausedRef.current = false;
+                        onComplete();
+                    }, TRANSITION_MS);
+                }, 16);
+            },
+        }),
+        [],
+    );
 
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
+        if (container.clientWidth === 0 || container.clientHeight === 0) return;
+
         const balls: Ball[] = [];
         for (let i = 0; i < PARTICLE_COUNT; i++) {
             balls.push(createBall(container));
         }
+        ballsRef.current = balls;
 
         let w = container.clientWidth;
         let h = container.clientHeight;
@@ -85,6 +215,7 @@ export function GeometricBackground() {
         let frameId: number;
         const animate = () => {
             frameId = requestAnimationFrame(animate);
+            if (pausedRef.current) return;
             for (let i = 0; i < balls.length; i++) {
                 moveBall(balls[i], w, h);
             }
@@ -93,12 +224,14 @@ export function GeometricBackground() {
 
         return () => {
             cancelAnimationFrame(frameId);
+            clearPendingTimeouts();
             observer.disconnect();
             for (let i = 0; i < balls.length; i++) {
                 if (container.contains(balls[i].el)) {
                     container.removeChild(balls[i].el);
                 }
             }
+            ballsRef.current = [];
         };
     }, []);
 
@@ -106,7 +239,11 @@ export function GeometricBackground() {
         <div
             ref={containerRef}
             className="absolute inset-0"
-            style={{ backgroundColor: '#E4EAF1', overflow: 'hidden' }}
+            style={{
+                overflow: 'hidden',
+                perspective: '1000px',
+                transformStyle: 'preserve-3d',
+            }}
         />
     );
-}
+});
