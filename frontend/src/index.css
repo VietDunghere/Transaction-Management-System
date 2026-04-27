@@ -87,6 +87,10 @@
     --content-gap: 28px;
     --card-padding: 24px;
 
+    /* Tailwind v4 spacing aliases for w-sidebar, w-sidebar-collapsed etc. */
+    --spacing-sidebar: 240px;
+    --spacing-sidebar-collapsed: 64px;
+
     /* ---------- Transitions ---------- */
     --transition-fast: 150ms ease;
     --transition-base: 250ms ease;

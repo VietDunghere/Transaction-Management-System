@@ -23,6 +23,7 @@ import {
     NotFoundPage,
     AnalystThresholdsPage,
     AnalystModelPerformancePage,
+    DemoPage,
 } from '~/pages';
 import { useAuthStore } from '~/stores/useAuthStore';
 import { getAccessToken } from '~/utils/localStorage';
@@ -233,6 +234,14 @@ const analystThresholdsRoute = createRoute({
     beforeLoad: () => guardRole(['ANALYST']),
 });
 
+// -- Demo Runner (OPERATOR only) --
+const demoRoute = createRoute({
+    getParentRoute: () => authLayoutRoute,
+    path: '/demo',
+    component: DemoPage,
+    beforeLoad: () => guardRole(['OPERATOR']),
+});
+
 const analystModelPerfRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/analyst/model-performance',
@@ -273,6 +282,7 @@ const routeTree = rootRoute.addChildren([
         auditLogDetailRoute,
         analystThresholdsRoute,
         analystModelPerfRoute,
+        demoRoute,
         notFoundRoute,
     ]),
 ]);

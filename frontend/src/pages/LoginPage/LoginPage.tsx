@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,7 +9,8 @@ import { useUIStore } from '~/stores/useUIStore';
 import { Button } from '~/components/ui/Button/Button';
 import { Input } from '~/components/ui/Input/Input';
 import { Sun, Moon } from 'lucide-react';
-import { ShaderBackground } from './ShaderBackground';
+import { GeometricBackground } from './GeometricBackground';
+import { CosmicBackground } from './CosmicBackground';
 import iconLogo from '~/assets/icon.png';
 
 const loginSchema = z.object({
@@ -22,6 +24,13 @@ export function LoginPage() {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const login = useLogin();
     const { theme, toggleTheme } = useUIStore();
+
+    const [mountedLight, setMountedLight] = useState(theme === 'light');
+    const [mountedDark, setMountedDark] = useState(theme === 'dark');
+    useEffect(() => {
+        if (theme === 'light') setMountedLight(true);
+        else setMountedDark(true);
+    }, [theme]);
 
     const {
         register,
@@ -41,16 +50,25 @@ export function LoginPage() {
 
     return (
         <div className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-            {/* Full-page animated shader background */}
-            <div className="fixed inset-0 -z-10">
-                <ShaderBackground />
+            {/* Full-page animated background — crossfade between geometric (light) and cosmic (dark) */}
+            <div className="fixed inset-0 z-0">
+                {mountedLight && (
+                    <div style={{ display: theme === 'light' ? 'block' : 'none' }}>
+                        <GeometricBackground />
+                    </div>
+                )}
+                {mountedDark && (
+                    <div style={{ display: theme === 'dark' ? 'block' : 'none' }}>
+                        <CosmicBackground />
+                    </div>
+                )}
             </div>
 
             <div className="w-full max-w-300 mx-auto p-4 md:p-6 relative z-10">
-                <div className="rounded-[26px] transition-all duration-700 ease-in-out">
+                <div className="rounded-[26px]">
                     {/* The main card */}
                     <div
-                        className={`flex flex-col md:flex-row rounded-[24px] overflow-hidden max-h-[calc(100vh-3rem)] transition-colors duration-700 ease-in-out relative ${theme === 'dark' ? 'bg-transparent' : 'bg-primary'}`}
+                        className={`flex flex-col md:flex-row rounded-[24px] overflow-hidden max-h-[calc(100vh-3rem)] relative animate-in fade-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-transparent' : 'backdrop-blur-xs shadow-2xl bg-white/10 shadow-black/10'}`}
                     >
                         {/* Theme Toggle Icon Button - Placed at bottom right of the card, visible on both Mobile and Desktop */}
                         <button
@@ -66,19 +84,19 @@ export function LoginPage() {
                         </button>
 
                         {/* Left: Login Form */}
-                        <div className="w-full md:w-1/2 p-6 md:p-10 lg:p-14 flex flex-col justify-center items-center relative transition-colors duration-700 ease-in-out overflow-y-auto">
+                        <div className="w-full md:w-1/2 p-6 md:p-10 lg:p-14 flex flex-col justify-center items-center relative overflow-y-auto">
                             <div className="w-full max-w-md relative z-10">
                                 <div className="text-center mb-6">
                                     <div className="flex items-center justify-center gap-3 mb-4">
                                         <img src={iconLogo} alt="HuzaFraud" className="size-10" />
-                                        <span className="text-2xl font-bold tracking-tight text-text-primary transition-colors duration-700 ease-in-out">
+                                        <span className="text-2xl font-bold tracking-tight text-text-primary">
                                             HuzaFraud
                                         </span>
                                     </div>
-                                    <h1 className="text-3xl font-bold text-text-primary mb-2 tracking-tight transition-colors duration-700 ease-in-out">
+                                    <h1 className="text-3xl font-bold text-text-primary mb-2 tracking-tight">
                                         Login To Your Account
                                     </h1>
-                                    <p className="text-base text-text-secondary transition-colors duration-700 ease-in-out">
+                                    <p className="text-base text-text-secondary">
                                         Enter your username and password to login
                                     </p>
                                 </div>
@@ -86,7 +104,7 @@ export function LoginPage() {
                                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                                     <Input
                                         inputSize="lg"
-                                        className="border-2 bg-transparent transition-colors duration-700 ease-in-out"
+                                        className="border-2 bg-transparent"
                                         label="Username"
                                         placeholder="Enter your username"
                                         error={errors.username?.message}
@@ -96,7 +114,7 @@ export function LoginPage() {
                                     <div>
                                         <Input
                                             inputSize="lg"
-                                            className="border-2 bg-transparent transition-colors duration-700 ease-in-out"
+                                            className="border-2 bg-transparent"
                                             label="Password"
                                             type="password"
                                             placeholder="Enter your password"
@@ -106,7 +124,7 @@ export function LoginPage() {
                                         <div className="w-full flex justify-start mt-2">
                                             <button
                                                 type="button"
-                                                className="text-sm font-medium text-text-primary hover:text-status-info transition-colors duration-700 ease-in-out hover:underline"
+                                                className="text-sm font-medium text-text-primary hover:text-status-info hover:underline"
                                             >
                                                 Forgot password?
                                             </button>
@@ -114,7 +132,7 @@ export function LoginPage() {
                                     </div>
 
                                     {login.isError && (
-                                        <p className="text-sm text-status-danger text-center bg-feedback-danger-bg p-3 rounded-lg border border-status-danger/20 transition-colors duration-700 ease-in-out">
+                                        <p className="text-sm text-status-danger text-center bg-feedback-danger-bg p-3 rounded-lg border border-status-danger/20">
                                             {(login.error as { response?: { data?: { message?: string } } })?.response
                                                 ?.data?.message ?? 'Login failed. Please try again.'}
                                         </p>
@@ -124,7 +142,7 @@ export function LoginPage() {
                                         type="submit"
                                         variant="primary"
                                         loading={login.isPending}
-                                        className="w-full mt-2 py-3 text-base rounded-xl shadow-md transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl active:scale-95"
+                                        className="w-full mt-2 py-3 text-base rounded-xl shadow-md transition-all duration-100 ease-out hover:scale-105 hover:shadow-xl active:scale-95"
                                     >
                                         Login
                                     </Button>
@@ -137,9 +155,9 @@ export function LoginPage() {
                             <img
                                 src="/login_side_image.png"
                                 alt="Security and Analytics"
-                                className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80 transition-opacity duration-700 ease-in-out"
+                                className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80"
                             />
-                            <div className="absolute inset-0 transition-colors duration-700 ease-in-out"></div>
+                            <div className="absolute inset-0"></div>
                         </div>
                     </div>
                 </div>

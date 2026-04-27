@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSimulateLoan } from '~/hooks/useLoans';
 import type { RiskLevel } from '~/types/api';
+import { riskLabel } from '~/types/api';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
 import { FormPageTemplate } from '~/components/templates/FormPageTemplate/FormPageTemplate';
 import { Card } from '~/components/ui/Card/Card';
@@ -104,12 +105,7 @@ export function LoanSimulatePage() {
 
     return (
         <FormPageTemplate
-            header={
-                <PageHeader
-                    title="Loan Simulator"
-                    subtitle="Estimate loan risk and probability of default"
-                />
-            }
+            header={<PageHeader title="Loan Simulator" subtitle="Estimate loan risk and probability of default" />}
             form={
                 <Card>
                     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -204,14 +200,8 @@ export function LoanSimulatePage() {
                     <Card>
                         <SectionHeader title="Simulation Results" />
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                            <StatCard
-                                label="PD Score"
-                                value={`${(simulateLoan.data.pd_score * 100).toFixed(1)}%`}
-                            />
-                            <StatCard
-                                label="Risk Level"
-                                value={simulateLoan.data.risk_level}
-                            />
+                            <StatCard label="PD Score" value={`${(simulateLoan.data.pd_score * 100).toFixed(1)}%`} />
+                            <StatCard label="Risk Level" value={riskLabel[simulateLoan.data.risk_level as RiskLevel]} />
                             <StatCard label="Decision" value={simulateLoan.data.decision} />
                             <StatCard
                                 label="Confidence"
@@ -219,8 +209,8 @@ export function LoanSimulatePage() {
                             />
                         </div>
                         <div className="mt-4 p-3 rounded-sm bg-secondary">
-                            <Badge variant={riskVariant[simulateLoan.data.risk_level]}>
-                                {simulateLoan.data.risk_level}
+                            <Badge variant={riskVariant[simulateLoan.data.risk_level as RiskLevel]}>
+                                {riskLabel[simulateLoan.data.risk_level as RiskLevel]}
                             </Badge>
                             <span className="text-sm ml-2">
                                 {simulateLoan.data.decision === 'APPROVE'

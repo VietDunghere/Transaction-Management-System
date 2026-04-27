@@ -16,6 +16,7 @@ const entityVariant: Record<AuditEntityType, 'info' | 'warning' | 'success' | 'd
     User: 'success',
     ReviewCase: 'warning',
     Loan: 'danger',
+    Auth: 'info',
 };
 
 export function AuditLogDetailPage() {
@@ -26,15 +27,14 @@ export function AuditLogDetailPage() {
     if (isLoading) return <LoadingSkeleton variant="card" />;
     if (isError || !log) return <ErrorState onRetry={refetch} />;
 
-    const detailJson =
-        typeof log.detail_json === 'string' ? log.detail_json : JSON.stringify(log.detail_json, null, 2);
+    const detailJson = typeof log.detail === 'string' ? log.detail : JSON.stringify(log.detail, null, 2);
 
     return (
         <DetailPageTemplate
             header={
                 <PageHeader
-                    title={`Audit Log ${log.log_id.slice(0, 8)}...`}
-                    subtitle={`${log.event_type} — ${new Date(log.event_ts).toLocaleString()}`}
+                    title="Audit Log Detail"
+                    subtitle={`${log.event_type} · ${log.entity_type} · ${log.actor_name ?? 'Unknown'} · ${new Date(log.event_ts).toLocaleString()}`}
                     actions={
                         <Button variant="ghost" onClick={() => navigate({ to: '/audit-logs' })}>
                             Back to List
@@ -42,14 +42,11 @@ export function AuditLogDetailPage() {
                     }
                 />
             }
-            info={
+            main={
                 <Card>
                     <SectionHeader title="Event Details" />
                     <div className="flex flex-col gap-1 mt-4">
-                        <KeyValueRow
-                            label="Log ID"
-                            value={<span className="font-mono text-xs">{log.log_id}</span>}
-                        />
+                        <KeyValueRow label="Log ID" value={<span className="font-mono text-xs">{log.log_id}</span>} />
                         <KeyValueRow label="Event Type" value={log.event_type} />
                         <KeyValueRow
                             label="Entity Type"
@@ -59,19 +56,24 @@ export function AuditLogDetailPage() {
                             label="Entity ID"
                             value={<span className="font-mono text-xs">{log.entity_id}</span>}
                         />
-                        <KeyValueRow label="Actor" value={log.actor_name} />
+                        <KeyValueRow label="Actor" value={log.actor_name ?? '—'} />
                         <KeyValueRow
                             label="Actor ID"
                             value={<span className="font-mono text-xs">{log.actor_user_id}</span>}
                         />
                         <KeyValueRow label="Timestamp" value={new Date(log.event_ts).toLocaleString()} />
                     </div>
-
-                    <SectionHeader title="Detail JSON" className="mt-6" />
-                    <pre className="mt-4 p-4 rounded-sm bg-secondary text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all">
-                        {detailJson}
-                    </pre>
                 </Card>
+            }
+            fullWidth={
+                detailJson ? (
+                    <Card>
+                        <SectionHeader title="Detail JSON" />
+                        <pre className="mt-4 p-4 rounded-sm bg-secondary text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all">
+                            {detailJson}
+                        </pre>
+                    </Card>
+                ) : undefined
             }
         />
     );

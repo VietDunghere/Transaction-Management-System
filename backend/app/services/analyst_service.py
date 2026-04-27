@@ -75,12 +75,15 @@ class AnalystService:
             if cfg is None:
                 raise NotFoundError(f"ModelConfig {item.model_name}.{item.param_name}")
 
+        from app.models.user import User
+        user = self._db.query(User.full_name).filter(User.user_id == actor_user_id).first()
         self._db.add(AuditLog(
             log_id=str(uuid.uuid4()),
             event_type="THRESHOLD_UPDATED",
             entity_type="ModelConfig",
             entity_id="batch",
             actor_user_id=actor_user_id,
+            actor_name=user.full_name if user else None,
             detail_json=json.dumps([u.model_dump() for u in request.updates]),
         ))
         self._db.commit()

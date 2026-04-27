@@ -38,7 +38,7 @@ export function TransactionDetailPage() {
         <DetailPageTemplate
             header={
                 <PageHeader
-                    title={`Transaction ${txn.txn_id.slice(0, 8)}...`}
+                    title="Transaction Detail"
                     subtitle={`Created ${new Date(txn.created_at).toLocaleString()}`}
                     actions={
                         <Button variant="ghost" onClick={() => navigate({ to: '/transactions' })}>
@@ -47,29 +47,31 @@ export function TransactionDetailPage() {
                     }
                 />
             }
-            summary={
-                <div className="flex flex-col gap-5">
-                    <div className="flex flex-col gap-1">
-                        <span className="text-xs font-medium text-text-secondary">Amount</span>
-                        <span className="text-lg font-semibold">
+            statBar={
+                <>
+                    <div className="flex flex-col gap-2 rounded-xl bg-accent-purple p-6">
+                        <span className="text-sm text-text-on-accent">Amount</span>
+                        <span className="text-2xl font-semibold leading-8 text-text-on-accent">
                             {txn.amount.toLocaleString()} {txn.currency_code}
                         </span>
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <span className="text-xs font-medium text-text-secondary">Fraud Score</span>
-                        <span className="text-lg font-semibold">{(txn.fraud_score * 100).toFixed(1)}%</span>
+                    <div className="flex flex-col gap-2 rounded-xl bg-accent-blue p-6">
+                        <span className="text-sm text-text-on-accent">Fraud Score</span>
+                        <span className="text-2xl font-semibold leading-8 text-text-on-accent">
+                            {(txn.fraud_score * 100).toFixed(1)}%
+                        </span>
                     </div>
-                    <div className="flex flex-col items-start gap-1">
-                        <span className="text-xs font-medium text-text-secondary">Status</span>
+                    <div className="flex flex-col items-start gap-2 rounded-xl bg-accent-purple p-6">
+                        <span className="text-sm text-text-on-accent">Status</span>
                         <Badge variant={statusVariant[txn.status]}>{txn.status}</Badge>
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <span className="text-xs font-medium text-text-secondary">Reason</span>
-                        <span className="text-sm">{txn.reason_code ?? '-'}</span>
+                    <div className="flex flex-col gap-2 rounded-xl bg-accent-blue p-6">
+                        <span className="text-sm text-text-on-accent">Reason</span>
+                        <span className="text-base font-semibold text-text-on-accent">{txn.reason_code ?? '-'}</span>
                     </div>
-                </div>
+                </>
             }
-            info={
+            main={
                 <Card>
                     <SectionHeader title="Transaction Details" />
                     <div className="flex flex-col gap-1 mt-4">
@@ -103,7 +105,7 @@ export function TransactionDetailPage() {
                     </div>
                 </Card>
             }
-            timeline={
+            fullWidth={
                 states && states.length > 0 ? (
                     <Card>
                         <SectionHeader title="State History" />

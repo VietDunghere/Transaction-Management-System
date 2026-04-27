@@ -11,10 +11,11 @@ export const caseKeys = {
     detail: (caseId: string) => ['cases', 'detail', caseId] as const,
 };
 
-export function useCases(params: CaseSearchParams) {
+export function useCases(params: CaseSearchParams, refetchInterval?: number | false) {
     return useQuery({
         queryKey: caseKeys.list(params),
         queryFn: () => caseService.getCases(params),
+        refetchInterval,
     });
 }
 

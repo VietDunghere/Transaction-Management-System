@@ -14,7 +14,13 @@ export type LoanDecision = 'APPROVE' | 'REJECT';
 
 export type RiskLevel = 'LOW RISK' | 'MEDIUM RISK' | 'HIGH RISK';
 
-export type AuditEntityType = 'Transaction' | 'User' | 'ReviewCase' | 'Loan';
+export const riskLabel: Record<RiskLevel, string> = {
+    'LOW RISK': 'LOW',
+    'MEDIUM RISK': 'MEDIUM',
+    'HIGH RISK': 'HIGH',
+};
+
+export type AuditEntityType = 'Transaction' | 'User' | 'ReviewCase' | 'Loan' | 'Auth';
 
 // ---- Common ----
 
@@ -253,6 +259,7 @@ export interface LoanDetail extends Loan {
     maturity_date: string | null;
     reviewed_by: string | null;
     reviewed_at: string | null;
+    version: number;
     // Customer info
     customer_name: string | null;
     customer_job: string | null;
@@ -295,7 +302,7 @@ export interface AuditLog {
     actor_user_id: string;
     actor_name: string;
     event_ts: string;
-    detail_json: string | Record<string, unknown>;
+    detail: string | Record<string, unknown>;
 }
 
 // ---- UC08: Dashboard & Reports ----

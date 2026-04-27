@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
+import { Navigate } from '@tanstack/react-router';
 import ReactECharts from 'echarts-for-react';
+import { useAuthStore } from '~/stores/useAuthStore';
 import { useDashboardSummary, useFraudTrend } from '~/hooks/useDashboard';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
 import { DashboardTemplate } from '~/components/templates/DashboardTemplate/DashboardTemplate';
@@ -103,7 +105,16 @@ function FraudTrendChart({ data }: { data: TrendPoint[] }) {
     );
 }
 
+const roleRedirect: Record<string, string> = {
+    OPERATOR: '/loans',
+    REVIEWER: '/cases',
+    ADMIN: '/users',
+};
+
 export function DashboardPage() {
+    const role = useAuthStore((s) => s.user?.role);
+    const target = role ? roleRedirect[role] : undefined;
+
     const {
         data: summary,
         isLoading: summaryLoading,
@@ -112,6 +123,7 @@ export function DashboardPage() {
     } = useDashboardSummary();
     const { data: trend, isLoading: trendLoading } = useFraudTrend(30);
 
+    if (target) return <Navigate to={target} />;
     if (summaryLoading) return <LoadingSkeleton variant="card" />;
     if (summaryError || !summary) return <ErrorState onRetry={refetchSummary} />;
 

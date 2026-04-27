@@ -4,9 +4,12 @@ Service: AuthService
 Xử lý đăng nhập và refresh token.
 """
 
+import json
+import uuid
 from typing import Optional
 
 from jose import JWTError
+from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
     InactiveUserError,
@@ -23,6 +26,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.models.scoring import AuditLog
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
 from app.schemas.auth import TokenPayload, TokenResponse
@@ -30,11 +34,33 @@ from app.schemas.auth import TokenPayload, TokenResponse
 logger = get_logger(__name__)
 
 
+def _write_auth_audit(
+    db: Session,
+    event_type: str,
+    entity_id: str,
+    actor_user_id: Optional[str],
+    actor_name: Optional[str],
+    detail: dict,
+) -> None:
+    """Ghi audit log cho authentication events."""
+    db.add(AuditLog(
+        log_id=str(uuid.uuid4()),
+        event_type=event_type,
+        entity_type="Auth",
+        entity_id=entity_id,
+        actor_user_id=actor_user_id,
+        actor_name=actor_name,
+        detail_json=json.dumps(detail),
+    ))
+    db.flush()
+
+
 class AuthService:
     """Xử lý toàn bộ logic xác thực người dùng."""
 
-    def __init__(self, user_repo: UserRepository) -> None:
+    def __init__(self, user_repo: UserRepository, db: Optional[Session] = None) -> None:
         self._user_repo = user_repo
+        self._db = db or user_repo._db
 
     def login(self, username: str, password: str) -> TokenResponse:
         """
@@ -49,6 +75,15 @@ class AuthService:
         # Luôn verify password (dù user không tồn tại) để chống timing attack
         if user is None or not verify_password(password, user.password_hash):
             logger.warning("login_failed", username=username)
+            _write_auth_audit(
+                self._db,
+                event_type="LOGIN_FAILED",
+                entity_id="unknown",
+                actor_user_id=None,
+                actor_name=None,
+                detail={"username": username, "reason": "invalid_credentials"},
+            )
+            self._db.commit()
             raise InvalidCredentialsError()
 
         if not user.is_active:
@@ -56,6 +91,16 @@ class AuthService:
             raise InactiveUserError()
 
         tokens = self._issue_tokens(user)
+
+        _write_auth_audit(
+            self._db,
+            event_type="LOGIN_SUCCESS",
+            entity_id=user.user_id,
+            actor_user_id=user.user_id,
+            actor_name=user.full_name,
+            detail={"username": username},
+        )
+
         logger.info("login_success", user_id=user.user_id, roles=user.roles)
         return tokens
 
@@ -125,7 +170,33 @@ class AuthService:
 
         user.password_hash = hash_password(new_password)
         self._user_repo.flush()
+
+        _write_auth_audit(
+            self._db,
+            event_type="PASSWORD_CHANGED",
+            entity_id=user_id,
+            actor_user_id=user_id,
+            actor_name=user.full_name,
+            detail={"username": user.username},
+        )
+
         logger.info("password_changed", user_id=user_id)
+
+    def logout(self, user_id: str) -> None:
+        """Ghi audit log cho sự kiện đăng xuất."""
+        user = self._user_repo.get_by_id(user_id)
+        actor_name = user.full_name if user else None
+
+        _write_auth_audit(
+            self._db,
+            event_type="LOGOUT",
+            entity_id=user_id,
+            actor_user_id=user_id,
+            actor_name=actor_name,
+            detail={"username": user.username if user else "unknown"},
+        )
+
+        logger.info("logout", user_id=user_id)
 
     # ---- Private ----
 

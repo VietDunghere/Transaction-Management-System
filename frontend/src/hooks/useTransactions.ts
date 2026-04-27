@@ -11,10 +11,11 @@ export const transactionKeys = {
     states: (txnId: string) => ['transactions', 'states', txnId] as const,
 };
 
-export function useTransactions(params: TransactionSearchParams) {
+export function useTransactions(params: TransactionSearchParams, refetchInterval?: number | false) {
     return useQuery({
         queryKey: transactionKeys.list(params),
         queryFn: () => transactionService.getTransactions(params),
+        refetchInterval,
     });
 }
 

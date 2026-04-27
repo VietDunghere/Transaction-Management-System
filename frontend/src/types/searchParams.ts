@@ -55,7 +55,7 @@ export type LoanSearchParams = z.infer<typeof loanSearchSchema>;
 export const auditLogSearchSchema = z.object({
     ...paginationSchema,
     event_type: z.string().optional().catch(undefined),
-    entity_type: z.enum(['Transaction', 'User', 'ReviewCase', 'Loan']).optional().catch(undefined),
+    entity_type: z.enum(['Transaction', 'User', 'ReviewCase', 'Loan', 'Auth']).optional().catch(undefined),
     actor_user_id: z.string().optional().catch(undefined),
     from_date: z.string().optional().catch(undefined),
     to_date: z.string().optional().catch(undefined),

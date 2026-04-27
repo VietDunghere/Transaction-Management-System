@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTransactions } from '~/hooks/useTransactions';
+import { useDemoRunning } from '~/hooks/useDemoRunning';
 import type { TransactionSearchParams } from '~/types/searchParams';
 import type { TransactionStatus } from '~/types/api';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
@@ -48,7 +49,8 @@ export function TransactionListPage() {
         limit: 20,
     });
 
-    const { data, isLoading, isError, refetch } = useTransactions(params);
+    const demoRunning = useDemoRunning();
+    const { data, isLoading, isError, refetch } = useTransactions(params, demoRunning ? 1000 : false);
 
     const rows = (data?.data ?? []).map((txn) => ({
         txn_id: <span className="text-xs font-mono">{txn.txn_id.slice(0, 8)}...</span>,

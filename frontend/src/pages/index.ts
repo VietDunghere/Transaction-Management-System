@@ -19,3 +19,4 @@ export { ForbiddenPage } from './ForbiddenPage';
 export { NotFoundPage } from './NotFoundPage';
 export { AnalystThresholdsPage } from './AnalystThresholdsPage/AnalystThresholdsPage';
 export { AnalystModelPerformancePage } from './AnalystModelPerformancePage/AnalystModelPerformancePage';
+export { DemoPage } from './DemoPage';

@@ -8,11 +8,13 @@ import {
     User,
     SlidersHorizontal,
     Activity,
+    Play,
 } from 'lucide-react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { cn } from '~/utils/cn';
 import type { Role } from '~/types/api';
 import { useAuthStore } from '~/stores/useAuthStore';
+import logoIcon from '~/assets/icon.png';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -42,6 +44,7 @@ const mainNavItems: NavItem[] = [
         roles: ['OPERATOR', 'REVIEWER'],
     },
     { label: 'Users', icon: <Users size={20} />, href: '/users', roles: ['MANAGER', 'ADMIN'] },
+    { label: 'Demo Runner', icon: <Play size={20} />, href: '/demo', roles: ['OPERATOR'] },
 ];
 
 const analystNavItems: NavItem[] = [
@@ -94,8 +97,6 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     const visibleAnalyst = filterByRole(analystNavItems, userRole);
     const visibleSecondary = filterByRole(secondaryNavItems, userRole);
 
-    const userInitial = user?.full_name?.charAt(0).toUpperCase() ?? '?';
-
     return (
         <>
             {/* Mobile overlay */}
@@ -110,7 +111,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
             <aside
                 className={cn(
-                    'flex flex-col bg-primary p-4',
+                    'flex flex-col gap-4 bg-primary p-2',
                     'border-r border-border-default',
                     'transition-all duration-300',
                     'z-50 shrink-0 overflow-hidden',
@@ -118,16 +119,10 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     isOpen ? 'w-sidebar translate-x-0' : 'w-sidebar-collapsed -translate-x-full md:translate-x-0',
                 )}
             >
-                {/* User row */}
-                <div className="flex items-center gap-3 px-2 py-2 mb-2">
-                    <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-purple">
-                        <span className="text-[0.625rem] font-semibold text-text-on-accent">{userInitial}</span>
-                    </div>
-                    {isOpen && (
-                        <span className="text-sm font-normal text-text-primary truncate">
-                            {user?.full_name ?? 'Loading...'}
-                        </span>
-                    )}
+                {/* Logo row */}
+                <div className="flex items-center justify-center gap-2 p-4">
+                    <img src={logoIcon} alt="HuzaFraud" className="size-10 shrink-0" />
+                    {isOpen && <span className="text-xl font-semibold text-text-primary truncate">HuzaFraud</span>}
                 </div>
 
                 {/* Scrollable nav area */}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
+import { AlertTriangle } from 'lucide-react';
 import { useCase, useAssignCase, useDecideCase } from '~/hooks/useCases';
 import { useAuthStore } from '~/stores/useAuthStore';
 import type { CaseStatus, CaseDecision, CaseRuleHit } from '~/types/api';
@@ -79,13 +80,29 @@ export function CaseDetailPage() {
         );
     };
 
+    // Build anomaly flags for the banner
+    const fraudScore = caseData.transaction.fraud_score;
+    const ruleCount = caseData.transaction.rule_hits.length;
+    const anomalyFlags: string[] = [];
+    if (fraudScore != null && fraudScore >= 0.65) anomalyFlags.push(`Fraud Score ${(fraudScore * 100).toFixed(0)}%`);
+    else if (fraudScore != null && fraudScore >= 0.35)
+        anomalyFlags.push(`Fraud Score ${(fraudScore * 100).toFixed(0)}%`);
+    if (ruleCount > 0) anomalyFlags.push(`${ruleCount} Rule${ruleCount > 1 ? 's' : ''} Triggered`);
+    if (caseData.transaction.merchant_risk_level === 'HIGH') anomalyFlags.push('High-Risk Merchant');
+    if (caseData.transaction.card_velocity) {
+        const vel = caseData.transaction.card_velocity;
+        if (vel.avg_daily_txn > 5) anomalyFlags.push(`${vel.avg_daily_txn.toFixed(0)} avg daily txns`);
+    }
+
+    const bannerVariant = fraudScore != null && fraudScore >= 0.65 ? 'danger' : 'warning';
+
     return (
         <>
             <DetailPageTemplate
                 header={
                     <PageHeader
-                        title={`Case ${caseData.case_id.slice(0, 8)}...`}
-                        subtitle={`Created ${new Date(caseData.created_at).toLocaleString()}`}
+                        title="Case Detail"
+                        subtitle={`${caseData.transaction.amount.toLocaleString()} ${caseData.transaction.currency_code} · ${caseData.case_status} · Created ${new Date(caseData.created_at).toLocaleString()}`}
                         actions={
                             <div className="flex items-center gap-2">
                                 {canAssign && (
@@ -116,128 +133,125 @@ export function CaseDetailPage() {
                         }
                     />
                 }
-                summary={
-                    <div className="flex flex-col gap-5">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Transaction Amount</span>
-                            <span className="text-lg font-semibold">
-                                {caseData.transaction.amount.toLocaleString()}
-                            </span>
+                alertBanner={
+                    anomalyFlags.length > 0 ? (
+                        <div
+                            className={`flex items-center gap-3 rounded-xl border-l-4 p-4 ${
+                                bannerVariant === 'danger'
+                                    ? 'border-l-status-danger bg-badge-danger-bg'
+                                    : 'border-l-status-warning bg-badge-warning-bg'
+                            }`}
+                        >
+                            <AlertTriangle
+                                size={18}
+                                className={bannerVariant === 'danger' ? 'text-status-danger' : 'text-status-warning'}
+                            />
+                            <span className="text-sm font-medium text-text-primary">{anomalyFlags.join(' · ')}</span>
                         </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Fraud Score</span>
-                            <span className="text-lg font-semibold">
-                                {caseData.transaction.fraud_score != null
-                                    ? `${(caseData.transaction.fraud_score * 100).toFixed(1)}%`
-                                    : '—'}
-                            </span>
-                        </div>
-                        <div className="flex flex-col items-start gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Case Status</span>
-                            <Badge variant={statusVariant[caseData.case_status]}>{caseData.case_status}</Badge>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-text-secondary">Decision</span>
-                            <span className="text-sm font-medium">{caseData.decision ?? 'Pending'}</span>
-                        </div>
-                    </div>
+                    ) : undefined
                 }
-                info={
-                    <Card>
-                        <SectionHeader title="Case Details" />
-                        <div className="flex flex-col gap-1 mt-4">
-                            <KeyValueRow
-                                label="Case ID"
-                                value={<span className="font-mono text-xs">{caseData.case_id}</span>}
-                            />
-                            <KeyValueRow
-                                label="Transaction ID"
-                                value={<span className="font-mono text-xs">{caseData.txn_id}</span>}
-                            />
-                            <KeyValueRow
-                                label="Status"
-                                value={
-                                    <Badge variant={statusVariant[caseData.case_status]}>{caseData.case_status}</Badge>
-                                }
-                            />
-                            <KeyValueRow
-                                label="Assigned To"
-                                value={
-                                    caseData.assigned_to_name ??
-                                    (caseData.assigned_to ? caseData.assigned_to.slice(0, 8) + '...' : 'Unassigned')
-                                }
-                            />
-                            <KeyValueRow label="Decision" value={caseData.decision ?? '-'} />
-                            <KeyValueRow label="Decision Note" value={caseData.decision_note ?? '-'} />
-                            <KeyValueRow label="Version" value={String(caseData.version)} />
-                            <KeyValueRow
-                                label="Decided At"
-                                value={caseData.decided_at ? new Date(caseData.decided_at).toLocaleString() : '-'}
-                            />
-                        </div>
-
-                        <SectionHeader title="Transaction Info" className="mt-6" />
-                        <div className="flex flex-col gap-1 mt-4">
-                            <KeyValueRow label="Customer" value={caseData.transaction.customer_name ?? '—'} />
-                            <KeyValueRow
-                                label="Merchant"
-                                value={
-                                    <div className="flex items-center gap-2">
-                                        <span>{caseData.transaction.merchant_name ?? '—'}</span>
-                                        {caseData.transaction.merchant_category && (
-                                            <Badge variant="info">{caseData.transaction.merchant_category}</Badge>
-                                        )}
-                                        {caseData.transaction.merchant_risk_level === 'HIGH' && (
-                                            <Badge variant="danger">HIGH RISK</Badge>
-                                        )}
-                                    </div>
-                                }
-                            />
-                            <KeyValueRow
-                                label="Amount"
-                                value={
-                                    <span className="font-mono font-semibold">
-                                        {caseData.transaction.amount.toLocaleString(undefined, {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}{' '}
-                                        {caseData.transaction.currency_code}
-                                    </span>
-                                }
-                            />
-                            <KeyValueRow
-                                label="Fraud Score"
-                                value={
-                                    <span
-                                        className={`font-semibold ${
-                                            (caseData.transaction.fraud_score ?? 0) >= 0.65
-                                                ? 'text-status-danger'
-                                                : (caseData.transaction.fraud_score ?? 0) >= 0.35
-                                                  ? 'text-status-warning'
-                                                  : 'text-text-primary'
-                                        }`}
-                                    >
-                                        {caseData.transaction.fraud_score != null
-                                            ? `${(caseData.transaction.fraud_score * 100).toFixed(1)}%`
-                                            : '—'}
-                                    </span>
-                                }
-                            />
-                            <KeyValueRow label="Channel" value={caseData.transaction.channel_name ?? '—'} />
-                            <KeyValueRow
-                                label="Transaction Time"
-                                value={new Date(caseData.transaction.txn_time).toLocaleString()}
-                            />
-                            <KeyValueRow label="Source IP" value={caseData.transaction.source_ip ?? '—'} />
-                            <KeyValueRow label="Card" value={caseData.transaction.card_number_masked ?? '—'} />
-                        </div>
-
-                        {caseData.transaction.rule_hits.length > 0 && (
-                            <>
-                                <SectionHeader
-                                    title={`Triggered Rules (${caseData.transaction.rule_hits.length})`}
-                                    className="mt-6"
+                main={
+                    <>
+                        <Card>
+                            <SectionHeader title="Case Details" />
+                            <div className="flex flex-col gap-1 mt-4">
+                                <KeyValueRow
+                                    label="Case ID"
+                                    value={<span className="font-mono text-xs">{caseData.case_id}</span>}
                                 />
+                                <KeyValueRow
+                                    label="Transaction ID"
+                                    value={<span className="font-mono text-xs">{caseData.txn_id}</span>}
+                                />
+                                <KeyValueRow
+                                    label="Status"
+                                    value={
+                                        <Badge variant={statusVariant[caseData.case_status]}>
+                                            {caseData.case_status}
+                                        </Badge>
+                                    }
+                                />
+                                <KeyValueRow
+                                    label="Assigned To"
+                                    value={
+                                        caseData.assigned_to_name ??
+                                        (caseData.assigned_to ? caseData.assigned_to.slice(0, 8) + '...' : 'Unassigned')
+                                    }
+                                />
+                                <KeyValueRow label="Decision" value={caseData.decision ?? '-'} />
+                                <KeyValueRow label="Decision Note" value={caseData.decision_note ?? '-'} />
+                                <KeyValueRow label="Version" value={String(caseData.version)} />
+                                <KeyValueRow
+                                    label="Decided At"
+                                    value={caseData.decided_at ? new Date(caseData.decided_at).toLocaleString() : '-'}
+                                />
+                            </div>
+                        </Card>
+
+                        <Card>
+                            <SectionHeader title="Transaction Info" />
+                            <div className="flex flex-col gap-1 mt-4">
+                                <KeyValueRow label="Customer" value={caseData.transaction.customer_name ?? '—'} />
+                                <KeyValueRow
+                                    label="Merchant"
+                                    value={
+                                        <div className="flex items-center gap-2">
+                                            <span>{caseData.transaction.merchant_name ?? '—'}</span>
+                                            {caseData.transaction.merchant_category && (
+                                                <Badge variant="info">{caseData.transaction.merchant_category}</Badge>
+                                            )}
+                                            {caseData.transaction.merchant_risk_level === 'HIGH' && (
+                                                <Badge variant="danger">HIGH</Badge>
+                                            )}
+                                        </div>
+                                    }
+                                />
+                                <KeyValueRow
+                                    label="Amount"
+                                    value={
+                                        <span className="font-mono font-semibold">
+                                            {caseData.transaction.amount.toLocaleString(undefined, {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}{' '}
+                                            {caseData.transaction.currency_code}
+                                        </span>
+                                    }
+                                />
+                                <KeyValueRow
+                                    label="Fraud Score"
+                                    value={
+                                        <span
+                                            className={`font-semibold ${
+                                                (caseData.transaction.fraud_score ?? 0) >= 0.65
+                                                    ? 'text-status-danger'
+                                                    : (caseData.transaction.fraud_score ?? 0) >= 0.35
+                                                      ? 'text-status-warning'
+                                                      : 'text-text-primary'
+                                            }`}
+                                        >
+                                            {caseData.transaction.fraud_score != null
+                                                ? `${(caseData.transaction.fraud_score * 100).toFixed(1)}%`
+                                                : '—'}
+                                        </span>
+                                    }
+                                />
+                                <KeyValueRow label="Channel" value={caseData.transaction.channel_name ?? '—'} />
+                                <KeyValueRow
+                                    label="Transaction Time"
+                                    value={new Date(caseData.transaction.txn_time).toLocaleString()}
+                                />
+                                <KeyValueRow label="Source IP" value={caseData.transaction.source_ip ?? '—'} />
+                                <KeyValueRow label="Card" value={caseData.transaction.card_number_masked ?? '—'} />
+                            </div>
+                        </Card>
+                    </>
+                }
+                aside={
+                    <>
+                        {caseData.transaction.rule_hits.length > 0 && (
+                            <Card>
+                                <SectionHeader title={`Triggered Rules (${caseData.transaction.rule_hits.length})`} />
                                 <div className="flex flex-col gap-2 mt-3">
                                     {caseData.transaction.rule_hits.map((rh: CaseRuleHit, i: number) => (
                                         <div
@@ -262,12 +276,12 @@ export function CaseDetailPage() {
                                         </div>
                                     ))}
                                 </div>
-                            </>
+                            </Card>
                         )}
 
                         {caseData.transaction.card_velocity && (
-                            <>
-                                <SectionHeader title="Card Velocity" className="mt-6" />
+                            <Card>
+                                <SectionHeader title="Card Velocity" />
                                 <div className="grid grid-cols-2 gap-3 mt-3">
                                     <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
                                         <span className="text-xs text-text-secondary">Avg Daily Txns</span>
@@ -276,7 +290,7 @@ export function CaseDetailPage() {
                                         </span>
                                     </div>
                                     <div className="flex flex-col gap-0.5 p-3 bg-bg-secondary rounded-lg">
-                                        <span className="text-xs text-text-secondary">Total Transactions</span>
+                                        <span className="text-xs text-text-secondary">Total Txns</span>
                                         <span className="text-base font-semibold">
                                             {caseData.transaction.card_velocity.total_txn.toLocaleString()}
                                         </span>
@@ -299,50 +313,48 @@ export function CaseDetailPage() {
                                         </span>
                                     </div>
                                 </div>
-                            </>
+                            </Card>
                         )}
-
-                        {caseData.transaction.recent_transactions.length > 0 && (
-                            <>
-                                <SectionHeader
-                                    title={`Recent Transactions (${caseData.transaction.recent_transactions.length})`}
-                                    className="mt-6"
-                                />
-                                <div className="flex flex-col gap-1 mt-3">
-                                    {caseData.transaction.recent_transactions.map((r) => (
-                                        <div
-                                            key={r.txn_id}
-                                            className="flex items-center justify-between gap-3 py-2 border-b border-border-default last:border-0"
-                                        >
-                                            <div className="flex flex-col gap-0.5 min-w-0">
-                                                <span className="text-xs text-text-secondary truncate">
-                                                    {r.merchant_name ?? '—'}
-                                                </span>
-                                                <span className="text-xs text-text-tertiary">
-                                                    {new Date(r.txn_time).toLocaleString()}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2 flex-shrink-0">
-                                                <span className="text-xs font-mono font-medium">
-                                                    {r.amount.toLocaleString()} {r.currency_code}
-                                                </span>
-                                                <Badge variant={txnStatusVariant[r.status] ?? 'muted'}>
-                                                    {r.status}
-                                                </Badge>
-                                                {r.fraud_score !== null && (
-                                                    <span
-                                                        className={`text-xs font-mono ${r.fraud_score >= 0.65 ? 'text-status-danger' : r.fraud_score >= 0.35 ? 'text-status-warning' : 'text-text-tertiary'}`}
-                                                    >
-                                                        {(r.fraud_score * 100).toFixed(0)}%
-                                                    </span>
-                                                )}
-                                            </div>
+                    </>
+                }
+                fullWidth={
+                    caseData.transaction.recent_transactions.length > 0 ? (
+                        <Card>
+                            <SectionHeader
+                                title={`Recent Transactions (${caseData.transaction.recent_transactions.length})`}
+                            />
+                            <div className="flex flex-col gap-1 mt-3">
+                                {caseData.transaction.recent_transactions.map((r) => (
+                                    <div
+                                        key={r.txn_id}
+                                        className="flex items-center justify-between gap-3 py-2 border-b border-border-default last:border-0"
+                                    >
+                                        <div className="flex flex-col gap-0.5 min-w-0">
+                                            <span className="text-xs text-text-secondary truncate">
+                                                {r.merchant_name ?? '—'}
+                                            </span>
+                                            <span className="text-xs text-text-tertiary">
+                                                {new Date(r.txn_time).toLocaleString()}
+                                            </span>
                                         </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </Card>
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            <span className="text-xs font-mono font-medium">
+                                                {r.amount.toLocaleString()} {r.currency_code}
+                                            </span>
+                                            <Badge variant={txnStatusVariant[r.status] ?? 'muted'}>{r.status}</Badge>
+                                            {r.fraud_score !== null && (
+                                                <span
+                                                    className={`text-xs font-mono ${r.fraud_score >= 0.65 ? 'text-status-danger' : r.fraud_score >= 0.35 ? 'text-status-warning' : 'text-text-tertiary'}`}
+                                                >
+                                                    {(r.fraud_score * 100).toFixed(0)}%
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    ) : undefined
                 }
             />
 

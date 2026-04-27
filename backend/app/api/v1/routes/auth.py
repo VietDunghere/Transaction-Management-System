@@ -9,7 +9,6 @@ POST  /auth/refresh         — lấy access token mới
 """
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 
 from app.api.v1.deps import CurrentToken, CurrentUser, get_auth_service
 from app.db.deps import DbSession
@@ -28,9 +27,12 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 )
 def login(
     body: LoginRequest,
+    db: DbSession,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> TokenResponse:
-    return auth_service.login(body.username, body.password)
+    result = auth_service.login(body.username, body.password)
+    db.commit()
+    return result
 
 
 @router.post(
@@ -39,7 +41,13 @@ def login(
     summary="Đăng xuất",
     description="Đăng xuất — JWT stateless nên client chỉ cần discard token.",
 )
-def logout(token: CurrentToken) -> MessageResponse:
+def logout(
+    token: CurrentToken,
+    db: DbSession,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> MessageResponse:
+    auth_service.logout(user_id=token.sub)
+    db.commit()
     return MessageResponse(message="Đăng xuất thành công.")
 
 
