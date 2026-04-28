@@ -103,7 +103,7 @@ const dashboardRoute = createRoute({
     component: DashboardPage,
     beforeLoad: () => {
         const role = getUserRole();
-        if (role === 'OPERATOR') throw redirect({ to: '/loans' });
+        if (role === 'OPERATOR') throw redirect({ to: '/transactions' });
         if (role === 'REVIEWER') throw redirect({ to: '/cases' });
         if (role === 'ADMIN') throw redirect({ to: '/users' });
     },
@@ -123,12 +123,12 @@ const forbiddenRoute = createRoute({
     component: ForbiddenPage,
 });
 
-// -- Transactions (UC02.2: ANALYST, MANAGER) --
+// -- Transactions (UC02: OPERATOR own-only, ANALYST, MANAGER) --
 const transactionsRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/transactions',
     component: TransactionListPage,
-    beforeLoad: () => guardRole(['ANALYST', 'MANAGER']),
+    beforeLoad: () => guardRole(['OPERATOR', 'ANALYST', 'MANAGER']),
 });
 
 const transactionSubmitRoute = createRoute({
@@ -142,7 +142,7 @@ const transactionDetailRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/transactions/$txnId',
     component: TransactionDetailPage,
-    beforeLoad: () => guardRole(['ANALYST', 'MANAGER']),
+    beforeLoad: () => guardRole(['OPERATOR', 'ANALYST', 'MANAGER']),
 });
 
 // -- Cases (UC04: REVIEWER) --

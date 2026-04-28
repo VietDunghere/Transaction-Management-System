@@ -1,10 +1,10 @@
 from __future__ import annotations
 """
 Router: Analyst
-GET  /analyst/thresholds                      — xem tất cả threshold hiện tại (ANALYST, MANAGER, ADMIN)
-PATCH /analyst/thresholds                     — cập nhật threshold (ANALYST, ADMIN)
-GET  /analyst/model-performance/fraud         — thống kê fraud model (ANALYST, MANAGER, ADMIN)
-GET  /analyst/model-performance/loan          — thống kê loan model (ANALYST, MANAGER, ADMIN)
+GET  /analyst/thresholds                      — xem tất cả threshold hiện tại (ANALYST)
+PATCH /analyst/thresholds                     — cập nhật threshold (ANALYST)
+GET  /analyst/model-performance/fraud         — thống kê fraud model (ANALYST)
+GET  /analyst/model-performance/loan          — thống kê loan model (ANALYST)
 """
 
 from fastapi import APIRouter, Depends, Query
@@ -30,7 +30,7 @@ router = APIRouter(prefix="/analyst", tags=["Analyst"])
 )
 def get_thresholds(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("ANALYST", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("ANALYST")),
 ) -> ThresholdListResponse:
     return AnalystService(db).get_thresholds()
 
@@ -44,7 +44,7 @@ def get_thresholds(
 def update_thresholds(
     body: ThresholdUpdateRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("ANALYST", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("ANALYST")),
 ) -> ThresholdListResponse:
     return AnalystService(db).update_thresholds(body, actor_user_id=token.sub)
 
@@ -56,7 +56,7 @@ def update_thresholds(
 )
 def fraud_model_performance(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("ANALYST", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("ANALYST")),
     days: int = Query(default=30, ge=1, le=365, description="Số ngày nhìn lại"),
 ) -> FraudModelPerformanceResponse:
     return AnalystService(db).get_fraud_performance(days=days)
@@ -69,7 +69,7 @@ def fraud_model_performance(
 )
 def loan_model_performance(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("ANALYST", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("ANALYST")),
     days: int = Query(default=30, ge=1, le=365, description="Số ngày nhìn lại"),
 ) -> LoanModelPerformanceResponse:
     return AnalystService(db).get_loan_performance(days=days)

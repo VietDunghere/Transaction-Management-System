@@ -266,7 +266,10 @@ export function LoanDetailPage() {
                         <Card>
                             <SectionHeader title="Review Info" />
                             <div className="flex flex-col gap-1 mt-4">
-                                <KeyValueRow label="Reviewed By" value={loan.reviewed_by ?? '—'} />
+                                <KeyValueRow
+                                    label="Reviewed By"
+                                    value={loan.reviewer_name ?? loan.reviewed_by ?? '—'}
+                                />
                                 <KeyValueRow
                                     label="Reviewed At"
                                     value={loan.reviewed_at ? new Date(loan.reviewed_at).toLocaleString() : '—'}

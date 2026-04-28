@@ -5,7 +5,7 @@ POST   /loans                    — tạo đơn vay (OPERATOR)
 GET    /loans                    — danh sách khoản vay (OPERATOR, REVIEWER)
 POST   /loans/simulate           — AI PD Score simulation (OPERATOR, REVIEWER)
 GET    /loans/{loan_id}          — chi tiết khoản vay (OPERATOR, REVIEWER)
-PATCH  /loans/{loan_id}/decision — phê duyệt / từ chối (REVIEWER, MANAGER, ADMIN)
+PATCH  /loans/{loan_id}/decision — phê duyệt / từ chối (REVIEWER)
 """
 
 import math
@@ -44,6 +44,9 @@ def _build_loan_response(loan, db) -> LoanResponse:
         resp.customer_job = c.job
         resp.customer_kyc_status = c.kyc_status
         resp.customer_income_level = c.income_level
+
+    if loan.reviewer:
+        resp.reviewer_name = loan.reviewer.full_name
 
     # Loan history for this customer (exclude current loan)
     all_loans = (
@@ -91,7 +94,7 @@ def apply_loan(
 )
 def list_loans(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER")),
     customer_id: Optional[str] = Query(None, description="Lọc theo customer UUID"),
     status: Optional[LoanStatus] = Query(None, description="Lọc theo trạng thái"),
     period: Optional[str] = Query(None, description="D=1 ngày, W=7 ngày, M=30 ngày"),
@@ -141,7 +144,7 @@ def list_loans(
 )
 def simulate_loan(
     body: LoanSimulationRequest,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER")),
 ) -> LoanSimulationResponse:
     scoring_svc = LoanScoringService.get_instance()
 
@@ -177,7 +180,7 @@ def simulate_loan(
 def get_loan(
     loan_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER")),
 ) -> LoanResponse:
     svc = LoanService(db)
     loan = svc.get_loan(loan_id)
@@ -199,7 +202,7 @@ def decide_loan(
     loan_id: str,
     body: LoanDecisionRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("REVIEWER")),
 ) -> LoanResponse:
     svc = LoanService(db)
     loan = svc.decide(loan_id, body, actor_user_id=token.sub)

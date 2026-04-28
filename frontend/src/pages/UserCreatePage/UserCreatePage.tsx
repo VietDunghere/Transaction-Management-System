@@ -108,7 +108,6 @@ export function UserCreatePage() {
                     </form>
                 </Card>
             }
-            footer={<div />}
         />
     );
 }

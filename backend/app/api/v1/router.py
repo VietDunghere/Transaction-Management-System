@@ -13,6 +13,7 @@ from app.api.v1.routes import (
     demo,
     health,
     loan,
+    lookup,
     reports,
     transactions,
     users,
@@ -31,3 +32,4 @@ router.include_router(dashboard.router)
 router.include_router(demo.router)
 router.include_router(reports.router)
 router.include_router(health.router)
+router.include_router(lookup.router)

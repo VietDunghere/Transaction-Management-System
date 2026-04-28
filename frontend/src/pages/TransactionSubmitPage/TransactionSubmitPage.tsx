@@ -1,8 +1,10 @@
+import { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from '@tanstack/react-router';
 import { useSubmitTransaction } from '~/hooks/useTransactions';
+import { useSearchCustomers, useSearchMerchants, useChannels } from '~/hooks/useLookup';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
 import { FormPageTemplate } from '~/components/templates/FormPageTemplate/FormPageTemplate';
 import { Card } from '~/components/ui/Card/Card';
@@ -10,16 +12,20 @@ import { Input } from '~/components/ui/Input/Input';
 import { Select } from '~/components/ui/Select/Select';
 import { Button } from '~/components/ui/Button/Button';
 import { Badge } from '~/components/ui/Badge/Badge';
+import { Combobox } from '~/components/ui/Combobox/Combobox';
+import type { ComboboxOption } from '~/components/ui/Combobox/Combobox';
 
 const submitSchema = z.object({
-    customer_id: z.string().min(1, 'Customer ID is required'),
-    merchant_id: z.string().min(1, 'Merchant ID is required'),
-    channel_id: z.string().min(1, 'Channel ID is required'),
-    card_number_masked: z.string().min(1, 'Card number is required'),
+    customer_id: z.string().min(1, 'Please select a customer'),
+    merchant_id: z.string().min(1, 'Please select a merchant'),
+    channel_id: z.string().min(1, 'Please select a channel'),
+    card_number: z
+        .string()
+        .transform((v) => v.replace(/[\s-]/g, ''))
+        .pipe(z.string().min(13, 'Card number must be 13-19 digits').max(19).regex(/^\d+$/, 'Digits only')),
     amount: z.string().min(1, 'Amount is required'),
     currency_code: z.string().min(1, 'Currency is required'),
     txn_time: z.string().min(1, 'Transaction time is required'),
-    source_ip: z.string().min(1, 'Source IP is required'),
 });
 
 type SubmitForm = z.infer<typeof submitSchema>;
@@ -33,9 +39,24 @@ export function TransactionSubmitPage() {
     const navigate = useNavigate();
     const submitTxn = useSubmitTransaction();
 
+    // Combobox search state
+    const [customerQuery, setCustomerQuery] = useState('');
+    const [merchantQuery, setMerchantQuery] = useState('');
+
+    // Display values for comboboxes
+    const [customerDisplay, setCustomerDisplay] = useState('');
+    const [merchantDisplay, setMerchantDisplay] = useState('');
+
+    // Lookup hooks
+    const { data: customers = [], isLoading: customersLoading } = useSearchCustomers(customerQuery);
+    const { data: merchants = [], isLoading: merchantsLoading } = useSearchMerchants(merchantQuery);
+    const { data: channels = [] } = useChannels();
+
     const {
         register,
         handleSubmit,
+        setValue,
+        watch,
         formState: { errors },
     } = useForm<SubmitForm>({
         resolver: zodResolver(submitSchema),
@@ -45,20 +66,55 @@ export function TransactionSubmitPage() {
         },
     });
 
+    const customerId = watch('customer_id');
+    const merchantId = watch('merchant_id');
+
+    // Map API data to combobox options
+    const customerOptions: ComboboxOption[] = customers.map((c) => ({
+        value: c.customer_id,
+        label: `${c.full_name} (${c.customer_code})`,
+    }));
+
+    const merchantOptions: ComboboxOption[] = merchants.map((m) => ({
+        value: m.merchant_id,
+        label: `${m.merchant_name} (${m.merchant_code})`,
+        sublabel: m.merchant_category ?? undefined,
+    }));
+
+    const channelOptions = channels.map((ch) => ({
+        label: ch.channel_name,
+        value: String(ch.channel_id),
+    }));
+
+    const handleCustomerSearch = useCallback((q: string) => setCustomerQuery(q), []);
+    const handleMerchantSearch = useCallback((q: string) => setMerchantQuery(q), []);
+
+    const handleCustomerSelect = useCallback(
+        (value: string, label: string) => {
+            setValue('customer_id', value, { shouldValidate: true });
+            setCustomerDisplay(label);
+        },
+        [setValue],
+    );
+
+    const handleMerchantSelect = useCallback(
+        (value: string, label: string) => {
+            setValue('merchant_id', value, { shouldValidate: true });
+            setMerchantDisplay(label);
+        },
+        [setValue],
+    );
+
     const onSubmit = (data: SubmitForm) => {
-        submitTxn.mutate(
-            {
-                ...data,
-                channel_id: Number(data.channel_id),
-                amount: Number(data.amount),
-                txn_time: new Date(data.txn_time).toISOString(),
-            },
-            {
-                onSuccess: (res) => {
-                    navigate({ to: '/transactions/$txnId', params: { txnId: res.txn_id } });
-                },
-            },
-        );
+        submitTxn.mutate({
+            customer_id: data.customer_id,
+            merchant_id: data.merchant_id,
+            channel_id: Number(data.channel_id),
+            card_number: data.card_number.replace(/[\s-]/g, ''),
+            amount: Number(data.amount),
+            currency_code: data.currency_code,
+            txn_time: new Date(data.txn_time).toISOString(),
+        });
     };
 
     return (
@@ -78,27 +134,40 @@ export function TransactionSubmitPage() {
                 <Card>
                     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                                label="Customer ID"
+                            <Combobox
+                                label="Customer"
+                                placeholder="Search by name or code..."
                                 error={errors.customer_id?.message}
-                                {...register('customer_id')}
+                                value={customerId ?? ''}
+                                displayValue={customerDisplay}
+                                options={customerOptions}
+                                onSearch={handleCustomerSearch}
+                                onSelect={handleCustomerSelect}
+                                loading={customersLoading}
                             />
-                            <Input
-                                label="Merchant ID"
+                            <Combobox
+                                label="Merchant"
+                                placeholder="Search by name or code..."
                                 error={errors.merchant_id?.message}
-                                {...register('merchant_id')}
+                                value={merchantId ?? ''}
+                                displayValue={merchantDisplay}
+                                options={merchantOptions}
+                                onSearch={handleMerchantSearch}
+                                onSelect={handleMerchantSelect}
+                                loading={merchantsLoading}
                             />
-                            <Input
-                                label="Channel ID"
-                                type="number"
+                            <Select
+                                label="Channel"
+                                placeholder="Select a channel"
+                                options={channelOptions}
                                 error={errors.channel_id?.message}
                                 {...register('channel_id')}
                             />
                             <Input
-                                label="Card Number (masked)"
-                                placeholder="4111********1111"
-                                error={errors.card_number_masked?.message}
-                                {...register('card_number_masked')}
+                                label="Card Number"
+                                placeholder="4111 1111 1111 1111"
+                                error={errors.card_number?.message}
+                                {...register('card_number')}
                             />
                             <Input
                                 label="Amount"
@@ -117,12 +186,6 @@ export function TransactionSubmitPage() {
                                 type="datetime-local"
                                 error={errors.txn_time?.message}
                                 {...register('txn_time')}
-                            />
-                            <Input
-                                label="Source IP"
-                                placeholder="192.168.1.1"
-                                error={errors.source_ip?.message}
-                                {...register('source_ip')}
                             />
                         </div>
 
@@ -143,6 +206,18 @@ export function TransactionSubmitPage() {
                                 <span className="text-xs text-text-secondary">
                                     Fraud Score: {(submitTxn.data.fraud_score * 100).toFixed(1)}%
                                 </span>
+                                <Button
+                                    variant="ghost"
+                                    className="ml-auto text-xs"
+                                    onClick={() =>
+                                        navigate({
+                                            to: '/transactions/$txnId',
+                                            params: { txnId: submitTxn.data.txn_id },
+                                        })
+                                    }
+                                >
+                                    View Transaction →
+                                </Button>
                             </div>
                         )}
 
@@ -160,7 +235,6 @@ export function TransactionSubmitPage() {
                     </form>
                 </Card>
             }
-            footer={<div />}
         />
     );
 }

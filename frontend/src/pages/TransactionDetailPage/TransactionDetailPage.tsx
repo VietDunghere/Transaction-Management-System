@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { useTransaction, useTransactionStates } from '~/hooks/useTransactions';
+import { useAuthStore } from '~/stores/useAuthStore';
 import type { TransactionStatus } from '~/types/api';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
 import { DetailPageTemplate } from '~/components/templates/DetailPageTemplate/DetailPageTemplate';
@@ -28,8 +29,10 @@ const timelineVariant: Record<string, 'success' | 'danger' | 'warning' | 'defaul
 export function TransactionDetailPage() {
     const { txnId } = useParams({ strict: false }) as { txnId: string };
     const navigate = useNavigate();
+    const role = useAuthStore((s) => s.user?.role);
+    const canViewHistory = role === 'ANALYST' || role === 'MANAGER';
     const { data: txn, isLoading, isError, refetch } = useTransaction(txnId);
-    const { data: states } = useTransactionStates(txnId);
+    const { data: states } = useTransactionStates(canViewHistory ? txnId : '');
 
     if (isLoading) return <LoadingSkeleton variant="card" />;
     if (isError || !txn) return <ErrorState onRetry={refetch} />;
@@ -80,12 +83,12 @@ export function TransactionDetailPage() {
                             value={<span className="font-mono text-xs">{txn.txn_id}</span>}
                         />
                         <KeyValueRow
-                            label="Customer ID"
-                            value={<span className="font-mono text-xs">{txn.customer_id}</span>}
+                            label="Customer"
+                            value={txn.customer_name ?? <span className="font-mono text-xs">{txn.customer_id}</span>}
                         />
                         <KeyValueRow
-                            label="Merchant ID"
-                            value={<span className="font-mono text-xs">{txn.merchant_id}</span>}
+                            label="Merchant"
+                            value={txn.merchant_name ?? <span className="font-mono text-xs">{txn.merchant_id}</span>}
                         />
                         <KeyValueRow label="Card Number" value={txn.card_number_masked} />
                         <KeyValueRow label="Amount" value={`${txn.amount.toLocaleString()} ${txn.currency_code}`} />

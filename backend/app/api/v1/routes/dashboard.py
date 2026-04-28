@@ -1,8 +1,8 @@
 from __future__ import annotations
 """
 Router: Dashboard
-GET /dashboard/summary       — tổng quan hệ thống (MANAGER, ANALYST, ADMIN)
-GET /dashboard/fraud-trend   — biểu đồ trend giao dịch theo ngày (MANAGER, ANALYST, ADMIN)
+GET /dashboard/summary       — tổng quan hệ thống (ANALYST, MANAGER)
+GET /dashboard/fraud-trend   — biểu đồ trend giao dịch theo ngày (ANALYST, MANAGER)
 
 Tất cả endpoints đều read-only.
 """
@@ -31,7 +31,7 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 )
 def get_dashboard_summary(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ANALYST", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("ANALYST", "MANAGER")),
 ) -> DashboardSummary:
     svc = DashboardService(db)
     return svc.get_summary()
@@ -50,7 +50,7 @@ def get_dashboard_summary(
 )
 def get_fraud_trend(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("MANAGER", "ANALYST", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("ANALYST", "MANAGER")),
     days: int = Query(
         default=30,
         ge=1,

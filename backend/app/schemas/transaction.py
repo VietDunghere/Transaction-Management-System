@@ -85,7 +85,9 @@ class TransactionResponse(BaseModel):
     """Response chi tiết 1 giao dịch."""
     txn_id: str
     customer_id: str
+    customer_name: Optional[str] = None
     merchant_id: str
+    merchant_name: Optional[str] = None
     channel_id: int
     submitted_by: str                    # user_id người submit — cần cho display và SoD audit
     card_number_masked: Optional[str]

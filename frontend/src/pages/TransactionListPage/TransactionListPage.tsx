@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useTransactions } from '~/hooks/useTransactions';
 import { useDemoRunning } from '~/hooks/useDemoRunning';
+import { useAuthStore } from '~/stores/useAuthStore';
 import type { TransactionSearchParams } from '~/types/searchParams';
 import type { TransactionStatus } from '~/types/api';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
@@ -14,6 +15,7 @@ import { QuickDateFilter } from '~/components/ui/QuickDateFilter/QuickDateFilter
 import type { QuickPeriod } from '~/components/ui/QuickDateFilter/QuickDateFilter';
 import { Pagination } from '~/components/ui/Pagination/Pagination';
 import { Badge } from '~/components/ui/Badge/Badge';
+import { Button } from '~/components/ui/Button/Button';
 import { LoadingSkeleton } from '~/components/ui/LoadingSkeleton/LoadingSkeleton';
 import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
 import { EmptyState } from '~/components/ui/EmptyState/EmptyState';
@@ -43,6 +45,7 @@ const columns = [
 
 export function TransactionListPage() {
     const navigate = useNavigate();
+    const userRole = useAuthStore((s) => s.user?.role);
 
     const [params, setParams] = useState<TransactionSearchParams>({
         page: 1,
@@ -69,7 +72,17 @@ export function TransactionListPage() {
     return (
         <ListPageTemplate
             header={
-                <PageHeader title="Transactions" subtitle={data ? `${data.total} total transactions` : undefined} />
+                <PageHeader
+                    title="Transactions"
+                    subtitle={data ? `${data.total} total transactions` : undefined}
+                    actions={
+                        userRole === 'OPERATOR' ? (
+                            <Button variant="primary" onClick={() => navigate({ to: '/transactions/submit' })}>
+                                Submit Transaction
+                            </Button>
+                        ) : undefined
+                    }
+                />
             }
             filterBar={
                 <FilterBar>

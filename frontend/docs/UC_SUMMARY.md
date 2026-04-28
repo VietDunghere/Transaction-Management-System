@@ -37,7 +37,7 @@
 | UC chi tiết | Actor |
 |---|---|
 | UC02.1 Nộp giao dịch mới | OPERATOR |
-| UC02.2 Xem giao dịch | ANALYST, MANAGER |
+| UC02.2 Xem giao dịch | ANALYST, MANAGER, OPERATOR |
 
 ---
 

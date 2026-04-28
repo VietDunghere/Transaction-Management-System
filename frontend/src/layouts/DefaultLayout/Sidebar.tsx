@@ -34,7 +34,7 @@ const mainNavItems: NavItem[] = [
         label: 'Transactions',
         icon: <ArrowLeftRight size={20} />,
         href: '/transactions',
-        roles: ['ANALYST', 'MANAGER'],
+        roles: ['OPERATOR', 'ANALYST', 'MANAGER'],
     },
     { label: 'Cases', icon: <ShieldAlert size={20} />, href: '/cases', roles: ['REVIEWER'] },
     {

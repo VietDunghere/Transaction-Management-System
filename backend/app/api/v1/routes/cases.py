@@ -1,10 +1,10 @@
 from __future__ import annotations
 """
 Router: Cases (Manual Review)
-GET  /cases              — danh sách case (REVIEWER, MANAGER)
-GET  /cases/{id}         — chi tiết case (REVIEWER, MANAGER)
+GET  /cases              — danh sách case (REVIEWER)
+GET  /cases/{id}         — chi tiết case (REVIEWER)
 POST /cases/{id}/assign  — REVIEWER tự nhận case (self-assign)
-POST /cases/{id}/decide  — quyết định (REVIEWER, MANAGER, ADMIN)
+PATCH /cases/{id}/decision — quyết định (REVIEWER)
 """
 
 import math
@@ -51,7 +51,7 @@ def _resolve_user_names(db, user_ids: list[str]) -> dict[str, str]:
 )
 def list_cases(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("REVIEWER")),
     case_status: Optional[CaseStatus] = Query(None),
     assigned_to: Optional[str] = Query(None, description="Lọc theo reviewer user_id"),
     period: Optional[str] = Query(None, description="D=1 ngày, W=7 ngày, M=30 ngày"),
@@ -60,22 +60,11 @@ def list_cases(
 ) -> PagedResponse[CaseListItem]:
     svc = CaseService(db)
 
-    # REVIEWER có thể thấy:
-    #   - Tất cả OPEN cases (queue chưa ai nhận — để self-assign)
-    #   - Cases được assign cho chính mình
-    # Không cho phép REVIEWER lọc theo reviewer khác.
-    # Chi tiết từng case bị giới hạn thêm ở get_case().
-    is_reviewer_only = (
-        "REVIEWER" in token.roles
-        and "MANAGER" not in token.roles
-    )
-
-    if is_reviewer_only and assigned_to is not None and assigned_to != token.sub:
+    # REVIEWER thấy: tất cả OPEN cases (queue chưa ai nhận) + cases của mình.
+    if assigned_to is not None and assigned_to != token.sub:
         raise PermissionDeniedError("Bạn không thể lọc theo reviewer khác.")
 
-    # REVIEWER thấy: tất cả OPEN cases (queue chưa ai nhận) + cases của mình.
-    # Dùng reviewer_queue_for thay vì assigned_to để repo tạo compound OR query.
-    reviewer_queue_for = token.sub if is_reviewer_only else None
+    reviewer_queue_for = token.sub
 
     _period_days = {"D": 1, "W": 7, "M": 30}
     created_from = (
@@ -127,18 +116,13 @@ def list_cases(
 def get_case(
     case_id: str,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("REVIEWER")),
 ) -> CaseResponse:
     svc = CaseService(db)
     case = svc.get_case(case_id)
 
     # REVIEWER chỉ được xem case OPEN (chưa assign) hoặc case được giao cho mình.
-    # Không được xem case đã assign cho reviewer khác.
-    is_reviewer_only = (
-        "REVIEWER" in token.roles
-        and "MANAGER" not in token.roles
-    )
-    if is_reviewer_only and case.assigned_to is not None and case.assigned_to != token.sub:
+    if case.assigned_to is not None and case.assigned_to != token.sub:
         raise PermissionDeniedError("Case này không được giao cho bạn.")
 
     txn_summary = None
@@ -262,7 +246,7 @@ def decide_case(
     case_id: str,
     body: CaseDecideRequest,
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("REVIEWER", "MANAGER", "ADMIN")),
+    token: TokenPayload = Depends(require_roles("REVIEWER")),
 ) -> CaseResponse:
     svc = CaseService(db)
     svc.decide(case_id, body, actor_user_id=token.sub, actor_roles=token.roles)

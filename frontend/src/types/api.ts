@@ -108,6 +108,8 @@ export interface Transaction {
 }
 
 export interface TransactionDetail extends Transaction {
+    customer_name: string | null;
+    merchant_name: string | null;
     card_number_masked: string;
     reason_code: string;
     source_ip: string;
@@ -258,6 +260,7 @@ export interface LoanDetail extends Loan {
     monthly_payment: number | null;
     maturity_date: string | null;
     reviewed_by: string | null;
+    reviewer_name: string | null;
     reviewed_at: string | null;
     version: number;
     // Customer info

@@ -98,6 +98,7 @@ class LoanResponse(BaseModel):
     customer_income_level: Optional[str] = None
     submitted_by: str
     reviewed_by: Optional[str] = None
+    reviewer_name: Optional[str] = None
 
     principal_amount: Decimal
     currency_code: str

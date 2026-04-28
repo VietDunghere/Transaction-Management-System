@@ -106,7 +106,7 @@ function FraudTrendChart({ data }: { data: TrendPoint[] }) {
 }
 
 const roleRedirect: Record<string, string> = {
-    OPERATOR: '/loans',
+    OPERATOR: '/transactions',
     REVIEWER: '/cases',
     ADMIN: '/users',
 };
