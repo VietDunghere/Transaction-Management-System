@@ -96,9 +96,7 @@ describe('auth and shell pages', () => {
 
         render(<DashboardPage />);
 
-        expect(screen.getAllByTestId('navigate').some((node) => node.getAttribute('data-to') === '/cases')).toBe(
-            true,
-        );
+        expect(screen.getAllByTestId('navigate').some((node) => node.getAttribute('data-to') === '/cases')).toBe(true);
     });
 
     it('renders forbidden and not found fallbacks', async () => {

@@ -4,12 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TransactionListPage } from '~/pages/TransactionListPage/TransactionListPage';
 import { TransactionDetailPage } from '~/pages/TransactionDetailPage/TransactionDetailPage';
 import { TransactionSubmitPage } from '~/pages/TransactionSubmitPage/TransactionSubmitPage';
-import {
-    createMutationResult,
-    createQueryResult,
-    navigateMock,
-    setRouteParams,
-} from '~/test/testUtils';
+import { createMutationResult, createQueryResult, navigateMock, setRouteParams } from '~/test/testUtils';
 import {
     transactionDetail,
     transactionListItem,

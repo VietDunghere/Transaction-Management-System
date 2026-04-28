@@ -19,14 +19,16 @@ export function createQueryResult<T>(data: T, overrides: Record<string, unknown>
     };
 }
 
-export function createMutationResult<TData = unknown, TVariables = unknown>(options: {
-    data?: TData;
-    error?: unknown;
-    isPending?: boolean;
-    isSuccess?: boolean;
-    isError?: boolean;
-    onMutate?: (variables: TVariables) => void;
-} = {}) {
+export function createMutationResult<TData = unknown, TVariables = unknown>(
+    options: {
+        data?: TData;
+        error?: unknown;
+        isPending?: boolean;
+        isSuccess?: boolean;
+        isError?: boolean;
+        onMutate?: (variables: TVariables) => void;
+    } = {},
+) {
     const mutate = vi.fn((variables: TVariables, callbacks?: MutationCallbacks<TData, TVariables>) => {
         options.onMutate?.(variables);
 
