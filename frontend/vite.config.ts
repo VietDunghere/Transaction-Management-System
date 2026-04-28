@@ -15,4 +15,10 @@ export default defineConfig({
             '~': path.resolve(projectRoot, 'src'),
         },
     },
+    test: {
+        environment: 'jsdom',
+        setupFiles: ['./src/test/setup.tsx'],
+        clearMocks: true,
+        restoreMocks: true,
+    },
 });
