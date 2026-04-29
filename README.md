@@ -412,6 +412,7 @@ Hệ thống đáp ứng tiêu chuẩn doanh nghiệp với các kiểm soát sa
 - Có thể mở rộng cho nhiều vùng triển khai
 
 ---
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 Phiên bản tài liệu: 1.3
 Cập nhật lần cuối: 2026-04-19

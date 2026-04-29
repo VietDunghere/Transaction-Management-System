@@ -60,11 +60,13 @@ def list_cases(
 ) -> PagedResponse[CaseListItem]:
     svc = CaseService(db)
 
+    is_reviewer_only = "MANAGER" not in token.roles and "ADMIN" not in token.roles
+
     # REVIEWER thấy: tất cả OPEN cases (queue chưa ai nhận) + cases của mình.
-    if assigned_to is not None and assigned_to != token.sub:
+    if is_reviewer_only and assigned_to is not None and assigned_to != token.sub:
         raise PermissionDeniedError("Bạn không thể lọc theo reviewer khác.")
 
-    reviewer_queue_for = token.sub
+    reviewer_queue_for = token.sub if is_reviewer_only else None
 
     _period_days = {"D": 1, "W": 7, "M": 30}
     created_from = (
