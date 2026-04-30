@@ -1,59 +1,79 @@
-CREATE ROLE ROLE_READ_ONLY;
-GRANT CONNECT TO ROLE_READ_ONLY;
-CREATE USER USER1 IDENTIFIED BY "123456";
-GRANT ROLE_READ_ONLY TO USER1;
+-- ============================================================
+-- ERD.sql — Hệ thống Hỗ trợ Phát triển Rủi ro & Đánh giá Tín chấp
+-- Phiên bản : 2.0 (Tinh gọn theo UC_SUMMARY.md)
+-- Bảng      : 11 (giảm từ 31)
+-- UC        : 20 | Vai trò : 5
+-- Chuẩn hóa : BCNF / 4NF / 5NF
+--
+-- Thay đổi chính so với v1:
+--   • Gộp roles + user_roles → cột "role" trong users (mỗi người 1 vai trò)
+--   • Gộp risk_scoring_results → fraud_score + model_version trong transactions_live
+--   • Loại merch_lat/long khỏi transactions_live (3NF: phụ thuộc bắc cầu qua merchant_id)
+--   • Loại unix_time (đạo hàm từ txn_time), source_ip, reason_code, override_reason
+--   • Đơn giản review_cases.case_status: OPEN | ASSIGNED | CLOSED (tách decision riêng)
+--   • Bỏ 20 bảng: roles, user_roles, risk_scoring_results, review_case_actions,
+--     txn_idempotency, txn_state, txn_state_history, reconciliation_runs,
+--     reconciliation_items, datalake_snapshots, etl_logs, suppression_rules,
+--     analyst_reports, dim_time, dim_customer, dim_merchant, dim_channel,
+--     dim_location, fact_transactions, fact_loans
+--   • Bỏ PROC_EXECUTE_RECONCILIATION, bỏ triggers TRG_OPTIMISTIC_LOCK_CHECK,
+--     TRG_STATE_VERSION_UP, TRG_LOG_STATUS_CHANGE (thay bằng TRG_AUDIT_TXN_STATUS)
+--
+-- Phân tích chuẩn hóa (tóm tắt):
+--   Mọi bảng đều thỏa 5NF:
+--   • Mỗi thuộc tính non-key phụ thuộc hàm vào toàn bộ khóa ứng viên (BCNF)
+--   • Không tồn tại phụ thuộc đa trị phi tầm thường (4NF)
+--   • Không tồn tại phụ thuộc nối phi tầm thường (5NF)
+--   • loans.person_* là snapshot tại thời điểm nộp → KHÔNG phải phụ thuộc
+--     bắc cầu qua customer_id (giá trị có thể thay đổi theo thời gian)
+-- ============================================================
 
 
 -- ============================================================
--- TABLES
+-- TABLES (11)
 -- ============================================================
 
+-- 1. USERS — Tài khoản nhân viên hệ thống (UC01, UC06)
+--    Khóa ứng viên: user_id, username, email
+--    role gộp từ bảng roles (mỗi người đúng 1 vai trò theo UC06.3)
 CREATE TABLE "users" (
-  "user_id"       varchar(36) PRIMARY KEY,
+  "user_id"       varchar(36)  PRIMARY KEY,
   "username"      varchar(100) UNIQUE NOT NULL,
   "password_hash" varchar(255) NOT NULL,
-  "full_name"     varchar(150),
-  "email"         varchar(150) UNIQUE,
-  "is_active"     number(1) DEFAULT 1 NOT NULL,
-  "created_at"    timestamp NOT NULL,
-  "updated_at"    timestamp
+  "full_name"     varchar(150) NOT NULL,
+  "email"         varchar(150) UNIQUE NOT NULL,
+  "role"          varchar(20)  NOT NULL,
+  "status"        varchar(20)  DEFAULT 'ACTIVE' NOT NULL,
+  "created_at"    timestamp    NOT NULL,
+  "updated_at"    timestamp,
+  CONSTRAINT chk_user_role   CHECK ("role"   IN ('OPERATOR','REVIEWER','ANALYST','MANAGER','ADMIN')),
+  CONSTRAINT chk_user_status CHECK ("status" IN ('ACTIVE','DISABLED'))
 );
 
-CREATE TABLE "roles" (
-  "role_id"   number GENERATED AS IDENTITY PRIMARY KEY,
-  "role_name" varchar(50) UNIQUE NOT NULL
-);
-
-CREATE TABLE "user_roles" (
-  "user_id"     varchar(36) NOT NULL,
-  "role_id"     number NOT NULL,
-  "assigned_at" timestamp NOT NULL,
-  PRIMARY KEY ("user_id", "role_id")
-);
-
+-- 2. CUSTOMERS — Dữ liệu tham chiếu khách hàng (nạp sẵn từ core banking, không có UC quản lý)
+--    Khóa ứng viên: customer_id, customer_code, identity_card
 CREATE TABLE "customers" (
-  "customer_id"     varchar(36) PRIMARY KEY,
-  "customer_code"   varchar(50) UNIQUE,
-  "kyc_status"      varchar(20),
-  "full_name"       varchar(150),
-  "identity_card"   varchar(50) UNIQUE,
-  "address"         varchar(255),
-  "city"            varchar(100),
-  "state"           varchar(50),
-  "zip_code"        varchar(20),
-  "gender"          varchar(10),
-  "date_of_birth"   date,
-  "job"             varchar(150),
-  "latitude"        decimal(9,6),
-  "longitude"       decimal(9,6),
-  "city_population" number,
-  "income_level"    varchar(50),
-  "created_at"      timestamp NOT NULL
+  "customer_id"   varchar(36)  PRIMARY KEY,
+  "customer_code" varchar(50)  UNIQUE,
+  "full_name"     varchar(150),
+  "identity_card" varchar(50)  UNIQUE,
+  "date_of_birth" date,
+  "gender"        varchar(10),
+  "address"       varchar(255),
+  "city"          varchar(100),
+  "job"           varchar(150),
+  "latitude"      decimal(9,6),
+  "longitude"     decimal(9,6),
+  "income_level"  varchar(50),
+  "kyc_status"    varchar(20),
+  "created_at"    timestamp    NOT NULL
 );
 
+-- 3. MERCHANTS — Dữ liệu tham chiếu đơn vị chấp nhận thẻ (nạp sẵn, không có UC quản lý)
+--    Khóa ứng viên: merchant_id, merchant_code
 CREATE TABLE "merchants" (
-  "merchant_id"       varchar(36) PRIMARY KEY,
-  "merchant_code"     varchar(50) UNIQUE NOT NULL,
+  "merchant_id"       varchar(36)  PRIMARY KEY,
+  "merchant_code"     varchar(50)  UNIQUE NOT NULL,
   "merchant_name"     varchar(150) NOT NULL,
   "merchant_category" varchar(100),
   "city"              varchar(100),
@@ -62,304 +82,81 @@ CREATE TABLE "merchants" (
   "latitude"          decimal(9,6),
   "longitude"         decimal(9,6),
   "risk_level"        varchar(20),
-  "is_blacklisted"    number(1) DEFAULT 0 NOT NULL,
-  "created_at"        timestamp NOT NULL
+  "is_blacklisted"    number(1)    DEFAULT 0 NOT NULL,
+  "created_at"        timestamp    NOT NULL
 );
 
+-- 4. CHANNELS — Kênh giao dịch (nạp sẵn: POS, ATM, Online, Mobile…)
+--    Khóa ứng viên: channel_id, channel_code
 CREATE TABLE "channels" (
-  "channel_id"   number GENERATED AS IDENTITY PRIMARY KEY,
-  "channel_code" varchar(50) UNIQUE NOT NULL,
+  "channel_id"   number       GENERATED AS IDENTITY PRIMARY KEY,
+  "channel_code" varchar(50)  UNIQUE NOT NULL,
   "channel_name" varchar(100) NOT NULL
 );
 
+-- 5. TRANSACTIONS_LIVE — Giao dịch tài chính (UC02)
+--    fraud_score, model_version gộp từ risk_scoring_results (đã bỏ bảng đó)
+--    Đã loại: merch_lat/long (3NF: phụ thuộc bắc cầu → merchants),
+--             unix_time (đạo hàm), source_ip, reason_code, override_reason
 CREATE TABLE "transactions_live" (
-  "txn_id"             varchar(36) PRIMARY KEY,
-  "customer_id"        varchar(36) NOT NULL,
-  "merchant_id"        varchar(36) NOT NULL,
-  "channel_id"         number NOT NULL,
-  "submitted_by"       varchar(36) NOT NULL,
+  "txn_id"             varchar(36)  PRIMARY KEY,
+  "customer_id"        varchar(36)  NOT NULL,
+  "merchant_id"        varchar(36)  NOT NULL,
+  "channel_id"         number       NOT NULL,
+  "submitted_by"       varchar(36)  NOT NULL,
   "card_number_masked" varchar(30),
   "card_number_hash"   varchar(64),
   "amount"             decimal(18,2) NOT NULL,
-  "currency_code"      varchar(10) DEFAULT 'USD' NOT NULL,
-  "txn_time"           timestamp NOT NULL,
-  "status"             varchar(20) NOT NULL,
+  "txn_time"           timestamp    NOT NULL,
+  "status"             varchar(20)  NOT NULL,
   "fraud_score"        decimal(6,4),
-  "reason_code"        varchar(50),
-  "override_reason"    varchar(50),
-  "source_ip"          varchar(64),
-  "merch_lat"          decimal(9,6),
-  "merch_long"         decimal(9,6),
-  "unix_time"          number,
-  "created_at"         timestamp NOT NULL,
+  "model_version"      varchar(50),
+  "created_at"         timestamp    NOT NULL,
   "updated_at"         timestamp,
   CONSTRAINT chk_txn_amount      CHECK ("amount" > 0),
   CONSTRAINT chk_txn_fraud_score CHECK ("fraud_score" IS NULL OR "fraud_score" BETWEEN 0 AND 1),
   CONSTRAINT chk_txn_status      CHECK ("status" IN ('PENDING','APPROVED','REJECTED','MANUAL_REVIEW'))
 );
 
-CREATE TABLE "risk_scoring_results" (
-  "score_id"              varchar(36) PRIMARY KEY,
-  "txn_id"                varchar(36) NOT NULL,
-  "model_version"         varchar(50),
-  "fraud_score"           decimal(6,4) NOT NULL,
-  "decision_suggested"    varchar(20),
-  "reason_json"           CLOB,
-  "reject_threshold"      decimal(6,4),
-  "review_threshold"      decimal(6,4),
-  "feature_snapshot_json" CLOB,
-  "score_time"            timestamp NOT NULL,
-  CONSTRAINT chk_scoring_fraud CHECK ("fraud_score" BETWEEN 0 AND 1)
-);
-
-CREATE TABLE "rule_hits" (
-  "rule_hit_id" varchar(36) PRIMARY KEY,
-  "txn_id"      varchar(36) NOT NULL,
-  "rule_code"   varchar(50) NOT NULL,
-  "rule_name"   varchar(150),
-  "hit_value"   varchar(255),
-  "severity"    varchar(20),
-  "created_at"  timestamp NOT NULL
-);
-
+-- 6. REVIEW_CASES — Hồ sơ xét duyệt thủ công (UC04)
+--    Tạo tự động khi giao dịch có status = MANUAL_REVIEW (trigger)
+--    Khóa ứng viên: case_id, txn_id (UNIQUE)
 CREATE TABLE "review_cases" (
-  "case_id"       varchar(36) PRIMARY KEY,
-  "txn_id"        varchar(36) UNIQUE NOT NULL,
-  "case_status"   varchar(20) NOT NULL,
+  "case_id"       varchar(36)   PRIMARY KEY,
+  "txn_id"        varchar(36)   UNIQUE NOT NULL,
+  "case_status"   varchar(20)   NOT NULL,
   "assigned_to"   varchar(36),
   "decision"      varchar(20),
   "decision_note" varchar(2000),
-  "version"       number DEFAULT 1 NOT NULL,
-  "created_at"    timestamp NOT NULL,
+  "version"       number        DEFAULT 1 NOT NULL,
+  "created_at"    timestamp     NOT NULL,
   "decided_at"    timestamp,
-  CONSTRAINT chk_case_status CHECK ("case_status" IN ('OPEN','ASSIGNED','APPROVED','REJECTED','CLOSED'))
+  CONSTRAINT chk_case_status   CHECK ("case_status" IN ('OPEN','ASSIGNED','CLOSED')),
+  CONSTRAINT chk_case_decision CHECK ("decision" IS NULL OR "decision" IN ('APPROVE','REJECT'))
 );
 
-CREATE TABLE "review_case_actions" (
-  "action_id"     varchar(36) PRIMARY KEY,
-  "case_id"       varchar(36) NOT NULL,
-  "action_type"   varchar(30) NOT NULL,
-  "actor_user_id" varchar(36) NOT NULL,
-  "action_note"   varchar(500),
-  "created_at"    timestamp NOT NULL
-);
-
-CREATE TABLE "txn_idempotency" (
-  "idempotency_key"       varchar(100) PRIMARY KEY,
-  "txn_hash"              varchar(128),
-  "txn_id"                varchar(36),
-  "status"                varchar(20) NOT NULL,
-  "response_snapshot_json" varchar(4000),
-  "created_at"            timestamp NOT NULL,
-  "updated_at"            timestamp,
-  CONSTRAINT chk_idem_status CHECK ("status" IN ('IN_PROGRESS','SUCCESS','FAILED'))
-);
-
-CREATE TABLE "txn_state" (
-  "txn_id"            varchar(36) PRIMARY KEY,
-  "status"            varchar(20) NOT NULL,
-  "last_update"       timestamp DEFAULT SYSTIMESTAMP NOT NULL,
-  "reason_code"       varchar(50),
-  "retry_count"       number DEFAULT 0 NOT NULL,
-  "last_error_code"   varchar(50),
-  "last_error_message" varchar(500),
-  "version"           number DEFAULT 1 NOT NULL,
-  CONSTRAINT chk_txn_state_status CHECK ("status" IN ('PENDING','APPROVED','REJECTED','MANUAL_REVIEW'))
-);
-
-CREATE TABLE "txn_state_history" (
-  "state_hist_id"     varchar(36) PRIMARY KEY,
-  "txn_id"            varchar(36) NOT NULL,
-  "old_status"        varchar(20),
-  "new_status"        varchar(20) NOT NULL,
-  "changed_by_user_id" varchar(36),
-  "changed_at"        timestamp NOT NULL,
-  "change_reason"     varchar(200)
-);
-
-CREATE TABLE "reconciliation_runs" (
-  "run_id"                  varchar(36) PRIMARY KEY,
-  "period_start"            timestamp NOT NULL,
-  "period_end"              timestamp NOT NULL,
-  "status"                  varchar(20) NOT NULL,
-  "total_txn_count"         number,
-  "matched_count"           number,
-  "discrepancy_count"       number,
-  "total_amount"            decimal(18,2),
-  "pending_timeout_minutes" number DEFAULT 120 NOT NULL,
-  "error_message"           varchar(500),
-  "triggered_by"            varchar(36),
-  "completed_at"            timestamp,
-  "created_at"              timestamp NOT NULL,
-  CONSTRAINT chk_recon_run_status CHECK ("status" IN ('RUNNING','COMPLETED','FAILED'))
-);
-
-CREATE TABLE "reconciliation_items" (
-  "item_id"         varchar(36) PRIMARY KEY,
-  "run_id"          varchar(36) NOT NULL,
-  "txn_id"          varchar(36),
-  "item_type"       varchar(50) NOT NULL,
-  "txn_status"      varchar(20),
-  "txn_amount"      decimal(18,2),
-  "txn_created_at"  timestamp,
-  "minutes_pending" number,
-  "status"          varchar(20) DEFAULT 'OPEN' NOT NULL,
-  "resolution_note" varchar(500),
-  "resolved_by"     varchar(36),
-  "resolved_at"     timestamp,
-  "created_at"      timestamp NOT NULL,
-  CONSTRAINT chk_recon_item_status CHECK ("status" IN ('OPEN','RESOLVED'))
-);
-
-CREATE TABLE "datalake_snapshots" (
-  "snapshot_id"   varchar(36) PRIMARY KEY,
-  "snapshot_type" varchar(50) NOT NULL,
-  "snapshot_date" date NOT NULL,
-  "job_id"        varchar(36),
-  "source_label"  varchar(100),
-  "record_count"  number DEFAULT 0 NOT NULL,
-  "total_amount"  decimal(18,2),
-  "data_json"     CLOB,
-  "status"        varchar(20) DEFAULT 'ACTIVE' NOT NULL,
-  "created_at"    timestamp NOT NULL,
-  CONSTRAINT chk_datalake_status CHECK ("status" IN ('ACTIVE','ARCHIVED'))
-);
-
-CREATE TABLE "card_velocity_stats" (
-  "card_hash"      varchar(64) PRIMARY KEY,
-  "avg_daily_txn"  decimal(8,2) DEFAULT 0 NOT NULL,
-  "total_txn"      number DEFAULT 0 NOT NULL,
-  "avg_amt"        decimal(12,2) DEFAULT 0 NOT NULL,
-  "std_amt"        decimal(12,2) DEFAULT 0 NOT NULL,
-  "m2_amt"         decimal(20,4) DEFAULT 0 NOT NULL,
-  "distinct_days"  number DEFAULT 1 NOT NULL,
-  "last_txn_date"  varchar(10),
-  "last_updated"   timestamp DEFAULT SYSTIMESTAMP NOT NULL
-);
-
-CREATE TABLE "dim_time" (
-  "time_id"     number PRIMARY KEY,
-  "full_date"   date UNIQUE NOT NULL,
-  "day_num"     number NOT NULL,
-  "month_num"   number NOT NULL,
-  "year_num"    number NOT NULL,
-  "quarter_num" number NOT NULL,
-  "is_weekend"  number(1) NOT NULL
-);
-
-CREATE TABLE "dim_customer" (
-  "customer_key" number GENERATED AS IDENTITY PRIMARY KEY,
-  "customer_id"  varchar(36) UNIQUE NOT NULL,
-  "segment"      varchar(50),
-  "risk_level"   varchar(20),
-  "city"         varchar(100),
-  "country"      varchar(100)
-);
-
-CREATE TABLE "dim_merchant" (
-  "merchant_key"      number GENERATED AS IDENTITY PRIMARY KEY,
-  "merchant_id"       varchar(36) UNIQUE NOT NULL,
-  "merchant_code"     varchar(50),
-  "merchant_name"     varchar(150),
-  "merchant_category" varchar(100),
-  "city"              varchar(100),
-  "country"           varchar(100),
-  "risk_level"        varchar(20)
-);
-
-CREATE TABLE "dim_channel" (
-  "channel_key"  number GENERATED AS IDENTITY PRIMARY KEY,
-  "channel_id"   number UNIQUE NOT NULL,
-  "channel_code" varchar(50),
-  "channel_name" varchar(100)
-);
-
-CREATE TABLE "dim_location" (
-  "location_key" number GENERATED AS IDENTITY PRIMARY KEY,
-  "source_ip"    varchar(64),
-  "city"         varchar(100),
-  "district"     varchar(100),
-  "country"      varchar(100)
-);
-
-CREATE TABLE "fact_transactions" (
-  "fact_id"            varchar(36) PRIMARY KEY,
-  "txn_id"             varchar(36) UNIQUE NOT NULL,
-  "time_id"            number NOT NULL,
-  "customer_key"       number NOT NULL,
-  "merchant_key"       number NOT NULL,
-  "channel_key"        number NOT NULL,
-  "location_key"       number,
-  "amount"             decimal(18,2) NOT NULL,
-  "final_status"       varchar(20) NOT NULL,
-  "fraud_label"        number(1),
-  "manual_review_flag" number(1) DEFAULT 0 NOT NULL,
-  "fraud_score"        decimal(6,4),
-  "processing_time_ms" number,
-  "model_version"      varchar(50),
-  "load_ts"            timestamp NOT NULL
-);
-
-CREATE TABLE "fact_loans" (
-  "fact_loan_id"     varchar(36) PRIMARY KEY,
-  "loan_id"          varchar(36) UNIQUE NOT NULL,
-  "time_id"          number NOT NULL,
-  "customer_key"     number NOT NULL,
-  "requested_amount" decimal(18,2) NOT NULL,
-  "final_status"     varchar(20) NOT NULL,
-  "pd_score"         decimal(6,4),
-  "model_version"    varchar(50),
-  "load_ts"          timestamp NOT NULL
-);
-
-CREATE TABLE "audit_logs" (
-  "log_id"        varchar(36) PRIMARY KEY,
-  "event_type"    varchar(50) NOT NULL,
-  "entity_type"   varchar(50) NOT NULL,
-  "entity_id"     varchar(36) NOT NULL,
-  "actor_user_id" varchar(36),
-  "actor_name"    varchar(150),
-  "event_ts"      timestamp NOT NULL,
-  "detail_json"   CLOB
-);
-
-CREATE TABLE "etl_logs" (
-  "job_id"       varchar(36) PRIMARY KEY,
-  "job_type"     varchar(50) NOT NULL,
-  "target_date"  date NOT NULL,
-  "status"       varchar(20) NOT NULL,
-  "records_in"   number,
-  "records_out"  number,
-  "error_message" varchar(500),
-  "triggered_by" varchar(36),
-  "started_at"   timestamp DEFAULT SYSTIMESTAMP NOT NULL,
-  "completed_at" timestamp,
-  "created_at"   timestamp NOT NULL,
-  CONSTRAINT chk_etl_status CHECK ("status" IN ('RUNNING','SUCCESS','FAILED'))
-);
-
--- ============================================================
--- ANALYST MODULE (v1.3)
--- ============================================================
-
+-- 7. LOANS — Hồ sơ đề nghị vay vốn (UC03)
+--    person_* = snapshot thông tin cá nhân tại thời điểm nộp (AI model features)
+--    KHÔNG phải phụ thuộc bắc cầu qua customer_id vì giá trị có thể thay đổi
+--    theo thời gian (tuổi, thu nhập, tình trạng nhà ở… khác với dữ liệu hiện tại)
 CREATE TABLE "loans" (
-  "loan_id"                    varchar(36) PRIMARY KEY,
-  "customer_id"                varchar(36) NOT NULL,
-  "submitted_by"               varchar(36) NOT NULL,
-  "reviewed_by"                varchar(36),
-  "principal_amount"           decimal(18,2) NOT NULL,
-  "currency_code"              varchar(10) DEFAULT 'USD' NOT NULL,
-  "interest_rate"              decimal(6,4) NOT NULL,
-  "term_months"                number NOT NULL,
-  "purpose"                    varchar(200),
-  "status"                     varchar(20) NOT NULL,
-  "version"                    number DEFAULT 1 NOT NULL,
-  "review_note"                varchar(500),
-  "reviewed_at"                timestamp,
-  "monthly_payment"            decimal(18,2),
-  "outstanding_balance"        decimal(18,2),
-  "disbursed_at"               timestamp,
-  "maturity_date"              date,
+  "loan_id"          varchar(36)   PRIMARY KEY,
+  "customer_id"      varchar(36)   NOT NULL,
+  "submitted_by"     varchar(36)   NOT NULL,
+  "reviewed_by"      varchar(36),
+  "principal_amount" decimal(18,2) NOT NULL,
+  "interest_rate"    decimal(6,4)  NOT NULL,
+  "term_months"      number        NOT NULL,
+  "purpose"          varchar(200),
+  "status"           varchar(20)   NOT NULL,
+  "version"          number        DEFAULT 1 NOT NULL,
+  "review_note"      varchar(500),
+  "reviewed_at"      timestamp,
+  "monthly_payment"  decimal(18,2),
+  "outstanding_balance" decimal(18,2),
+  "disbursed_at"     timestamp,
+  "maturity_date"    date,
+  -- Snapshot: thông tin cá nhân tại thời điểm nộp hồ sơ
   "person_age"                 number,
   "person_income"              decimal(18,2),
   "person_home_ownership"      varchar(20),
@@ -368,292 +165,307 @@ CREATE TABLE "loans" (
   "loan_intent"                varchar(30),
   "cb_person_default_on_file"  varchar(1),
   "cb_person_cred_hist_length" number,
-  "pd_score"                   decimal(6,4),
-  "risk_level"                 varchar(20),
-  "created_at"                 timestamp NOT NULL,
-  "updated_at"                 timestamp,
+  -- AI scoring output
+  "pd_score"       decimal(6,4),
+  "risk_level"     varchar(20),
+  "model_version"  varchar(50),
+  "created_at"     timestamp     NOT NULL,
+  "updated_at"     timestamp,
   CONSTRAINT chk_loan_amount        CHECK ("principal_amount" > 0),
   CONSTRAINT chk_loan_interest_rate CHECK ("interest_rate" > 0 AND "interest_rate" < 100),
   CONSTRAINT chk_loan_pd_score      CHECK ("pd_score" IS NULL OR "pd_score" BETWEEN 0 AND 1),
   CONSTRAINT chk_loan_status        CHECK ("status" IN ('PENDING','APPROVED','REJECTED','DISBURSED','CLOSED','DEFAULTED'))
 );
 
+-- 8. MODEL_CONFIGS — Ngưỡng phân loại AI (UC07)
+--    Khóa ứng viên: config_id, (model_name + param_name)
 CREATE TABLE "model_configs" (
-  "config_id"   number GENERATED AS IDENTITY PRIMARY KEY,
-  "model_name"  varchar(50) NOT NULL,
-  "param_name"  varchar(100) NOT NULL,
+  "config_id"   number        GENERATED AS IDENTITY PRIMARY KEY,
+  "model_name"  varchar(50)   NOT NULL,
+  "param_name"  varchar(100)  NOT NULL,
   "param_value" decimal(10,6) NOT NULL,
   "description" varchar(255),
   "updated_by"  varchar(36),
-  "updated_at"  timestamp DEFAULT SYSTIMESTAMP NOT NULL,
-  "version"     number DEFAULT 1 NOT NULL,
+  "updated_at"  timestamp     DEFAULT SYSTIMESTAMP NOT NULL,
+  "version"     number        DEFAULT 1 NOT NULL,
   CONSTRAINT uq_model_configs_name_param UNIQUE ("model_name", "param_name")
 );
 
-CREATE TABLE "suppression_rules" (
-  "rule_id"    varchar(36) PRIMARY KEY,
-  "rule_type"  varchar(20) NOT NULL,
-  "entity_id"  varchar(255) NOT NULL,
-  "reason"     CLOB NOT NULL,
-  "created_by" varchar(36) NOT NULL,
-  "expires_at" timestamp,
-  "is_active"  number(1) DEFAULT 1 NOT NULL,
-  "created_at" timestamp NOT NULL,
-  CONSTRAINT chk_supp_rule_type CHECK ("rule_type" IN ('MERCHANT','CUSTOMER','CARD_HASH'))
+-- 9. AUDIT_LOGS — Nhật ký kiểm toán toàn hệ thống (UC05.2)
+--    Thay thế cả txn_state_history và review_case_actions (đã bỏ)
+CREATE TABLE "audit_logs" (
+  "log_id"        varchar(36)  PRIMARY KEY,
+  "event_type"    varchar(50)  NOT NULL,
+  "entity_type"   varchar(50)  NOT NULL,
+  "entity_id"     varchar(36)  NOT NULL,
+  "actor_user_id" varchar(36),
+  "actor_name"    varchar(150),
+  "event_ts"      timestamp    NOT NULL,
+  "detail_json"   CLOB
 );
 
-CREATE TABLE "analyst_reports" (
-  "report_id"       varchar(36) PRIMARY KEY,
-  "title"           varchar(255) NOT NULL,
-  "report_type"     varchar(50) NOT NULL,
-  "content_md"      CLOB NOT NULL,
-  "status"          varchar(20) NOT NULL,
-  "submitted_by"    varchar(36) NOT NULL,
-  "submitted_at"    timestamp NOT NULL,
-  "acknowledged_by" varchar(36),
-  "acknowledged_at" timestamp,
-  "note"            varchar(1000),
-  CONSTRAINT chk_report_status CHECK ("status" IN ('PENDING_REVIEW','ACKNOWLEDGED','ARCHIVED'))
+-- 10. RULE_HITS — Kết quả luật phát hiện gian lận (AI team sở hữu, web app chỉ đọc)
+--     Cung cấp explainability cho UC04 (reviewer xem "tại sao giao dịch bị flag")
+CREATE TABLE "rule_hits" (
+  "rule_hit_id" varchar(36)  PRIMARY KEY,
+  "txn_id"      varchar(36)  NOT NULL,
+  "rule_code"   varchar(50)  NOT NULL,
+  "rule_name"   varchar(150),
+  "hit_value"   varchar(255),
+  "severity"    varchar(20),
+  "created_at"  timestamp    NOT NULL
 );
+
+-- 11. CARD_VELOCITY_STATS — Thống kê tốc độ sử dụng thẻ (AI team sở hữu)
+--     Pre-compute cho fraud detection model, web app không truy cập trực tiếp
+CREATE TABLE "card_velocity_stats" (
+  "card_hash"     varchar(64)   PRIMARY KEY,
+  "avg_daily_txn" decimal(8,2)  DEFAULT 0 NOT NULL,
+  "total_txn"     number        DEFAULT 0 NOT NULL,
+  "avg_amt"       decimal(12,2) DEFAULT 0 NOT NULL,
+  "std_amt"       decimal(12,2) DEFAULT 0 NOT NULL,
+  "m2_amt"        decimal(20,4) DEFAULT 0 NOT NULL,
+  "distinct_days" number        DEFAULT 1 NOT NULL,
+  "last_txn_date" varchar(10),
+  "last_updated"  timestamp     DEFAULT SYSTIMESTAMP NOT NULL
+);
+
 
 -- ============================================================
 -- INDEXES
 -- ============================================================
 
-CREATE INDEX idx_transactions_status  ON "transactions_live" ("status");
-CREATE INDEX idx_txn_live_time        ON "transactions_live" ("txn_time");
-CREATE INDEX idx_txn_live_cust        ON "transactions_live" ("customer_id");
-CREATE INDEX idx_txn_live_merch       ON "transactions_live" ("merchant_id");
-CREATE INDEX idx_txn_live_chan        ON "transactions_live" ("channel_id");
-CREATE INDEX idx_txn_live_card_hash   ON "transactions_live" ("card_number_hash");
-CREATE INDEX idx_risk_txn_id          ON "risk_scoring_results" ("txn_id");
-CREATE INDEX idx_risk_score_time      ON "risk_scoring_results" ("score_time");
-CREATE INDEX idx_recon_run_status     ON "reconciliation_runs" ("status");
-CREATE INDEX idx_recon_item_run       ON "reconciliation_items" ("run_id");
-CREATE INDEX idx_recon_item_txn       ON "reconciliation_items" ("txn_id");
-CREATE INDEX idx_recon_item_status    ON "reconciliation_items" ("status");
-CREATE INDEX idx_datalake_type        ON "datalake_snapshots" ("snapshot_type");
-CREATE INDEX idx_datalake_date        ON "datalake_snapshots" ("snapshot_date");
-CREATE INDEX idx_datalake_status      ON "datalake_snapshots" ("status");
-CREATE INDEX idx_etl_logs_type        ON "etl_logs" ("job_type");
-CREATE INDEX idx_etl_logs_date        ON "etl_logs" ("target_date");
-CREATE INDEX idx_etl_logs_status      ON "etl_logs" ("status");
-CREATE INDEX idx_loans_status         ON "loans" ("status");
-CREATE INDEX idx_loans_customer       ON "loans" ("customer_id");
-CREATE INDEX idx_loans_submitted      ON "loans" ("submitted_by");
-CREATE INDEX idx_suppression_active   ON "suppression_rules" ("is_active");
-CREATE INDEX idx_suppression_type_eid ON "suppression_rules" ("rule_type", "entity_id");
-CREATE INDEX idx_analyst_reports_status ON "analyst_reports" ("status");
-CREATE INDEX idx_analyst_reports_by     ON "analyst_reports" ("submitted_by");
-CREATE INDEX idx_txn_live_submitted     ON "transactions_live" ("submitted_by");
-CREATE INDEX idx_case_status            ON "review_cases" ("case_status");
-CREATE INDEX idx_case_assigned          ON "review_cases" ("assigned_to");
-CREATE INDEX idx_audit_event_type       ON "audit_logs" ("event_type");
-CREATE INDEX idx_audit_entity_id        ON "audit_logs" ("entity_id");
-CREATE INDEX idx_audit_event_ts         ON "audit_logs" ("event_ts");
-CREATE INDEX idx_rule_hits_code              ON "rule_hits" ("rule_code");
-CREATE INDEX idx_supp_expires                ON "suppression_rules" ("expires_at");
-CREATE INDEX idx_txn_state_history_txn       ON "txn_state_history" ("txn_id");
-CREATE INDEX idx_review_case_actions_case    ON "review_case_actions" ("case_id");
-CREATE INDEX idx_loans_reviewed_by           ON "loans" ("reviewed_by");
+-- users
+CREATE INDEX idx_users_role            ON "users" ("role");
+CREATE INDEX idx_users_status          ON "users" ("status");
+
+-- transactions_live
+CREATE INDEX idx_txn_live_status       ON "transactions_live" ("status");
+CREATE INDEX idx_txn_live_time         ON "transactions_live" ("txn_time");
+CREATE INDEX idx_txn_live_cust         ON "transactions_live" ("customer_id");
+CREATE INDEX idx_txn_live_merch        ON "transactions_live" ("merchant_id");
+CREATE INDEX idx_txn_live_chan         ON "transactions_live" ("channel_id");
+CREATE INDEX idx_txn_live_card_hash    ON "transactions_live" ("card_number_hash");
+CREATE INDEX idx_txn_live_submitted    ON "transactions_live" ("submitted_by");
+
+-- review_cases
+CREATE INDEX idx_case_status           ON "review_cases" ("case_status");
+CREATE INDEX idx_case_assigned         ON "review_cases" ("assigned_to");
+
+-- loans
+CREATE INDEX idx_loans_status          ON "loans" ("status");
+CREATE INDEX idx_loans_customer        ON "loans" ("customer_id");
+CREATE INDEX idx_loans_submitted       ON "loans" ("submitted_by");
+CREATE INDEX idx_loans_reviewed_by     ON "loans" ("reviewed_by");
+
+-- audit_logs
+CREATE INDEX idx_audit_event_type      ON "audit_logs" ("event_type");
+CREATE INDEX idx_audit_entity          ON "audit_logs" ("entity_type", "entity_id");
+CREATE INDEX idx_audit_event_ts        ON "audit_logs" ("event_ts");
+CREATE INDEX idx_audit_actor           ON "audit_logs" ("actor_user_id");
+
+-- rule_hits
+CREATE INDEX idx_rule_hits_txn         ON "rule_hits" ("txn_id");
+CREATE INDEX idx_rule_hits_code        ON "rule_hits" ("rule_code");
+
 
 -- ============================================================
 -- COMMENTS
 -- ============================================================
 
+COMMENT ON TABLE  "users" IS 'Tài khoản nhân viên — role gộp từ bảng roles (mỗi người 1 vai trò theo UC06.3)';
 COMMENT ON COLUMN "users"."user_id" IS 'UUID';
+COMMENT ON COLUMN "users"."role"    IS 'OPERATOR | REVIEWER | ANALYST | MANAGER | ADMIN';
+COMMENT ON COLUMN "users"."status"  IS 'ACTIVE | DISABLED';
+
+COMMENT ON TABLE  "customers" IS 'Dữ liệu tham chiếu — nạp sẵn từ core banking, không có UC quản lý';
 COMMENT ON COLUMN "customers"."customer_id" IS 'UUID';
+
+COMMENT ON TABLE  "merchants" IS 'Dữ liệu tham chiếu — nạp sẵn, không có UC quản lý';
 COMMENT ON COLUMN "merchants"."merchant_id" IS 'UUID';
-COMMENT ON COLUMN "transactions_live"."txn_id" IS 'UUID';
-COMMENT ON COLUMN "transactions_live"."status" IS 'PENDING|APPROVED|REJECTED|MANUAL_REVIEW';
-COMMENT ON COLUMN "transactions_live"."card_number_hash" IS 'SHA256 hash của số thẻ — không lưu số thẻ raw';
-COMMENT ON COLUMN "transactions_live"."currency_code" IS 'ISO 4217, default USD';
-COMMENT ON COLUMN "risk_scoring_results"."score_id" IS 'UUID';
-COMMENT ON COLUMN "risk_scoring_results"."reject_threshold" IS 'Ngưỡng REJECT tại thời điểm score — lấy từ model_configs';
-COMMENT ON COLUMN "risk_scoring_results"."review_threshold" IS 'Ngưỡng MANUAL_REVIEW tại thời điểm score';
-COMMENT ON COLUMN "rule_hits"."rule_hit_id" IS 'UUID';
-COMMENT ON COLUMN "review_cases"."case_id" IS 'UUID';
-COMMENT ON COLUMN "review_cases"."case_status" IS 'OPEN|ASSIGNED|APPROVED|REJECTED|CLOSED';
-COMMENT ON COLUMN "review_cases"."version" IS 'Optimistic Locking — tăng mỗi lần cập nhật';
-COMMENT ON COLUMN "review_case_actions"."action_id" IS 'UUID';
-COMMENT ON COLUMN "review_case_actions"."action_type" IS 'ASSIGN|COMMENT|APPROVE|REJECT|REOPEN';
-COMMENT ON COLUMN "txn_idempotency"."status" IS 'IN_PROGRESS|SUCCESS|FAILED';
-COMMENT ON COLUMN "txn_state_history"."state_hist_id" IS 'UUID';
-COMMENT ON COLUMN "reconciliation_runs"."run_id" IS 'UUID';
-COMMENT ON COLUMN "reconciliation_runs"."status" IS 'RUNNING|COMPLETED|FAILED';
-COMMENT ON COLUMN "reconciliation_items"."item_id" IS 'UUID';
-COMMENT ON COLUMN "reconciliation_items"."item_type" IS 'PENDING_TIMEOUT';
-COMMENT ON COLUMN "reconciliation_items"."status" IS 'OPEN|RESOLVED';
-COMMENT ON COLUMN "datalake_snapshots"."snapshot_id" IS 'UUID';
-COMMENT ON COLUMN "datalake_snapshots"."snapshot_type" IS 'DAILY_TXN_SUMMARY|EXTERNAL_INGEST';
-COMMENT ON COLUMN "datalake_snapshots"."status" IS 'ACTIVE|ARCHIVED';
-COMMENT ON COLUMN "card_velocity_stats"."card_hash" IS 'SHA256 hash — PK, không lưu số thẻ raw';
-COMMENT ON COLUMN "card_velocity_stats"."m2_amt" IS 'Welford algorithm M2 — dùng tính std online';
-COMMENT ON COLUMN "fact_transactions"."fact_id" IS 'UUID';
-COMMENT ON COLUMN "fact_loans"."fact_loan_id" IS 'UUID';
-COMMENT ON COLUMN "fact_loans"."loan_id" IS 'FK → loans.loan_id';
-COMMENT ON COLUMN "audit_logs"."log_id" IS 'UUID';
-COMMENT ON COLUMN "etl_logs"."job_type" IS 'DAILY_SUMMARY';
-COMMENT ON COLUMN "etl_logs"."status" IS 'RUNNING|SUCCESS|FAILED';
-COMMENT ON TABLE  "loans" IS 'OLTP khoản vay (v1.3) — thay thế loan_applications';
-COMMENT ON COLUMN "loans"."loan_id" IS 'UUID';
-COMMENT ON COLUMN "loans"."status" IS 'PENDING|APPROVED|REJECTED|DISBURSED|CLOSED|DEFAULTED';
-COMMENT ON COLUMN "loans"."version" IS 'Optimistic Locking';
-COMMENT ON TABLE  "model_configs" IS 'Ngưỡng phân loại Fraud/PD Score — ANALYST điều chỉnh, không hardcode';
+
+COMMENT ON TABLE  "channels" IS 'Dữ liệu tham chiếu — nạp sẵn (POS, ATM, Online, Mobile…)';
+
+COMMENT ON TABLE  "transactions_live" IS 'Giao dịch tài chính — fraud_score + model_version gộp từ risk_scoring_results';
+COMMENT ON COLUMN "transactions_live"."txn_id"           IS 'UUID';
+COMMENT ON COLUMN "transactions_live"."status"           IS 'PENDING | APPROVED | REJECTED | MANUAL_REVIEW';
+COMMENT ON COLUMN "transactions_live"."card_number_hash" IS 'SHA256 hash — không lưu số thẻ raw';
+COMMENT ON COLUMN "transactions_live"."fraud_score"      IS 'Điểm gian lận từ AI model (0.0–1.0)';
+COMMENT ON COLUMN "transactions_live"."model_version"    IS 'Phiên bản model AI tại thời điểm scoring';
+
+COMMENT ON TABLE  "review_cases" IS 'Hồ sơ xét duyệt thủ công — tạo tự động khi txn.status = MANUAL_REVIEW';
+COMMENT ON COLUMN "review_cases"."case_id"     IS 'UUID';
+COMMENT ON COLUMN "review_cases"."case_status" IS 'OPEN | ASSIGNED | CLOSED';
+COMMENT ON COLUMN "review_cases"."decision"    IS 'NULL (chưa quyết) | APPROVE | REJECT';
+COMMENT ON COLUMN "review_cases"."version"     IS 'Optimistic Locking — tăng mỗi lần cập nhật';
+
+COMMENT ON TABLE  "loans" IS 'Hồ sơ vay — person_* là snapshot tại thời điểm nộp, không phải phụ thuộc bắc cầu';
+COMMENT ON COLUMN "loans"."loan_id"       IS 'UUID';
+COMMENT ON COLUMN "loans"."status"        IS 'PENDING | APPROVED | REJECTED | DISBURSED | CLOSED | DEFAULTED';
+COMMENT ON COLUMN "loans"."version"       IS 'Optimistic Locking';
+COMMENT ON COLUMN "loans"."pd_score"      IS 'Probability of Default từ AI model (0.0–1.0)';
+COMMENT ON COLUMN "loans"."model_version" IS 'Phiên bản model AI tại thời điểm scoring';
+
+COMMENT ON TABLE  "model_configs" IS 'Ngưỡng phân loại Fraud / PD Score — ANALYST điều chỉnh (UC07)';
 COMMENT ON COLUMN "model_configs"."model_name" IS '"fraud" | "loan"';
 COMMENT ON COLUMN "model_configs"."param_name" IS '"reject_threshold" | "review_threshold" | "high_risk_threshold" | "medium_risk_threshold"';
-COMMENT ON TABLE  "suppression_rules" IS 'Whitelist bypass fraud scoring — ANALYST quản lý';
-COMMENT ON COLUMN "suppression_rules"."rule_id" IS 'UUID';
-COMMENT ON COLUMN "suppression_rules"."rule_type" IS 'MERCHANT | CUSTOMER | CARD_HASH';
-COMMENT ON COLUMN "suppression_rules"."is_active" IS '1 = active, 0 = vô hiệu hóa';
-COMMENT ON TABLE  "analyst_reports" IS 'Báo cáo phân tích rủi ro định kỳ — ANALYST tạo, MANAGER acknowledge';
-COMMENT ON COLUMN "analyst_reports"."report_id" IS 'UUID';
-COMMENT ON COLUMN "analyst_reports"."report_type" IS 'FRAUD_ANALYSIS|LOAN_ANALYSIS|THRESHOLD_RECOMMENDATION|SUPPRESSION_REVIEW|GENERAL';
-COMMENT ON COLUMN "analyst_reports"."status" IS 'PENDING_REVIEW|ACKNOWLEDGED|ARCHIVED';
+
+COMMENT ON TABLE  "audit_logs" IS 'Nhật ký kiểm toán toàn hệ thống (UC05.2) — thay thế txn_state_history + review_case_actions';
+COMMENT ON COLUMN "audit_logs"."log_id" IS 'UUID';
+
+COMMENT ON TABLE  "rule_hits" IS 'AI team sở hữu — luật nào triggered cho mỗi giao dịch (explainability UC04)';
+COMMENT ON COLUMN "rule_hits"."rule_hit_id" IS 'UUID';
+
+COMMENT ON TABLE  "card_velocity_stats" IS 'AI team sở hữu — thống kê pre-compute cho fraud detection';
+COMMENT ON COLUMN "card_velocity_stats"."card_hash" IS 'SHA256 hash — PK, không lưu số thẻ raw';
+COMMENT ON COLUMN "card_velocity_stats"."m2_amt"    IS 'Welford algorithm M2 — tính std online';
+
 
 -- ============================================================
 -- FOREIGN KEYS
 -- ============================================================
 
-ALTER TABLE "user_roles" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "user_roles" ADD FOREIGN KEY ("role_id") REFERENCES "roles" ("role_id") DEFERRABLE INITIALLY IMMEDIATE;
+-- transactions_live → customers, merchants, channels, users
+ALTER TABLE "transactions_live" ADD CONSTRAINT fk_txn_customer
+  FOREIGN KEY ("customer_id")  REFERENCES "customers" ("customer_id");
+ALTER TABLE "transactions_live" ADD CONSTRAINT fk_txn_merchant
+  FOREIGN KEY ("merchant_id")  REFERENCES "merchants" ("merchant_id");
+ALTER TABLE "transactions_live" ADD CONSTRAINT fk_txn_channel
+  FOREIGN KEY ("channel_id")   REFERENCES "channels"  ("channel_id");
+ALTER TABLE "transactions_live" ADD CONSTRAINT fk_txn_submitted_by
+  FOREIGN KEY ("submitted_by") REFERENCES "users"     ("user_id");
 
-ALTER TABLE "transactions_live" ADD FOREIGN KEY ("customer_id")  REFERENCES "customers" ("customer_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "transactions_live" ADD FOREIGN KEY ("merchant_id")  REFERENCES "merchants" ("merchant_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "transactions_live" ADD FOREIGN KEY ("channel_id")   REFERENCES "channels"  ("channel_id")  DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "transactions_live" ADD FOREIGN KEY ("submitted_by") REFERENCES "users"     ("user_id")     DEFERRABLE INITIALLY IMMEDIATE;
+-- review_cases → transactions_live, users
+ALTER TABLE "review_cases" ADD CONSTRAINT fk_case_txn
+  FOREIGN KEY ("txn_id")      REFERENCES "transactions_live" ("txn_id");
+ALTER TABLE "review_cases" ADD CONSTRAINT fk_case_assigned
+  FOREIGN KEY ("assigned_to") REFERENCES "users"             ("user_id");
 
-ALTER TABLE "risk_scoring_results" ADD FOREIGN KEY ("txn_id") REFERENCES "transactions_live" ("txn_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "rule_hits"            ADD FOREIGN KEY ("txn_id") REFERENCES "transactions_live" ("txn_id") DEFERRABLE INITIALLY IMMEDIATE;
+-- rule_hits → transactions_live
+ALTER TABLE "rule_hits" ADD CONSTRAINT fk_rule_hit_txn
+  FOREIGN KEY ("txn_id") REFERENCES "transactions_live" ("txn_id");
 
-ALTER TABLE "review_cases"         ADD FOREIGN KEY ("txn_id")      REFERENCES "transactions_live" ("txn_id")   DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "review_cases"         ADD FOREIGN KEY ("assigned_to") REFERENCES "users"             ("user_id")  DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "review_case_actions"  ADD FOREIGN KEY ("case_id")     REFERENCES "review_cases"      ("case_id")  DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "review_case_actions"  ADD FOREIGN KEY ("actor_user_id") REFERENCES "users"           ("user_id")  DEFERRABLE INITIALLY IMMEDIATE;
+-- loans → customers, users (submitted_by), users (reviewed_by)
+ALTER TABLE "loans" ADD CONSTRAINT fk_loan_customer
+  FOREIGN KEY ("customer_id")  REFERENCES "customers" ("customer_id");
+ALTER TABLE "loans" ADD CONSTRAINT fk_loan_submitted_by
+  FOREIGN KEY ("submitted_by") REFERENCES "users"     ("user_id");
+ALTER TABLE "loans" ADD CONSTRAINT fk_loan_reviewed_by
+  FOREIGN KEY ("reviewed_by")  REFERENCES "users"     ("user_id");
 
-ALTER TABLE "txn_idempotency"   ADD FOREIGN KEY ("txn_id") REFERENCES "transactions_live" ("txn_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "txn_state"         ADD FOREIGN KEY ("txn_id") REFERENCES "transactions_live" ("txn_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "txn_state_history" ADD FOREIGN KEY ("txn_id")              REFERENCES "transactions_live" ("txn_id")  DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "txn_state_history" ADD FOREIGN KEY ("changed_by_user_id")  REFERENCES "users"             ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
+-- model_configs → users
+ALTER TABLE "model_configs" ADD CONSTRAINT fk_config_updated_by
+  FOREIGN KEY ("updated_by") REFERENCES "users" ("user_id");
 
-ALTER TABLE "reconciliation_runs"  ADD FOREIGN KEY ("triggered_by") REFERENCES "users"                ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "reconciliation_items" ADD FOREIGN KEY ("run_id")       REFERENCES "reconciliation_runs"  ("run_id")  DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "reconciliation_items" ADD FOREIGN KEY ("txn_id")       REFERENCES "transactions_live"    ("txn_id")  DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "reconciliation_items" ADD FOREIGN KEY ("resolved_by")  REFERENCES "users"                ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
+-- audit_logs → users
+ALTER TABLE "audit_logs" ADD CONSTRAINT fk_audit_actor
+  FOREIGN KEY ("actor_user_id") REFERENCES "users" ("user_id");
 
-ALTER TABLE "etl_logs"          ADD FOREIGN KEY ("triggered_by") REFERENCES "users"     ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "datalake_snapshots" ADD FOREIGN KEY ("job_id")      REFERENCES "etl_logs"  ("job_id")  DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "fact_transactions" ADD FOREIGN KEY ("time_id")       REFERENCES "dim_time"     ("time_id")      DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "fact_transactions" ADD FOREIGN KEY ("customer_key")  REFERENCES "dim_customer" ("customer_key") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "fact_transactions" ADD FOREIGN KEY ("merchant_key")  REFERENCES "dim_merchant" ("merchant_key") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "fact_transactions" ADD FOREIGN KEY ("channel_key")   REFERENCES "dim_channel"  ("channel_key")  DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "fact_transactions" ADD FOREIGN KEY ("location_key")  REFERENCES "dim_location" ("location_key") DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "fact_loans" ADD FOREIGN KEY ("time_id")      REFERENCES "dim_time"     ("time_id")      DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "fact_loans" ADD FOREIGN KEY ("customer_key") REFERENCES "dim_customer" ("customer_key") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "fact_loans" ADD FOREIGN KEY ("loan_id")      REFERENCES "loans"        ("loan_id")      DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "audit_logs" ADD FOREIGN KEY ("actor_user_id") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "loans" ADD FOREIGN KEY ("customer_id")  REFERENCES "customers" ("customer_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "loans" ADD FOREIGN KEY ("submitted_by") REFERENCES "users"     ("user_id")     DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "loans" ADD FOREIGN KEY ("reviewed_by")  REFERENCES "users"     ("user_id")     DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "model_configs"     ADD FOREIGN KEY ("updated_by")      REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "suppression_rules" ADD FOREIGN KEY ("created_by")      REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "analyst_reports"   ADD FOREIGN KEY ("submitted_by")    REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
-ALTER TABLE "analyst_reports"   ADD FOREIGN KEY ("acknowledged_by") REFERENCES "users" ("user_id") DEFERRABLE INITIALLY IMMEDIATE;
 
 -- ============================================================
 -- PROCEDURES
 -- ============================================================
 
--- Procedure: PROC_SUBMIT_TRANSACTION
--- Mục đích: Khởi tạo giao dịch mới với cơ chế chống trùng lặp (Idempotency)
+-- PROC_SUBMIT_TRANSACTION
+-- Mục đích: Nhập giao dịch mới, tự động phân loại dựa trên fraud_score và ngưỡng
+-- Liên quan: UC02.1 (Nộp giao dịch mới)
 CREATE OR REPLACE PROCEDURE PROC_SUBMIT_TRANSACTION (
-    p_idempotency_key  IN varchar2,
-    p_txn_id           IN varchar2,
-    p_customer_id      IN varchar2,
-    p_merchant_id      IN varchar2,
-    p_channel_id       IN number,
-    p_amount           IN number,
-    p_currency_code    IN varchar2,
-    p_fraud_score      IN number,
-    p_txn_time         IN timestamp,
-    p_submitted_by     IN varchar2,
-    p_card_number_hash IN varchar2,
-    -- OUT params
+    p_txn_id             IN varchar2,
+    p_customer_id        IN varchar2,
+    p_merchant_id        IN varchar2,
+    p_channel_id         IN number,
+    p_amount             IN number,
+    p_txn_time           IN timestamp,
+    p_submitted_by       IN varchar2,
+    p_card_number_hash   IN varchar2,
+    p_card_number_masked IN varchar2,
+    p_fraud_score        IN number,
+    p_model_version      IN varchar2,
+    -- OUT
     p_out_txn_id   OUT varchar2,
     p_out_status   OUT varchar2
 ) AS
-    v_existing_status varchar2(20);
-    v_existing_txn_id varchar2(36);
+    v_reject_threshold decimal(6,4);
+    v_review_threshold decimal(6,4);
+    v_status           varchar2(20);
 BEGIN
-    -- B1 & B2: Check Idempotency
+    -- B1: Lấy ngưỡng hiện hành từ model_configs
     BEGIN
-        SELECT "txn_id", "status"
-        INTO v_existing_txn_id, v_existing_status
-        FROM "txn_idempotency"
-        WHERE "idempotency_key" = p_idempotency_key;
+        SELECT "param_value" INTO v_reject_threshold
+        FROM "model_configs"
+        WHERE "model_name" = 'fraud' AND "param_name" = 'reject_threshold';
 
-        p_out_txn_id := v_existing_txn_id;
-        p_out_status := v_existing_status;
-        RETURN;
+        SELECT "param_value" INTO v_review_threshold
+        FROM "model_configs"
+        WHERE "model_name" = 'fraud' AND "param_name" = 'review_threshold';
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
-            NULL;
+            RAISE_APPLICATION_ERROR(-20010, 'ERR_CFG_01: Chưa cấu hình ngưỡng fraud');
     END;
 
-    -- B3: Insert vào transactions_live
+    -- B2: Phân loại dựa trên fraud_score
+    IF p_fraud_score IS NULL THEN
+        v_status := 'PENDING';
+    ELSIF p_fraud_score >= v_reject_threshold THEN
+        v_status := 'REJECTED';
+    ELSIF p_fraud_score >= v_review_threshold THEN
+        v_status := 'MANUAL_REVIEW';
+    ELSE
+        v_status := 'APPROVED';
+    END IF;
+
+    -- B3: Insert giao dịch (TRG_DETECT_HIGH_VALUE có thể override status)
     INSERT INTO "transactions_live" (
         "txn_id", "customer_id", "merchant_id", "channel_id",
-        "submitted_by", "card_number_hash",
-        "amount", "currency_code", "txn_time", "status", "fraud_score", "created_at"
+        "submitted_by", "card_number_hash", "card_number_masked",
+        "amount", "txn_time",
+        "status", "fraud_score", "model_version", "created_at"
     ) VALUES (
         p_txn_id, p_customer_id, p_merchant_id, p_channel_id,
-        p_submitted_by, p_card_number_hash,
-        p_amount, NVL(p_currency_code, 'USD'), NVL(p_txn_time, SYSTIMESTAMP), 'PENDING', p_fraud_score, SYSTIMESTAMP
+        p_submitted_by, p_card_number_hash, p_card_number_masked,
+        p_amount, NVL(p_txn_time, SYSTIMESTAMP),
+        v_status, p_fraud_score, p_model_version, SYSTIMESTAMP
     );
 
-    -- B4: Insert vào txn_state (version = 1)
-    INSERT INTO "txn_state" (
-        "txn_id", "status", "last_update", "version", "retry_count"
+    -- B4: Ghi audit log
+    INSERT INTO "audit_logs" (
+        "log_id", "event_type", "entity_type", "entity_id",
+        "actor_user_id", "event_ts", "detail_json"
     ) VALUES (
-        p_txn_id, 'PENDING', SYSTIMESTAMP, 1, 0
-    );
-
-    -- B5: Insert vào txn_idempotency
-    INSERT INTO "txn_idempotency" (
-        "idempotency_key", "txn_id", "status", "created_at"
-    ) VALUES (
-        p_idempotency_key, p_txn_id, 'IN_PROGRESS', SYSTIMESTAMP
+        SYS_GUID(), 'CREATE', 'TRANSACTION', p_txn_id,
+        p_submitted_by, SYSTIMESTAMP,
+        '{"status":"' || v_status || '","fraud_score":'
+          || NVL(TO_CHAR(p_fraud_score), 'null') || '}'
     );
 
     p_out_txn_id := p_txn_id;
-    p_out_status := 'PENDING';
-
+    p_out_status := v_status;
     COMMIT;
 
 EXCEPTION
     WHEN OTHERS THEN
         ROLLBACK;
-        RAISE_APPLICATION_ERROR(-20001, 'ERR_DB_01: Lỗi CSDL khi submit giao dịch - ' || SQLERRM);
+        RAISE_APPLICATION_ERROR(-20001,
+            'ERR_DB_01: Lỗi CSDL khi submit giao dịch - ' || SQLERRM);
 END;
 /
 
--- Procedure: PROC_PROCESS_REVIEW_CASE
--- Mục đích: Duyệt hoặc từ chối giao dịch MANUAL_REVIEW
+
+-- PROC_PROCESS_REVIEW_CASE
+-- Mục đích: Reviewer quyết định phê duyệt / từ chối giao dịch MANUAL_REVIEW
+-- Liên quan: UC04.3 (Ra quyết định Phê duyệt / Từ chối)
 CREATE OR REPLACE PROCEDURE PROC_PROCESS_REVIEW_CASE (
     p_case_id       IN varchar2,
-    p_decision      IN varchar2,
+    p_decision      IN varchar2,    -- 'APPROVE' hoặc 'REJECT'
     p_decision_note IN varchar2,
+    p_decided_by    IN varchar2,    -- user_id của reviewer
     p_out_status    OUT varchar2
 ) AS
-    v_txn_id         varchar2(36);
-    v_case_status    varchar2(20);
+    v_txn_id      varchar2(36);
+    v_case_status varchar2(20);
     v_new_txn_status varchar2(20);
 BEGIN
+    -- B1: Lock và kiểm tra case
     BEGIN
         SELECT "txn_id", "case_status"
         INTO v_txn_id, v_case_status
@@ -666,140 +478,73 @@ BEGIN
     END;
 
     IF v_case_status NOT IN ('OPEN', 'ASSIGNED') THEN
-        RAISE_APPLICATION_ERROR(-20003, 'ERR_CASE_01: Case đã được xử lý hoặc đã đóng.');
+        RAISE_APPLICATION_ERROR(-20003, 'ERR_CASE_01: Case đã được xử lý');
     END IF;
 
+    -- B2: Xác định trạng thái mới
     IF p_decision = 'APPROVE' THEN
         v_new_txn_status := 'APPROVED';
     ELSIF p_decision = 'REJECT' THEN
         v_new_txn_status := 'REJECTED';
     ELSE
-        RAISE_APPLICATION_ERROR(-20004, 'ERR_CASE_02: Decision không hợp lệ, chỉ nhận APPROVE hoặc REJECT.');
+        RAISE_APPLICATION_ERROR(-20004,
+            'ERR_CASE_02: Decision không hợp lệ, chỉ nhận APPROVE hoặc REJECT');
     END IF;
 
+    -- B3: Cập nhật case
     UPDATE "review_cases"
     SET "case_status"   = 'CLOSED',
         "decision"      = p_decision,
         "decision_note" = p_decision_note,
+        "assigned_to"   = NVL("assigned_to", p_decided_by),
         "version"       = "version" + 1,
         "decided_at"    = SYSTIMESTAMP
     WHERE "case_id" = p_case_id;
 
+    -- B4: Cập nhật trạng thái giao dịch
     UPDATE "transactions_live"
     SET "status"     = v_new_txn_status,
         "updated_at" = SYSTIMESTAMP
     WHERE "txn_id" = v_txn_id;
 
-    p_out_status := v_new_txn_status;
-
-    COMMIT;
-
-EXCEPTION
-    WHEN OTHERS THEN
-        ROLLBACK;
-        RAISE;
-END;
-/
-
--- Procedure: PROC_EXECUTE_RECONCILIATION
--- Mục đích: Phát hiện giao dịch stuck PENDING quá lâu trong một khoảng thời gian,
---           ghi kết quả vào reconciliation_runs + reconciliation_items
-CREATE OR REPLACE PROCEDURE PROC_EXECUTE_RECONCILIATION (
-    p_run_id                  IN varchar2,
-    p_period_start            IN timestamp,
-    p_period_end              IN timestamp,
-    p_pending_timeout_minutes IN number,
-    p_triggered_by            IN varchar2,
-    p_out_status              OUT varchar2
-) AS
-    v_total_count   number := 0;
-    v_matched_count number := 0;
-    v_disc_count    number := 0;
-    v_total_amount  decimal(18,2) := 0;
-BEGIN
-    -- B1: Khởi tạo reconciliation run
-    INSERT INTO "reconciliation_runs" (
-        "run_id", "period_start", "period_end", "status",
-        "pending_timeout_minutes", "triggered_by", "created_at"
+    -- B5: Ghi audit log
+    INSERT INTO "audit_logs" (
+        "log_id", "event_type", "entity_type", "entity_id",
+        "actor_user_id", "event_ts", "detail_json"
     ) VALUES (
-        p_run_id, p_period_start, p_period_end, 'RUNNING',
-        NVL(p_pending_timeout_minutes, 120), p_triggered_by, SYSTIMESTAMP
+        SYS_GUID(), p_decision, 'REVIEW_CASE', p_case_id,
+        p_decided_by, SYSTIMESTAMP,
+        '{"txn_id":"' || v_txn_id || '","new_status":"' || v_new_txn_status || '"}'
     );
 
-    -- B2: Tính tổng giao dịch trong khoảng thời gian
-    SELECT COUNT("txn_id"), NVL(SUM("amount"), 0)
-    INTO v_total_count, v_total_amount
-    FROM "transactions_live"
-    WHERE "txn_time" BETWEEN p_period_start AND p_period_end;
-
-    -- B3: Phát hiện giao dịch PENDING vượt quá pending_timeout_minutes
-    FOR rec IN (
-        SELECT t."txn_id", t."status", t."amount", t."created_at",
-               ROUND((SYSTIMESTAMP - t."created_at") * 24 * 60, 0) AS minutes_pending
-        FROM "transactions_live" t
-        WHERE t."txn_time" BETWEEN p_period_start AND p_period_end
-          AND t."status" = 'PENDING'
-          AND (SYSTIMESTAMP - t."created_at") * 24 * 60 > NVL(p_pending_timeout_minutes, 120)
-    ) LOOP
-        INSERT INTO "reconciliation_items" (
-            "item_id", "run_id", "txn_id", "item_type",
-            "txn_status", "txn_amount", "txn_created_at", "minutes_pending",
-            "status", "created_at"
-        ) VALUES (
-            SYS_GUID(), p_run_id, rec."txn_id", 'PENDING_TIMEOUT',
-            rec."status", rec."amount", rec."created_at", rec.minutes_pending,
-            'OPEN', SYSTIMESTAMP
-        );
-        v_disc_count := v_disc_count + 1;
-    END LOOP;
-
-    v_matched_count := v_total_count - v_disc_count;
-
-    -- B4: Cập nhật kết quả
-    UPDATE "reconciliation_runs"
-    SET "status"            = 'COMPLETED',
-        "total_txn_count"   = v_total_count,
-        "matched_count"     = v_matched_count,
-        "discrepancy_count" = v_disc_count,
-        "total_amount"      = v_total_amount,
-        "completed_at"      = SYSTIMESTAMP
-    WHERE "run_id" = p_run_id;
-
+    p_out_status := v_new_txn_status;
     COMMIT;
-    p_out_status := 'COMPLETED';
 
 EXCEPTION
     WHEN OTHERS THEN
         ROLLBACK;
-        BEGIN
-            UPDATE "reconciliation_runs"
-            SET "status"        = 'FAILED',
-                "error_message" = SUBSTR(SQLERRM, 1, 500),
-                "completed_at"  = SYSTIMESTAMP
-            WHERE "run_id" = p_run_id;
-            COMMIT;
-        EXCEPTION
-            WHEN OTHERS THEN ROLLBACK;
-        END;
-        p_out_status := 'FAILED';
         RAISE;
 END;
 /
+
 
 -- ============================================================
 -- TRIGGERS
 -- ============================================================
 
+-- Auto-flag giao dịch giá trị cao → MANUAL_REVIEW (business rule)
+-- Đơn vị tiền tệ: USD (toàn hệ thống). Ngưỡng: $20,000
 CREATE OR REPLACE TRIGGER TRG_DETECT_HIGH_VALUE
 BEFORE INSERT ON "transactions_live"
 FOR EACH ROW
 BEGIN
-    IF :NEW."amount" > 500000000 THEN
+    IF :NEW."amount" >= 6767 THEN
         :NEW."status" := 'MANUAL_REVIEW';
     END IF;
 END;
 /
 
+-- Auto-tạo review case khi giao dịch có status = MANUAL_REVIEW
 CREATE OR REPLACE TRIGGER TRG_AUTO_CREATE_CASE
 AFTER INSERT OR UPDATE ON "transactions_live"
 FOR EACH ROW
@@ -816,36 +561,20 @@ BEGIN
 END;
 /
 
-CREATE OR REPLACE TRIGGER TRG_OPTIMISTIC_LOCK_CHECK
-BEFORE UPDATE ON "txn_state"
-FOR EACH ROW
-BEGIN
-    IF :NEW."version" <> :OLD."version" THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Data modified by another user');
-    END IF;
-END;
-/
-
-CREATE OR REPLACE TRIGGER TRG_STATE_VERSION_UP
-BEFORE UPDATE ON "txn_state"
-FOR EACH ROW
-FOLLOWS TRG_OPTIMISTIC_LOCK_CHECK
-BEGIN
-    IF :NEW."status" <> :OLD."status" THEN
-        :NEW."version" := :OLD."version" + 1;
-    END IF;
-END;
-/
-
-CREATE OR REPLACE TRIGGER TRG_LOG_STATUS_CHANGE
+-- Ghi audit log khi trạng thái giao dịch thay đổi (bổ sung cho procedure)
+CREATE OR REPLACE TRIGGER TRG_AUDIT_TXN_STATUS
 AFTER UPDATE ON "transactions_live"
 FOR EACH ROW
 BEGIN
     IF :OLD."status" <> :NEW."status" THEN
-        INSERT INTO "txn_state_history" (
-            "state_hist_id", "txn_id", "old_status", "new_status", "changed_at"
+        INSERT INTO "audit_logs" (
+            "log_id", "event_type", "entity_type", "entity_id",
+            "event_ts", "detail_json"
         ) VALUES (
-            SYS_GUID(), :NEW."txn_id", :OLD."status", :NEW."status", SYSTIMESTAMP
+            SYS_GUID(), 'STATUS_CHANGE', 'TRANSACTION', :NEW."txn_id",
+            SYSTIMESTAMP,
+            '{"old_status":"' || :OLD."status"
+              || '","new_status":"' || :NEW."status" || '"}'
         );
     END IF;
 END;
