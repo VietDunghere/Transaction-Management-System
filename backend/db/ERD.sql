@@ -28,6 +28,11 @@
 --     bắc cầu qua customer_id (giá trị có thể thay đổi theo thời gian)
 -- ============================================================
 
+CREATE ROLE ROLE_READ_ONLY;
+GRANT CONNECT TO ROLE_READ_ONLY;
+CREATE USER USER1 IDENTIFIED BY "123456";
+GRANT ROLE_READ_ONLY TO USER1;
+
 
 -- ============================================================
 -- TABLES (11)
