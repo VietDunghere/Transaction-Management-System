@@ -85,10 +85,12 @@ EXTERNAL_API_TIMEOUT=30
 ### 4. Setup Database
 
 ```bash
-# Run migrations to create schema
-alembic upgrade head
+# Apply database schema from ERD SQL (Oracle)
+# Example using sqlplus (replace <password> and service name as needed):
+# sqlplus system/<password>@localhost:1521/xe @db/ERD.sql
+# Alternatively import the SQL file with your preferred DB tool or run via an oracledb script.
 
-# (Optional) Seed sample data
+# Then seed sample data
 python seed.py
 ```
 
