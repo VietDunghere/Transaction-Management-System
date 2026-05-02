@@ -1,15 +1,14 @@
 from __future__ import annotations
 """
-Repository: ModelConfigRepository + SuppressionRepository
+Repository: ModelConfigRepository (ERD v2)
+SuppressionRepository dropped.
 """
 
-from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.models.analyst import ModelConfig, SuppressionRule
+from app.models.analyst import ModelConfig
 
 
 class ModelConfigRepository:
@@ -36,56 +35,3 @@ class ModelConfigRepository:
         cfg.updated_by = updated_by
         cfg.version += 1
         return cfg
-
-
-class SuppressionRepository:
-    def __init__(self, db: Session) -> None:
-        self._db = db
-
-    def list_active(self) -> list[SuppressionRule]:
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
-        return self._db.query(SuppressionRule).filter(
-            SuppressionRule.is_active == True,  # noqa: E712
-            (SuppressionRule.expires_at == None) | (SuppressionRule.expires_at > now),  # noqa: E711
-        ).all()
-
-    def list_all(self, include_inactive: bool = False) -> list[SuppressionRule]:
-        q = self._db.query(SuppressionRule)
-        if not include_inactive:
-            now = datetime.now(timezone.utc).replace(tzinfo=None)
-            q = q.filter(
-                SuppressionRule.is_active == True,  # noqa: E712
-                (SuppressionRule.expires_at == None) | (SuppressionRule.expires_at > now),  # noqa: E711
-            )
-        return q.order_by(SuppressionRule.created_at.desc()).all()
-
-    def get(self, rule_id: str) -> Optional[SuppressionRule]:
-        return self._db.query(SuppressionRule).filter(SuppressionRule.rule_id == rule_id).first()
-
-    def create(self, rule: SuppressionRule) -> SuppressionRule:
-        self._db.add(rule)
-        return rule
-
-    def deactivate(self, rule_id: str) -> Optional[SuppressionRule]:
-        rule = self.get(rule_id)
-        if rule:
-            rule.is_active = False
-        return rule
-
-    def is_suppressed(self, merchant_id: str | None, customer_id: str | None, card_hash: str | None) -> bool:
-        """Kiểm tra nhanh xem giao dịch có bị suppress không — targeted OR query, không load toàn bộ rules."""
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
-        conditions = []
-        if merchant_id:
-            conditions.append((SuppressionRule.rule_type == "MERCHANT") & (SuppressionRule.entity_id == merchant_id))
-        if customer_id:
-            conditions.append((SuppressionRule.rule_type == "CUSTOMER") & (SuppressionRule.entity_id == customer_id))
-        if card_hash:
-            conditions.append((SuppressionRule.rule_type == "CARD_HASH") & (SuppressionRule.entity_id == card_hash))
-        if not conditions:
-            return False
-        return self._db.query(SuppressionRule).filter(
-            SuppressionRule.is_active == True,  # noqa: E712
-            (SuppressionRule.expires_at == None) | (SuppressionRule.expires_at > now),  # noqa: E711
-            or_(*conditions),
-        ).first() is not None

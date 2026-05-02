@@ -1,7 +1,7 @@
 from __future__ import annotations
 """
-Pydantic schemas: Transaction
-Request/Response cho submit và query giao dịch.
+Pydantic schemas: Transaction (ERD v2)
+Removed: currency_code, source_ip, reason_code, override_reason, TxnStateHistoryItem.
 """
 
 from datetime import datetime, timezone
@@ -13,31 +13,18 @@ from pydantic import BaseModel, Field, field_validator
 from app.schemas.common import TransactionStatus
 
 
-# ============================================================
-# Request schemas
-# ============================================================
-
 class TransactionSubmitRequest(BaseModel):
-    """
-    Request body khi OPERATOR gửi giao dịch mới.
-    Các trường này là thông tin thô từ terminal POS/gateway.
-    """
-    # Số thẻ — chỉ nhận, sẽ hash trước khi lưu
     card_number: str = Field(..., min_length=13, max_length=19, examples=["4111111111111111"])
     customer_id: str = Field(..., description="UUID của customer trong hệ thống")
     merchant_id: str = Field(..., description="UUID của merchant trong hệ thống")
     channel_id: int = Field(..., description="ID kênh giao dịch (POS, ATM, Online)")
     amount: Decimal = Field(..., gt=0, decimal_places=2, examples=[150.50])
-    currency_code: str = Field(default="USD", max_length=10)
     txn_time: datetime = Field(..., description="Thời gian giao dịch theo local timezone")
-    source_ip: Optional[str] = Field(None, max_length=64)
-    # Idempotency key — client tự tạo (UUID), phòng retry trùng
     idempotency_key: Optional[str] = Field(None, max_length=100)
 
     @field_validator("card_number")
     @classmethod
     def validate_card_number(cls, v: str) -> str:
-        """Chỉ cho phép số — loại bỏ khoảng trắng và dấu gạch."""
         cleaned = v.replace(" ", "").replace("-", "")
         if not cleaned.isdigit():
             raise ValueError("Số thẻ chỉ được chứa chữ số.")
@@ -46,7 +33,6 @@ class TransactionSubmitRequest(BaseModel):
     @field_validator("txn_time")
     @classmethod
     def validate_txn_time(cls, v: datetime) -> datetime:
-        """Từ chối giao dịch có txn_time trong tương lai (tolerance 5 phút)."""
         now = datetime.now(timezone.utc)
         if v.tzinfo is None:
             v = v.replace(tzinfo=timezone.utc)
@@ -57,7 +43,6 @@ class TransactionSubmitRequest(BaseModel):
 
 
 class TransactionListFilter(BaseModel):
-    """Query params cho list transactions."""
     status: Optional[TransactionStatus] = None
     customer_id: Optional[str] = None
     merchant_id: Optional[str] = None
@@ -67,65 +52,41 @@ class TransactionListFilter(BaseModel):
     page_size: int = Field(default=20, ge=1, le=100)
 
 
-# ============================================================
-# Response schemas
-# ============================================================
-
 class FraudScoreDetail(BaseModel):
-    """Chi tiết kết quả chấm điểm fraud detection."""
-    fraud_score: float = Field(description="Xác suất gian lận (0.0 → 1.0)")
-    decision: str = Field(description="APPROVED | MANUAL_REVIEW | REJECTED")
+    fraud_score: float
+    decision: str
     reject_threshold: float
     review_threshold: float
     model_version: str
-    top_risk_factors: List[str] = Field(default=[], description="Features ảnh hưởng nhiều nhất")
+    top_risk_factors: List[str] = Field(default=[])
 
 
 class TransactionResponse(BaseModel):
-    """Response chi tiết 1 giao dịch."""
     txn_id: str
     customer_id: str
     customer_name: Optional[str] = None
     merchant_id: str
     merchant_name: Optional[str] = None
     channel_id: int
-    submitted_by: str                    # user_id người submit — cần cho display và SoD audit
+    submitted_by: str
     card_number_masked: Optional[str]
     amount: Decimal
-    currency_code: str
     txn_time: datetime
     status: TransactionStatus
     fraud_score: Optional[float]
-    reason_code: Optional[str]           # fraud scoring reason: HIGH_FRAUD_SCORE, etc.
-    override_reason: Optional[str]       # manual override reason: HIGH_VALUE, etc.
+    model_version: Optional[str] = None
     created_at: datetime
-    # Đính kèm fraud detail khi có
     fraud_detail: Optional[FraudScoreDetail] = None
 
     model_config = {"from_attributes": True}
 
 
 class TransactionSubmitResponse(BaseModel):
-    """Response sau khi submit giao dịch — trả ngay kết quả AI."""
     txn_id: str
     status: TransactionStatus
     fraud_score: Optional[float]
     decision: str
-    amount: Decimal                      # frontend cần cho confirmation screen
-    currency_code: str
-    created_at: datetime                 # timestamp chính xác từ server
+    amount: Decimal
+    created_at: datetime
     message: str
     case_id: Optional[str] = Field(None, description="Không null nếu MANUAL_REVIEW")
-
-
-class TxnStateHistoryItem(BaseModel):
-    """Một bước thay đổi trạng thái trong audit trail của giao dịch."""
-    state_hist_id: str
-    txn_id: str
-    old_status: Optional[str] = None
-    new_status: str
-    changed_by_user_id: Optional[str] = None
-    changed_at: datetime
-    change_reason: Optional[str] = None
-
-    model_config = {"from_attributes": True}

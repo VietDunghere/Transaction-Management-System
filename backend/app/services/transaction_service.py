@@ -1,14 +1,8 @@
 from __future__ import annotations
 """
-Service: TransactionService
-Orchestrate toàn bộ luồng submit giao dịch:
-  1. Kiểm tra idempotency
-  2. Load customer, merchant từ DB
-  3. Tính velocity features và cập nhật stats
-  4. Gọi FraudScoringService để lấy fraud score
-  5. Quyết định và lưu kết quả
-  6. Tạo ReviewCase nếu MANUAL_REVIEW
-  7. Ghi audit log và state history
+Service: TransactionService (ERD v2)
+Simplified: no RiskScoringResult, TxnState, TxnStateHistory, TxnIdempotency, SuppressionRule.
+fraud_score + model_version stored directly on Transaction.
 """
 
 import json
@@ -19,7 +13,6 @@ from typing import Optional
 
 
 def _json_default(obj):
-    """Handle Decimal and datetime for json.dumps."""
     if isinstance(obj, Decimal):
         return float(obj)
     if isinstance(obj, datetime):
@@ -28,12 +21,12 @@ def _json_default(obj):
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import IdempotencyConflictError, NotFoundError
+from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
-from app.models.scoring import AuditLog, RiskScoringResult
-from app.models.transaction import Transaction, TxnIdempotency, TxnState, TxnStateHistory
-from app.models.case import ReviewCase, ReviewCaseAction
-from app.repositories.analyst_repo import ModelConfigRepository, SuppressionRepository
+from app.models.scoring import AuditLog
+from app.models.transaction import Transaction
+from app.models.case import ReviewCase
+from app.repositories.analyst_repo import ModelConfigRepository
 from app.repositories.transaction_repo import TransactionRepository
 from app.repositories.velocity_repo import CustomerRepository, MerchantRepository, VelocityRepository
 from app.schemas.transaction import TransactionSubmitRequest, TransactionSubmitResponse
@@ -45,7 +38,6 @@ logger = get_logger(__name__)
 
 
 class TransactionService:
-    """Orchestrator cho submit giao dịch."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
@@ -54,35 +46,14 @@ class TransactionService:
         self._merchant_repo = MerchantRepository(db)
         self._velocity_repo = VelocityRepository(db)
         self._config_repo = ModelConfigRepository(db)
-        self._suppression_repo = SuppressionRepository(db)
         self._scoring_svc = FraudScoringService.get_instance()
-
-    # ============================================================
-    # Public API
-    # ============================================================
 
     def submit(
         self,
         request: TransactionSubmitRequest,
         submitted_by_user_id: str,
     ) -> TransactionSubmitResponse:
-        """
-        Submit giao dịch mới và chấm điểm fraud ngay lập tức.
-
-        Returns:
-            TransactionSubmitResponse với status và fraud score
-
-        Raises:
-            IdempotencyConflictError: nếu cùng idempotency_key đã xử lý
-            NotFoundError: nếu customer hoặc merchant không tồn tại
-        """
-        # ---- Bước 1: Idempotency check ----
-        if request.idempotency_key:
-            cached = self._check_idempotency(request.idempotency_key)
-            if cached:
-                return cached
-
-        # ---- Bước 2: Load entities ----
+        # ---- Load entities ----
         customer = self._customer_repo.get_by_id(request.customer_id)
         if customer is None:
             raise NotFoundError("Customer")
@@ -91,79 +62,15 @@ class TransactionService:
         if merchant is None:
             raise NotFoundError("Merchant")
 
-        # ---- Bước 3: Hash card number ----
+        # ---- Hash card number ----
         card_hash = hash_card_number(request.card_number)
         card_masked = mask_card_number(request.card_number)
 
-        # ---- Bước 4a: Kiểm tra suppression rule ----
-        if self._suppression_repo.is_suppressed(
-            merchant_id=request.merchant_id,
-            customer_id=request.customer_id,
-            card_hash=card_hash,
-        ):
-            # Whitelist — bypass fraud scoring, auto APPROVED
-            txn_date_str = request.txn_time.strftime("%Y-%m-%d")
-            self._velocity_repo.upsert(card_hash, float(request.amount), txn_date_str)
-            txn = Transaction(
-                txn_id=str(uuid.uuid4()),
-                customer_id=request.customer_id,
-                merchant_id=request.merchant_id,
-                channel_id=request.channel_id,
-                submitted_by=submitted_by_user_id,
-                card_number_masked=card_masked,
-                card_number_hash=card_hash,
-                amount=request.amount,
-                currency_code=request.currency_code,
-                txn_time=request.txn_time,
-                status="APPROVED",
-                fraud_score=0.0,
-                reason_code="SUPPRESSION_RULE",
-                source_ip=request.source_ip,
-            )
-            self._txn_repo.create(txn)
-            self._db.add(TxnState(txn_id=txn.txn_id, status="APPROVED", version=1))
-            self._db.add(TxnStateHistory(
-                state_hist_id=str(uuid.uuid4()),
-                txn_id=txn.txn_id,
-                old_status=None,
-                new_status="APPROVED",
-                changed_by_user_id=submitted_by_user_id,
-                change_reason="Suppression rule — bypassed fraud scoring",
-            ))
-            actor_user = self._db.query(User.full_name).filter(User.user_id == submitted_by_user_id).first()
-            audit = AuditLog(
-                log_id=str(uuid.uuid4()),
-                event_type="TRANSACTION_SUBMITTED",
-                entity_type="Transaction",
-                entity_id=txn.txn_id,
-                actor_user_id=submitted_by_user_id,
-                actor_name=actor_user.full_name if actor_user else None,
-                detail_json=json.dumps({"amount": float(request.amount), "fraud_score": 0.0, "decision": "APPROVED", "suppressed": True}),
-            )
-            self._db.add(audit)
-            self._db.commit()
-            self._db.refresh(txn)
-            response = TransactionSubmitResponse(
-                txn_id=txn.txn_id,
-                status="APPROVED",
-                fraud_score=0.0,
-                decision="APPROVED",
-                amount=txn.amount,
-                currency_code=txn.currency_code,
-                created_at=txn.created_at,
-                message="Giao dịch được duyệt tự động (suppression rule).",
-                case_id=None,
-            )
-            if request.idempotency_key:
-                self._txn_repo.update_idempotency(key=request.idempotency_key, status="SUCCESS", txn_id=txn.txn_id, response_json=json.dumps(response.model_dump(), default=_json_default))
-                self._db.commit()
-            return response
-
-        # ---- Bước 4b: Cập nhật velocity stats (trước khi score) ----
+        # ---- Update velocity stats ----
         txn_date_str = request.txn_time.strftime("%Y-%m-%d")
         velocity = self._velocity_repo.upsert(card_hash, float(request.amount), txn_date_str)
 
-        # ---- Bước 5: Build scoring input ----
+        # ---- Build scoring input ----
         scoring_input = FraudScoringInput(
             amount=float(request.amount),
             txn_time=request.txn_time,
@@ -172,8 +79,8 @@ class TransactionService:
             gender=customer.gender or "M",
             job=customer.job or "unknown",
             city=customer.city or "unknown",
-            state=customer.state or "unknown",
-            city_population=customer.city_population or 50000,
+            state=customer.city or "unknown",
+            city_population=50000,
             date_of_birth=datetime.combine(customer.date_of_birth, datetime.min.time())
             if customer.date_of_birth else datetime(1980, 1, 1),
             customer_lat=float(customer.latitude or 0.0),
@@ -186,7 +93,7 @@ class TransactionService:
             cc_std_amt=float(velocity.std_amt),
         )
 
-        # ---- Bước 6: Score (dùng threshold từ DB nếu có) ----
+        # ---- Score ----
         reject_cfg = self._config_repo.get("fraud", "reject_threshold")
         review_cfg = self._config_repo.get("fraud", "review_threshold")
         scoring_result = self._scoring_svc.score(
@@ -201,7 +108,7 @@ class TransactionService:
             decision=scoring_result.decision,
         )
 
-        # ---- Bước 7: Lưu Transaction ----
+        # ---- Save Transaction (fraud_score + model_version inline) ----
         txn = Transaction(
             txn_id=str(uuid.uuid4()),
             customer_id=request.customer_id,
@@ -211,38 +118,14 @@ class TransactionService:
             card_number_masked=card_masked,
             card_number_hash=card_hash,
             amount=request.amount,
-            currency_code=request.currency_code,
             txn_time=request.txn_time,
             status=scoring_result.decision,
             fraud_score=scoring_result.fraud_score,
-            reason_code="HIGH_FRAUD_SCORE" if scoring_result.decision == "REJECTED" else None,
-            source_ip=request.source_ip,
+            model_version=scoring_result.model_version,
         )
         self._txn_repo.create(txn)
 
-        # ---- TxnState: snapshot trạng thái hiện tại (optimistic lock table) ----
-        txn_state = TxnState(
-            txn_id=txn.txn_id,
-            status=scoring_result.decision,
-            version=1,
-        )
-        self._db.add(txn_state)
-
-        # ---- Bước 8: Lưu scoring result ----
-        risk_record = RiskScoringResult(
-            score_id=str(uuid.uuid4()),
-            txn_id=txn.txn_id,
-            model_version=scoring_result.model_version,
-            fraud_score=scoring_result.fraud_score,
-            decision_suggested=scoring_result.decision,
-            reject_threshold=scoring_result.reject_threshold,
-            review_threshold=scoring_result.review_threshold,
-            feature_snapshot_json=json.dumps(scoring_result.feature_snapshot, default=_json_default),
-            reason_json=json.dumps({"top_features": scoring_result.top_risk_factors}, default=_json_default),
-        )
-        self._db.add(risk_record)
-
-        # ---- Bước 9: Tạo ReviewCase nếu MANUAL_REVIEW ----
+        # ---- Create ReviewCase if MANUAL_REVIEW ----
         case_id = None
         if scoring_result.decision == "MANUAL_REVIEW":
             case = ReviewCase(
@@ -255,18 +138,7 @@ class TransactionService:
             case_id = case.case_id
             logger.info("review_case_created", case_id=case_id, txn_id=txn.txn_id)
 
-        # ---- Bước 10: Ghi state history ----
-        history = TxnStateHistory(
-            state_hist_id=str(uuid.uuid4()),
-            txn_id=txn.txn_id,
-            old_status=None,
-            new_status=scoring_result.decision,
-            changed_by_user_id=submitted_by_user_id,
-            change_reason=f"AI score: {scoring_result.fraud_score:.4f}",
-        )
-        self._txn_repo.append_state_history(history)
-
-        # ---- Bước 11: Ghi audit log ----
+        # ---- Audit log ----
         actor_user = self._db.query(User.full_name).filter(User.user_id == submitted_by_user_id).first()
         audit = AuditLog(
             log_id=str(uuid.uuid4()),
@@ -285,74 +157,27 @@ class TransactionService:
 
         # ---- Commit ----
         self._db.commit()
-        self._db.refresh(txn)  # reload server-default fields (created_at)
+        self._db.refresh(txn)
 
-        # ---- Cập nhật idempotency response ----
-        response = TransactionSubmitResponse(
+        return TransactionSubmitResponse(
             txn_id=txn.txn_id,
             status=scoring_result.decision,
             fraud_score=scoring_result.fraud_score,
             decision=scoring_result.decision,
             amount=txn.amount,
-            currency_code=txn.currency_code,
             created_at=txn.created_at,
             message=self._decision_message(scoring_result.decision),
             case_id=case_id,
         )
 
-        if request.idempotency_key:
-            self._txn_repo.update_idempotency(
-                key=request.idempotency_key,
-                status="SUCCESS",
-                txn_id=txn.txn_id,
-                response_json=json.dumps(response.model_dump(), default=_json_default),
-            )
-            self._db.commit()
-
-        return response
-
     def get_transaction(self, txn_id: str) -> Transaction:
-        """Lấy chi tiết 1 giao dịch theo ID."""
         txn = self._txn_repo.get_by_id(txn_id)
         if txn is None:
             raise NotFoundError("Transaction")
         return txn
 
     def list_transactions(self, **kwargs) -> tuple[list[Transaction], int]:
-        """Danh sách giao dịch với filter và pagination."""
         return self._txn_repo.list_transactions(**kwargs)
-
-    # ============================================================
-    # Private helpers
-    # ============================================================
-
-    def _check_idempotency(self, key: str) -> Optional[TransactionSubmitResponse]:
-        """
-        Kiểm tra idempotency key.
-        - IN_PROGRESS: raise conflict (đang xử lý)
-        - SUCCESS: trả lại response cũ
-        - Không tồn tại: tạo record mới, return None để tiếp tục
-        """
-        record = self._txn_repo.get_idempotency(key)
-
-        if record is None:
-            # Chưa có → tạo record báo đang xử lý
-            new_record = TxnIdempotency(
-                idempotency_key=key,
-                status="IN_PROGRESS",
-            )
-            self._txn_repo.create_idempotency(new_record)
-            self._db.commit()
-            return None
-
-        if record.status == "IN_PROGRESS":
-            raise IdempotencyConflictError()
-
-        if record.status == "SUCCESS" and record.response_snapshot_json:
-            # Trả lại kết quả đã xử lý trước
-            return TransactionSubmitResponse(**json.loads(record.response_snapshot_json))
-
-        return None
 
     @staticmethod
     def _decision_message(decision: str) -> str:

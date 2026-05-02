@@ -129,7 +129,6 @@ class LoanService:
             customer_id=request.customer_id,
             submitted_by=submitted_by_user_id,
             principal_amount=request.principal_amount,
-            currency_code=request.currency_code,
             interest_rate=request.interest_rate,
             term_months=request.term_months,
             purpose=request.purpose,

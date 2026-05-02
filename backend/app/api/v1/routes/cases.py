@@ -159,7 +159,6 @@ def get_case(
             RecentTransaction(
                 txn_id=r.txn_id,
                 amount=r.amount,
-                currency_code=r.currency_code,
                 merchant_name=r.merchant.merchant_name if r.merchant else None,
                 status=r.status,
                 fraud_score=float(r.fraud_score) if r.fraud_score is not None else None,
@@ -171,7 +170,6 @@ def get_case(
         txn_summary = CaseTransactionSummary(
             txn_id=t.txn_id,
             amount=t.amount,
-            currency_code=t.currency_code,
             txn_time=t.txn_time,
             fraud_score=float(t.fraud_score) if t.fraud_score else None,
             merchant_name=t.merchant.merchant_name if t.merchant else None,
@@ -179,7 +177,6 @@ def get_case(
             merchant_risk_level=t.merchant.risk_level if t.merchant else None,
             customer_name=t.customer.full_name if t.customer else None,
             channel_name=t.channel.channel_name if t.channel else None,
-            source_ip=t.source_ip,
             card_number_masked=t.card_number_masked,
             rule_hits=[
                 CaseRuleHit(
@@ -211,7 +208,6 @@ def get_case(
         created_at=case.created_at,
         decided_at=case.decided_at,
         transaction=txn_summary,
-        actions=[a for a in case.actions] if case.actions else [],
     )
 
 

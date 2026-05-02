@@ -2,6 +2,7 @@
 Seed dữ liệu khởi tạo cho Hệ thống Phân tích Rủi ro và Đánh giá Tài chính.
 Chạy: python seed.py
 Yêu cầu: DB đã tạo bảng (SQLAlchemy create_tables hoặc Alembic migrate xong).
+Matches ERD v2 schema.
 """
 
 import sys
@@ -15,31 +16,15 @@ from sqlalchemy.orm import Session
 
 from app.db.base import SessionLocal, create_tables
 from app.core.security import hash_password
-from app.models.user import User, Role, UserRole
+from app.models.user import User
 from app.models.customer import Customer
 from app.models.merchant import Merchant, Channel
 from app.models.loan import Loan
-from app.models.analyst import ModelConfig, SuppressionRule
+from app.models.analyst import ModelConfig
 
 
 def seed(db: Session) -> None:
-    # ── Roles ──────────────────────────────────────────────
-    roles_data = ["OPERATOR", "REVIEWER", "MANAGER", "ADMIN", "ANALYST"]
-    roles: dict[str, Role] = {}
-
-    for name in roles_data:
-        existing = db.query(Role).filter(Role.role_name == name).first()
-        if not existing:
-            r = Role(role_name=name)
-            db.add(r)
-            db.flush()
-            roles[name] = r
-        else:
-            roles[name] = existing
-
-    print(f"[roles] OK — {list(roles.keys())}")
-
-    # ── Users ───────────────────────────────────────────────
+    # ── Users (ERD v2: role + status inline) ───────────────────
     users_data = [
         {"username": "admin",    "password": "Admin@123",    "full_name": "System Admin",      "email": "admin@tms.local",    "role": "ADMIN"},
         {"username": "operator1","password": "Operator@123", "full_name": "Nguyễn Văn Operator","email": "op1@tms.local",     "role": "OPERATOR"},
@@ -61,13 +46,11 @@ def seed(db: Session) -> None:
             password_hash=hash_password(u_data["password"]),
             full_name=u_data["full_name"],
             email=u_data["email"],
-            is_active=True,
+            role=u_data["role"],
+            status="ACTIVE",
         )
         db.add(user)
         db.flush()
-
-        role = roles[u_data["role"]]
-        db.add(UserRole(user_id=user.user_id, role_id=role.role_id))
         print(f"[users] created {user.username} ({u_data['role']})")
 
     # ── Channels ────────────────────────────────────────────
@@ -86,7 +69,7 @@ def seed(db: Session) -> None:
         else:
             print(f"[channels] skip {c_data['channel_code']} (exists)")
 
-    # ── Customers ───────────────────────────────────────────
+    # ── Customers (ERD v2: no state, zip_code, city_population) ─
     customers_data = [
         {
             "customer_id": "cust-0001-0000-0000-000000000001",
@@ -96,10 +79,8 @@ def seed(db: Session) -> None:
             "gender": "M",
             "job": "engineer",
             "city": "Ho Chi Minh City",
-            "state": "HCM",
             "latitude": 10.7769,
             "longitude": 106.7009,
-            "city_population": 9000000,
             "kyc_status": "VERIFIED",
             "income_level": "MEDIUM",
         },
@@ -111,10 +92,8 @@ def seed(db: Session) -> None:
             "gender": "F",
             "job": "teacher",
             "city": "Hanoi",
-            "state": "HN",
             "latitude": 21.0245,
             "longitude": 105.8412,
-            "city_population": 8000000,
             "kyc_status": "VERIFIED",
             "income_level": "LOW",
         },
@@ -126,10 +105,8 @@ def seed(db: Session) -> None:
             "gender": "M",
             "job": "manager",
             "city": "Da Nang",
-            "state": "DN",
             "latitude": 16.0544,
             "longitude": 108.2022,
-            "city_population": 1100000,
             "kyc_status": "VERIFIED",
             "income_level": "HIGH",
         },
@@ -207,8 +184,7 @@ def seed(db: Session) -> None:
         else:
             print(f"[merchants] skip {m_data['merchant_code']} (exists)")
 
-    # ── Loans (with AI features) ───────────────────────────
-    # Lấy user operator1 và các customer đã tạo
+    # ── Loans (ERD v2: no currency_code, added model_version) ──
     db.flush()
     op_user = db.query(User).filter(User.username == "operator1").first()
     mgr_user = db.query(User).filter(User.username == "manager1").first()
@@ -218,20 +194,17 @@ def seed(db: Session) -> None:
     else:
         loans_data = [
             {
-                # LOW RISK — Thu nhập cao, grade A, không lịch sử nợ xấu
                 "loan_id": "loan-0001-0000-0000-000000000001",
                 "customer_id": "cust-0003-0000-0000-000000000003",
                 "submitted_by": op_user.user_id,
                 "principal_amount": 15000.00,
-                "currency_code": "USD",
-                "interest_rate": 0.0750,      # 7.5% → AI nhận 7.50
+                "interest_rate": 0.0750,
                 "term_months": 36,
                 "purpose": "Home improvement loan",
                 "status": "APPROVED",
                 "reviewed_by": mgr_user.user_id if mgr_user else None,
                 "review_note": "AI low risk — approved",
                 "reviewed_at": datetime(2026, 4, 15, 10, 0, 0),
-                # AI input features
                 "person_age": 48,
                 "person_income": 150000.00,
                 "person_home_ownership": "OWN",
@@ -240,22 +213,18 @@ def seed(db: Session) -> None:
                 "loan_intent": "HOMEIMPROVEMENT",
                 "cb_person_default_on_file": "N",
                 "cb_person_cred_hist_length": 22,
-                # AI output
                 "pd_score": 0.0523,
                 "risk_level": "LOW RISK",
             },
             {
-                # MEDIUM RISK — Thu nhập trung bình, grade C
                 "loan_id": "loan-0002-0000-0000-000000000002",
                 "customer_id": "cust-0001-0000-0000-000000000001",
                 "submitted_by": op_user.user_id,
                 "principal_amount": 20000.00,
-                "currency_code": "USD",
                 "interest_rate": 0.1350,
                 "term_months": 48,
                 "purpose": "Personal loan for renovation",
                 "status": "PENDING",
-                # AI input features
                 "person_age": 36,
                 "person_income": 65000.00,
                 "person_home_ownership": "MORTGAGE",
@@ -264,17 +233,14 @@ def seed(db: Session) -> None:
                 "loan_intent": "PERSONAL",
                 "cb_person_default_on_file": "N",
                 "cb_person_cred_hist_length": 10,
-                # AI output
                 "pd_score": 0.2814,
                 "risk_level": "MEDIUM RISK",
             },
             {
-                # HIGH RISK — Thu nhập thấp, grade E, có lịch sử nợ xấu
                 "loan_id": "loan-0003-0000-0000-000000000003",
                 "customer_id": "cust-0002-0000-0000-000000000002",
                 "submitted_by": op_user.user_id,
                 "principal_amount": 25000.00,
-                "currency_code": "USD",
                 "interest_rate": 0.1980,
                 "term_months": 60,
                 "purpose": "Education loan for MBA program",
@@ -282,7 +248,6 @@ def seed(db: Session) -> None:
                 "reviewed_by": mgr_user.user_id if mgr_user else None,
                 "review_note": "AI high risk — PD score exceeds threshold",
                 "reviewed_at": datetime(2026, 4, 16, 14, 30, 0),
-                # AI input features
                 "person_age": 24,
                 "person_income": 28000.00,
                 "person_home_ownership": "RENT",
@@ -291,22 +256,18 @@ def seed(db: Session) -> None:
                 "loan_intent": "EDUCATION",
                 "cb_person_default_on_file": "Y",
                 "cb_person_cred_hist_length": 3,
-                # AI output
                 "pd_score": 0.8721,
                 "risk_level": "HIGH RISK",
             },
             {
-                # MEDIUM RISK — Venture loan, grade D
                 "loan_id": "loan-0004-0000-0000-000000000004",
                 "customer_id": "cust-0001-0000-0000-000000000001",
                 "submitted_by": op_user.user_id,
                 "principal_amount": 30000.00,
-                "currency_code": "USD",
                 "interest_rate": 0.1650,
                 "term_months": 24,
                 "purpose": "Startup venture capital",
                 "status": "PENDING",
-                # AI input features
                 "person_age": 36,
                 "person_income": 65000.00,
                 "person_home_ownership": "MORTGAGE",
@@ -315,17 +276,14 @@ def seed(db: Session) -> None:
                 "loan_intent": "VENTURE",
                 "cb_person_default_on_file": "N",
                 "cb_person_cred_hist_length": 10,
-                # AI output
                 "pd_score": 0.4256,
                 "risk_level": "MEDIUM RISK",
             },
             {
-                # LOW RISK — Medical loan, grade B, stable income
                 "loan_id": "loan-0005-0000-0000-000000000005",
                 "customer_id": "cust-0003-0000-0000-000000000003",
                 "submitted_by": op_user.user_id,
                 "principal_amount": 8000.00,
-                "currency_code": "USD",
                 "interest_rate": 0.0920,
                 "term_months": 12,
                 "purpose": "Medical procedure expenses",
@@ -333,7 +291,6 @@ def seed(db: Session) -> None:
                 "reviewed_by": mgr_user.user_id if mgr_user else None,
                 "review_note": "Low risk profile — approved promptly",
                 "reviewed_at": datetime(2026, 4, 14, 9, 15, 0),
-                # AI input features
                 "person_age": 48,
                 "person_income": 150000.00,
                 "person_home_ownership": "OWN",
@@ -342,7 +299,6 @@ def seed(db: Session) -> None:
                 "loan_intent": "MEDICAL",
                 "cb_person_default_on_file": "N",
                 "cb_person_cred_hist_length": 22,
-                # AI output
                 "pd_score": 0.0891,
                 "risk_level": "LOW RISK",
             },

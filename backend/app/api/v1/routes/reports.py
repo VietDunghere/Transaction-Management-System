@@ -138,11 +138,9 @@ def export_transactions(
             "channel_id":         t.channel_id,
             "card_number_masked": t.card_number_masked,
             "amount":             _fmt_float(t.amount),
-            "currency_code":      t.currency_code,
             "txn_time":           _fmt_dt(t.txn_time),
             "status":             t.status,
             "fraud_score":        _fmt_float(t.fraud_score),
-            "reason_code":        t.reason_code,
             "created_at":         _fmt_dt(t.created_at),
         }
         for t in transactions

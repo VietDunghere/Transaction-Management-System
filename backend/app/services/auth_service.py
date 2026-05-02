@@ -1,7 +1,7 @@
 from __future__ import annotations
 """
-Service: AuthService
-Xử lý đăng nhập và refresh token.
+Service: AuthService (ERD v2)
+user.status instead of user.is_active, user.role instead of user.roles.
 """
 
 import json
@@ -42,7 +42,6 @@ def _write_auth_audit(
     actor_name: Optional[str],
     detail: dict,
 ) -> None:
-    """Ghi audit log cho authentication events."""
     db.add(AuditLog(
         log_id=str(uuid.uuid4()),
         event_type=event_type,
@@ -56,23 +55,14 @@ def _write_auth_audit(
 
 
 class AuthService:
-    """Xử lý toàn bộ logic xác thực người dùng."""
 
     def __init__(self, user_repo: UserRepository, db: Optional[Session] = None) -> None:
         self._user_repo = user_repo
         self._db = db or user_repo._db
 
     def login(self, username: str, password: str) -> TokenResponse:
-        """
-        Xác thực username/password và trả JWT tokens.
-
-        Raises:
-            InvalidCredentialsError: sai username hoặc password
-            InactiveUserError: tài khoản bị vô hiệu hoá
-        """
         user = self._user_repo.get_by_username(username)
 
-        # Luôn verify password (dù user không tồn tại) để chống timing attack
         if user is None or not verify_password(password, user.password_hash):
             logger.warning("login_failed", username=username)
             _write_auth_audit(
@@ -86,7 +76,7 @@ class AuthService:
             self._db.commit()
             raise InvalidCredentialsError()
 
-        if not user.is_active:
+        if user.status != "ACTIVE":
             logger.warning("login_inactive_account", user_id=user.user_id)
             raise InactiveUserError()
 
@@ -101,16 +91,10 @@ class AuthService:
             detail={"username": username},
         )
 
-        logger.info("login_success", user_id=user.user_id, roles=user.roles)
+        logger.info("login_success", user_id=user.user_id, role=user.role)
         return tokens
 
     def refresh(self, refresh_token: str) -> TokenResponse:
-        """
-        Cấp access token mới từ refresh token.
-
-        Raises:
-            TokenInvalidError, TokenExpiredError
-        """
         try:
             payload = decode_token(refresh_token)
         except JWTError as exc:
@@ -122,21 +106,12 @@ class AuthService:
             raise TokenInvalidError()
 
         user = self._user_repo.get_by_id(payload["sub"])
-        if user is None or not user.is_active:
+        if user is None or user.status != "ACTIVE":
             raise TokenInvalidError()
 
         return self._issue_tokens(user)
 
     def get_current_user_from_token(self, access_token: str) -> TokenPayload:
-        """
-        Decode và validate access token — dùng trong auth dependency.
-
-        Returns:
-            TokenPayload với user_id, roles
-
-        Raises:
-            TokenInvalidError, TokenExpiredError
-        """
         try:
             payload = decode_token(access_token)
         except JWTError as exc:
@@ -157,10 +132,6 @@ class AuthService:
     def change_password(
         self, user_id: str, current_password: str, new_password: str
     ) -> None:
-        """
-        Đổi mật khẩu cá nhân.
-        Raises: NotFoundError, InvalidCredentialsError
-        """
         user = self._user_repo.get_by_id(user_id)
         if user is None:
             raise NotFoundError("User")
@@ -183,7 +154,6 @@ class AuthService:
         logger.info("password_changed", user_id=user_id)
 
     def logout(self, user_id: str) -> None:
-        """Ghi audit log cho sự kiện đăng xuất."""
         user = self._user_repo.get_by_id(user_id)
         actor_name = user.full_name if user else None
 
@@ -198,13 +168,11 @@ class AuthService:
 
         logger.info("logout", user_id=user_id)
 
-    # ---- Private ----
-
     def _issue_tokens(self, user: User) -> TokenResponse:
         from app.core.config import get_settings
         settings = get_settings()
 
-        extra = {"roles": user.roles, "full_name": user.full_name or ""}
+        extra = {"roles": [user.role], "full_name": user.full_name or ""}
         access = create_access_token(subject=user.user_id, extra_claims=extra)
         refresh = create_refresh_token(subject=user.user_id)
 
@@ -215,5 +183,5 @@ class AuthService:
             user_id=user.user_id,
             username=user.username,
             full_name=user.full_name or "",
-            role=user.roles[0] if user.roles else "UNKNOWN",
+            role=user.role,
         )

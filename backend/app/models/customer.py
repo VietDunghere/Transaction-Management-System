@@ -1,27 +1,21 @@
 from __future__ import annotations
 """
 ORM Model: Customer
-Thông tin khách hàng sở hữu thẻ tín dụng.
-Bao gồm các trường cần thiết để model ML tính features:
-  - date_of_birth → age
-  - gender → feature ordinal
-  - job → frequency encoded
-  - lat/lon → khoảng cách đến merchant
-  - city_population → frequency feature
+Thông tin khách hàng — nạp sẵn từ core banking (ERD v2).
 """
 
 import uuid
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Date, DateTime, Integer, Numeric, String, func
+from sqlalchemy import Date, DateTime, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
 
 class Customer(Base):
-    """Bảng customers — khách hàng/chủ thẻ."""
+    """Bảng customers — khách hàng/chủ thẻ (ERD v2)."""
 
     __tablename__ = "customers"
 
@@ -32,27 +26,20 @@ class Customer(Base):
 
     # ---- Thông tin cá nhân ----
     full_name: Mapped[Optional[str]] = mapped_column(String(150))
-    date_of_birth: Mapped[Optional[date]] = mapped_column(Date)
-    gender: Mapped[Optional[str]] = mapped_column(String(1))      # F / M
-    job: Mapped[Optional[str]] = mapped_column(String(150))
     identity_card: Mapped[Optional[str]] = mapped_column(String(50), unique=True)
-
-    # ---- Địa chỉ ----
+    date_of_birth: Mapped[Optional[date]] = mapped_column(Date)
+    gender: Mapped[Optional[str]] = mapped_column(String(10))
     address: Mapped[Optional[str]] = mapped_column(String(255))
     city: Mapped[Optional[str]] = mapped_column(String(100))
-    state: Mapped[Optional[str]] = mapped_column(String(50))
-    zip_code: Mapped[Optional[str]] = mapped_column(String(20))
+    job: Mapped[Optional[str]] = mapped_column(String(150))
 
-    # ---- Toạ độ địa lý (dùng tính khoảng cách đến merchant) ----
+    # ---- Toạ độ địa lý ----
     latitude: Mapped[Optional[float]] = mapped_column(Numeric(9, 6))
     longitude: Mapped[Optional[float]] = mapped_column(Numeric(9, 6))
 
-    # ---- Dân số thành phố (feature ML) ----
-    city_population: Mapped[Optional[int]] = mapped_column(Integer)
-
     # ---- Quản lý rủi ro ----
-    kyc_status: Mapped[Optional[str]] = mapped_column(String(20))
     income_level: Mapped[Optional[str]] = mapped_column(String(50))
+    kyc_status: Mapped[Optional[str]] = mapped_column(String(20))
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
 

@@ -1,15 +1,8 @@
 from __future__ import annotations
 """
-Router: Users (User Management)
-GET   /users                  — danh sách tài khoản (MANAGER, ADMIN)
-GET   /users/{user_id}        — chi tiết tài khoản (MANAGER, ADMIN)
-POST  /users                  — tạo tài khoản mới (ADMIN)
-PATCH /users/{user_id}/disable — vô hiệu hoá tài khoản (ADMIN)
-PATCH /users/{user_id}/enable  — kích hoạt lại tài khoản (ADMIN)
-PATCH /users/{user_id}/role    — gán/thay đổi role (ADMIN)
+Router: Users (ERD v2)
 """
 
-import math
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -36,43 +29,37 @@ router = APIRouter(prefix="/users", tags=["Users"])
     "",
     response_model=PagedResponse[UserListItem],
     summary="Danh sách tài khoản",
-    description="Xem danh sách tài khoản nhân viên. Filter theo role và trạng thái.",
 )
 def list_users(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
-    role: Optional[str] = Query(None, description="Lọc theo role: OPERATOR, REVIEWER, MANAGER, ADMIN"),
-    is_active: Optional[bool] = Query(None, description="Lọc theo trạng thái active"),
+    role: Optional[str] = Query(None, description="Lọc theo role"),
+    status: Optional[str] = Query(None, description="Lọc theo status: ACTIVE, DISABLED"),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100, alias="limit"),
 ) -> PagedResponse[UserListItem]:
     svc = UserService(db)
-    items, total = svc.list_users(role=role, is_active=is_active, page=page, page_size=limit)
+    items, total = svc.list_users(role=role, status=status, page=page, page_size=limit)
 
-    data = []
-    for u in items:
-        data.append(UserListItem(
+    data = [
+        UserListItem(
             user_id=u.user_id,
             username=u.username,
             full_name=u.full_name,
-            role=u.roles[0] if u.roles else "UNKNOWN",
-            is_active=u.is_active,
+            role=u.role,
+            status=u.status,
             created_at=u.created_at,
-        ))
+        )
+        for u in items
+    ]
 
-    return PagedResponse(
-        data=data,
-        total=total,
-        page=page,
-        limit=limit,
-    )
+    return PagedResponse(data=data, total=total, page=page, limit=limit)
 
 
 @router.get(
     "/{user_id}",
     response_model=UserResponse,
     summary="Chi tiết tài khoản",
-    description="Xem chi tiết thông tin một người dùng cụ thể.",
 )
 def get_user(
     user_id: str,
@@ -86,8 +73,8 @@ def get_user(
         username=user.username,
         full_name=user.full_name,
         email=user.email,
-        role=user.roles[0] if user.roles else "UNKNOWN",
-        is_active=user.is_active,
+        role=user.role,
+        status=user.status,
         created_at=user.created_at,
         updated_at=user.updated_at,
     )
@@ -98,7 +85,6 @@ def get_user(
     response_model=CreateUserResponse,
     status_code=201,
     summary="Tạo tài khoản",
-    description="Tạo tài khoản nhân viên mới. Chỉ ADMIN mới có quyền.",
 )
 def create_user(
     body: CreateUserRequest,
@@ -113,7 +99,6 @@ def create_user(
     "/{user_id}/disable",
     response_model=MessageResponse,
     summary="Vô hiệu hoá tài khoản",
-    description="Vô hiệu hoá tài khoản nhân viên. Không được tự disable chính mình.",
 )
 def disable_user(
     user_id: str,
@@ -129,7 +114,6 @@ def disable_user(
     "/{user_id}/enable",
     response_model=MessageResponse,
     summary="Kích hoạt lại tài khoản",
-    description="Kích hoạt lại tài khoản đã bị vô hiệu hoá.",
 )
 def enable_user(
     user_id: str,
@@ -145,7 +129,6 @@ def enable_user(
     "/{user_id}/role",
     response_model=UserRoleUpdateResponse,
     summary="Gán/thay đổi role",
-    description="Gán hoặc thay đổi vai trò của người dùng. Chỉ ADMIN mới có quyền.",
 )
 def update_role(
     user_id: str,

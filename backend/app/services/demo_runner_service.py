@@ -59,10 +59,6 @@ def _random_card_number() -> str:
     return "4" + "".join(str(random.randint(0, 9)) for _ in range(15))
 
 
-def _random_ip() -> str:
-    return f"10.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(1,254)}"
-
-
 def _build_transaction() -> TransactionSubmitRequest:
     txn_time = datetime.now(timezone.utc) - timedelta(minutes=random.randint(0, 60 * 24))
 
@@ -78,10 +74,7 @@ def _build_transaction() -> TransactionSubmitRequest:
         merchant_id=random.choice(MERCHANTS),
         channel_id=random.choice(CHANNEL_IDS),
         amount=Decimal(str(amount)),
-        currency_code="USD",
         txn_time=txn_time,
-        source_ip=_random_ip(),
-        idempotency_key=str(uuid.uuid4()),
     )
 
 
@@ -122,7 +115,6 @@ def _build_loan() -> LoanApplyRequest:
     return LoanApplyRequest(
         customer_id=random.choice(CUSTOMERS),
         principal_amount=Decimal(str(loan_amnt)),
-        currency_code="USD",
         interest_rate=Decimal(str(int_rate_dec)),
         term_months=term,
         purpose=random.choice(LOAN_PURPOSES),

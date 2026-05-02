@@ -62,8 +62,8 @@ def me(user: CurrentUser) -> MeResponse:
         user_id=user.user_id,
         username=user.username,
         full_name=user.full_name,
-        role=user.roles[0] if user.roles else "UNKNOWN",
-        is_active=user.is_active,
+        role=user.role,
+        status=user.status,
     )
 
 

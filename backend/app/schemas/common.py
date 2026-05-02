@@ -27,22 +27,12 @@ class TransactionStatus(str, Enum):
 class CaseStatus(str, Enum):
     OPEN = "OPEN"
     ASSIGNED = "ASSIGNED"
-    APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
     CLOSED = "CLOSED"
 
 
 class CaseDecision(str, Enum):
     APPROVE = "APPROVE"
     REJECT = "REJECT"
-
-
-class CaseActionType(str, Enum):
-    ASSIGN = "ASSIGN"
-    COMMENT = "COMMENT"
-    APPROVE = "APPROVE"
-    REJECT = "REJECT"
-    REOPEN = "REOPEN"
 
 
 class LoanStatus(str, Enum):
