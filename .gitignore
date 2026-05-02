@@ -5,3 +5,5 @@ venv/
 venv/**
 .rtk
 CLAUDE.md
+
+dbms_report/
