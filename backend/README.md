@@ -84,14 +84,80 @@ EXTERNAL_API_TIMEOUT=30
 
 ### 4. Setup Database
 
-```bash
-# Apply database schema from ERD SQL (Oracle)
-# Example using sqlplus (replace <password> and service name as needed):
-# sqlplus system/<password>@localhost:1521/xe @db/ERD.sql
-# Alternatively import the SQL file with your preferred DB tool or run via an oracledb script.
+The database setup is a **3-step process**: schema creation, role/user grants, and application seeding.
 
-# Then seed sample data
+#### Option A: SQL*Plus (recommended)
+
+```bash
+# Connect as SYSDBA (Oracle DB 26, default port 1521)
+sqlplus sys/your_password@localhost:1521/XEPDB1 as sysdba
+
+# Step 1: Create schema (11 tables, indexes, FKs, procedures, triggers)
+@db/ERD.sql
+
+# Step 2: Create DB roles & grant permissions per application role
+@db/Users.sql
+
+# Step 3: (Optional) Load fake reference data (customers, merchants, etc.)
+# NOTE: Fake_data.sql uses the OLD v1 schema (roles + user_roles tables).
+#       It is NOT compatible with v2 ERD.sql (which uses a single "role" column in "users").
+#       Skip this file and use seed.py instead.
+# @db/Fake_data.sql
+
+# Exit SQL*Plus
+EXIT
+```
+
+#### Option B: Oracle SQL Developer / DBeaver
+
+1. Open a connection as **SYSDBA** to `localhost:1521/XEPDB1`
+2. Open and run `db/ERD.sql` (creates tables, indexes, FKs, procedures, triggers)
+3. Open and run `db/Users.sql` (creates DB roles: OPERATOR, REVIEWER, ANALYST, MANAGER, ADMIN and grants)
+
+#### Step 3: Seed application data (Python)
+
+After the schema exists, seed the application-level data (users with hashed passwords, customers, merchants, channels, model configs):
+
+```bash
+# Activate your virtual environment first
 python seed.py
+```
+
+This creates default users:
+| Username    | Password       | Role     |
+|-------------|----------------|----------|
+| admin       | Admin@123      | ADMIN    |
+| operator1   | Operator@123   | OPERATOR |
+| operator2   | Operator@123   | OPERATOR |
+| reviewer1   | Reviewer@123   | REVIEWER |
+| manager1    | Manager@123    | MANAGER  |
+| analyst1    | Analyst@123    | ANALYST  |
+
+#### Full Reset (drop all and recreate)
+
+```sql
+-- Connect as SYSDBA and drop all objects before re-running ERD.sql
+-- Drop triggers first, then procedures, then child tables, then parent tables
+DROP TRIGGER TRG_AUDIT_TXN_STATUS;
+DROP TRIGGER TRG_AUTO_CREATE_CASE;
+DROP TRIGGER TRG_DETECT_HIGH_VALUE;
+DROP PROCEDURE PROC_PROCESS_REVIEW_CASE;
+DROP PROCEDURE PROC_SUBMIT_TRANSACTION;
+DROP TABLE "rule_hits" CASCADE CONSTRAINTS;
+DROP TABLE "card_velocity_stats" CASCADE CONSTRAINTS;
+DROP TABLE "audit_logs" CASCADE CONSTRAINTS;
+DROP TABLE "model_configs" CASCADE CONSTRAINTS;
+DROP TABLE "review_cases" CASCADE CONSTRAINTS;
+DROP TABLE "loans" CASCADE CONSTRAINTS;
+DROP TABLE "transactions_live" CASCADE CONSTRAINTS;
+DROP TABLE "channels" CASCADE CONSTRAINTS;
+DROP TABLE "merchants" CASCADE CONSTRAINTS;
+DROP TABLE "customers" CASCADE CONSTRAINTS;
+DROP TABLE "users" CASCADE CONSTRAINTS;
+-- Then re-run:
+-- @db/ERD.sql
+-- @db/Users.sql
+-- python seed.py
 ```
 
 ## Development Commands
