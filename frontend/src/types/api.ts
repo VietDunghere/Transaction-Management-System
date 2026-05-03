@@ -111,7 +111,7 @@ export interface TransactionDetail extends Transaction {
     customer_name: string | null;
     merchant_name: string | null;
     card_number_masked: string;
-    reason_code: string;
+    reason_code?: string | null;
     source_ip: string;
     updated_at: string;
 }

@@ -251,7 +251,8 @@ export const transactionListItem = {
 export const transactionDetail = {
     ...transactionListItem,
     card_number_masked: '4111********1111',
-    reason_code: 'velocity_spike',
+    customer_name: 'John Doe',
+    merchant_name: 'Shop ABC',
     source_ip: '203.0.113.10',
     updated_at: updatedAt,
 } satisfies TransactionDetail;
@@ -424,6 +425,7 @@ export const loanDetail = {
     loan_intent: 'DEBTCONSOLIDATION',
     cb_person_default_on_file: 'N',
     cb_person_cred_hist_length: 12,
+    reviewer_name: null,
 } satisfies LoanDetail;
 
 export const loanListResponse = createPagedResponse<Loan>([loanListItem], {
