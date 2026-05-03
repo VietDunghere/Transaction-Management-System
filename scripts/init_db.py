@@ -29,7 +29,8 @@ from app.models import (  # noqa: F401  — registers models with Base
     analyst, audit_log, card_velocity, case, customer,
     loan, merchant, scoring, transaction, user,
 )
-from app.models.merchant import Channel
+from app.models.merchant import Channel, Merchant
+from app.models.customer import Customer
 from app.models.user import User
 from app.models.analyst import ModelConfig
 
@@ -78,21 +79,46 @@ def _seed(db: Session) -> None:
             print(f"[init_db] Seeded model_config: {model_name}.{param_name}={value}")
     db.flush()
 
-    # ── 4. Default admin user ─────────────────────────────────
-    if db.query(User).count() == 0:
-        import uuid
-        admin = User(
-            user_id=str(uuid.uuid4()),
-            username="admin",
-            password_hash=_pwd.hash("Admin@1234"),
-            full_name="System Administrator",
-            email="admin@tms.local",
-            role="ADMIN",
-            status="ACTIVE",
-        )
-        db.add(admin)
-        print("[init_db] Seeded default admin (username=admin, password=Admin@1234)")
-        print("[init_db] IMPORTANT: Change admin password immediately after first login!")
+    # ── 4. Demo users ─────────────────────────────────────────
+    import uuid
+    demo_users = [
+        ("admin",     "System Administrator", "admin@tms.local",     "ADMIN",    "Admin@1234"),
+        ("operator1", "Nguyen Operator",      "operator1@tms.local", "OPERATOR", "Demo@1234"),
+        ("manager1",  "Tran Manager",         "manager1@tms.local",  "MANAGER",  "Demo@1234"),
+        ("reviewer1", "Le Reviewer",          "reviewer1@tms.local", "REVIEWER", "Demo@1234"),
+        ("analyst1",  "Pham Analyst",         "analyst1@tms.local",  "ANALYST",  "Demo@1234"),
+    ]
+    for uname, fname, email, role, pw in demo_users:
+        if not db.query(User).filter_by(username=uname).first():
+            db.add(User(user_id=str(uuid.uuid4()), username=uname,
+                       password_hash=_pwd.hash(pw), full_name=fname,
+                       email=email, role=role, status="ACTIVE"))
+            print(f"[init_db] Seeded user: {uname} ({role})")
+    db.flush()
+
+    # ── 5. Demo customers ─────────────────────────────────────
+    demo_customers = [
+        ("cu001", "Nguyen Van A"), ("cu002", "Tran Thi B"), ("cu003", "Le Van C"),
+        ("cu004", "Pham Thi D"),   ("cu005", "Hoang Van E"),
+    ]
+    for cid, name in demo_customers:
+        if not db.query(Customer).filter_by(customer_id=cid).first():
+            db.add(Customer(customer_id=cid, customer_code=cid,
+                           full_name=name, kyc_status="VERIFIED"))
+            print(f"[init_db] Seeded customer: {cid}")
+    db.flush()
+
+    # ── 6. Demo merchants ─────────────────────────────────────
+    demo_merchants = [
+        ("mc001", "Super Mart"),    ("mc002", "Coffee House"),
+        ("mc003", "Tech Store"),    ("mc004", "Fashion Shop"),
+        ("mc005", "Online Market"),
+    ]
+    for mid, name in demo_merchants:
+        if not db.query(Merchant).filter_by(merchant_id=mid).first():
+            db.add(Merchant(merchant_id=mid, merchant_code=mid,
+                           merchant_name=name, risk_level="LOW"))
+            print(f"[init_db] Seeded merchant: {mid}")
     db.commit()
 
 
