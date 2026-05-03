@@ -19,9 +19,11 @@ services:
     container_name: oracle-tms
     restart: unless-stopped
     environment:
-      ORACLE_PASSWORD: "${ORACLE_SYS_PASSWORD:-Admin1234}"     # SYS / SYSTEM password
+      ORACLE_PASSWORD: "${ORACLE_SYS_PASSWORD:-Admin1234}"
       APP_USER: "${ORACLE_APP_USER:-tms_user}"
       APP_USER_PASSWORD: "${ORACLE_APP_PASSWORD:-Tms1234}"
+      INIT_SGA_SIZE: "512"
+      INIT_PGA_SIZE: "128"
     shm_size: '1gb'
     ports:
       - "1521:1521"
