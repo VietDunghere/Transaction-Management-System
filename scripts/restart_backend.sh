@@ -7,27 +7,6 @@ LOG_FILE="$PROJECT_ROOT/logs/backend.log"
 
 mkdir -p "$(dirname "$LOG_FILE")"
 
-# ── Wait for Oracle to be healthy ──────────────────────────
-echo "Checking Oracle container (oracle-tms)..."
-for i in $(seq 1 30); do
-    STATUS=$(docker inspect --format='{{.State.Health.Status}}' oracle-tms 2>/dev/null || echo "not_found")
-    if [ "$STATUS" = "healthy" ]; then
-        echo "Oracle is healthy."
-        break
-    fi
-    if [ "$STATUS" = "not_found" ]; then
-        echo "oracle-tms container not found — starting via docker compose..."
-        cd "$PROJECT_ROOT" && docker compose up -d oracle
-    fi
-    echo "  Waiting for Oracle... ($i/30) status=$STATUS"
-    sleep 5
-done
-
-if [ "$STATUS" != "healthy" ]; then
-    echo "ERROR: Oracle not healthy after 150s. Aborting."
-    exit 1
-fi
-
 # ── Kill old backend process ───────────────────────────────
 if [ -f "$PID_FILE" ]; then
     OLD_PID=$(cat "$PID_FILE")
@@ -47,11 +26,10 @@ if [ -n "$STALE" ]; then
     sleep 1
 fi
 
-# ── Run Alembic migrations ─────────────────────────────────
-echo "Running Alembic migrations..."
-cd "$PROJECT_ROOT/backend"
-alembic upgrade head
-echo "Migrations done."
+# ── Init DB (idempotent: create tables + seed) ─────────────
+echo "Running init_db..."
+python "$PROJECT_ROOT/scripts/init_db.py"
+echo "init_db done."
 
 # ── Start backend ──────────────────────────────────────────
 echo "Starting backend..."
