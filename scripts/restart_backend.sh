@@ -40,7 +40,7 @@ fi
 # ── Start backend ──────────────────────────────────────────
 echo "Starting backend..."
 cd "$PROJECT_ROOT"
-nohup python run.py >> "$LOG_FILE" 2>&1 &
+nohup python3 run.py >> "$LOG_FILE" 2>&1 &
 echo $! > "$PID_FILE"
 
 echo "Backend started (PID $(cat $PID_FILE))"
