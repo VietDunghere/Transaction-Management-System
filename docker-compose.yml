@@ -22,6 +22,7 @@ services:
       ORACLE_PASSWORD: "${ORACLE_SYS_PASSWORD:-Admin1234}"     # SYS / SYSTEM password
       APP_USER: "${ORACLE_APP_USER:-tms_user}"
       APP_USER_PASSWORD: "${ORACLE_APP_PASSWORD:-Tms1234}"
+    shm_size: '1gb'
     ports:
       - "1521:1521"
     volumes:
