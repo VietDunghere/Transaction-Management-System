@@ -1,36 +1,37 @@
 version: "3.9"
 
 # ============================================================
-# Transaction Management System — Oracle 23ai Free
+# Transaction Management System — Oracle 23ai Free (Official)
 #
-# Quản lý Oracle container. Backend chạy trực tiếp trên host
-# qua scripts/restart_backend.sh.
+# Image: container-registry.oracle.com/database/free:latest
+# Requires: docker login container-registry.oracle.com
+#           (Oracle account at container-registry.oracle.com)
 #
-# Lần đầu:   docker compose up -d
-# Reload:     docker compose restart oracle
-# Xem log:   docker compose logs -f oracle
+# Lần đầu:  docker compose up -d
+# Reload:   docker compose restart oracle
+# Log:      docker compose logs -f oracle
 # ============================================================
 
 services:
 
   oracle:
-    image: gvenzl/oracle-free:23-slim
+    image: container-registry.oracle.com/database/free:latest
     container_name: oracle-tms
     restart: unless-stopped
     environment:
-      ORACLE_PASSWORD: "${ORACLE_SYS_PASSWORD:-Admin1234}"
-      APP_USER: "${ORACLE_APP_USER:-tms_user}"
-      APP_USER_PASSWORD: "${ORACLE_APP_PASSWORD:-Tms1234}"
+      ORACLE_PWD: "${ORACLE_SYS_PASSWORD:-Admin1234}"        # SYS / SYSTEM password
     ports:
       - "1521:1521"
     volumes:
       - oracle_data:/opt/oracle/oradata
+      # Init script chạy 1 lần sau khi DB được tạo lần đầu
+      - ./scripts/oracle:/opt/oracle/scripts/setup
     healthcheck:
-      test: ["CMD", "healthcheck.sh"]
+      test: ["CMD", "/opt/oracle/healthcheck.sh"]
       interval: 30s
       timeout: 10s
-      retries: 10
-      start_period: 120s
+      retries: 15
+      start_period: 180s
 
 volumes:
   oracle_data:

@@ -1,0 +1,17 @@
+-- Run once after Oracle Free initializes (mounted to /opt/oracle/scripts/setup/)
+-- Creates tms_user in FREEPDB1 with required privileges.
+
+ALTER SESSION SET CONTAINER = FREEPDB1;
+
+CREATE USER tms_user IDENTIFIED BY "Tms1234"
+    DEFAULT TABLESPACE USERS
+    TEMPORARY TABLESPACE TEMP
+    QUOTA UNLIMITED ON USERS;
+
+GRANT CONNECT, RESOURCE TO tms_user;
+GRANT CREATE SESSION TO tms_user;
+GRANT CREATE TABLE TO tms_user;
+GRANT CREATE SEQUENCE TO tms_user;
+GRANT CREATE VIEW TO tms_user;
+GRANT CREATE TRIGGER TO tms_user;
+GRANT SELECT ANY DICTIONARY TO tms_user;
