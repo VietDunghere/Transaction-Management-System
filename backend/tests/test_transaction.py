@@ -34,14 +34,13 @@ def _txn_obj(make_obj, *, with_scoring: bool):
 		submitted_by="operator-1",
 		card_number_masked="4111********1111",
 		amount=Decimal("120.50"),
-		currency_code="USD",
 		txn_time=NOW,
 		status=TransactionStatus.APPROVED,
 		fraud_score=0.12,
-		reason_code=None,
-		override_reason=None,
 		created_at=NOW,
 		scoring_results=scoring_results,
+		customer=None,
+		merchant=None,
 	)
 
 
@@ -174,44 +173,3 @@ def test_get_transaction_without_scoring_keeps_fraud_detail_none(monkeypatch, db
 	assert result.fraud_detail is None
 
 
-def test_get_transaction_state_history_reads_repo(monkeypatch, db_stub: DbStub, token_admin, make_obj) -> None:
-	observed: dict[str, object] = {}
-
-	class FakeService:
-		def __init__(self, db):
-			observed["service_db"] = db
-
-		def get_transaction(self, txn_id):
-			observed["service_txn_id"] = txn_id
-			return make_obj(txn_id=txn_id)
-
-	class FakeRepo:
-		def __init__(self, db):
-			observed["repo_db"] = db
-
-		def get_state_history(self, txn_id):
-			observed["repo_txn_id"] = txn_id
-			return [
-				make_obj(
-					state_hist_id="hist-1",
-					txn_id=txn_id,
-					old_status="PENDING",
-					new_status="APPROVED",
-					changed_by_user_id="reviewer-1",
-					changed_at=NOW,
-					change_reason="Validated",
-				)
-			]
-
-	monkeypatch.setattr(txn_routes, "TransactionService", FakeService)
-	monkeypatch.setattr(txn_routes, "TransactionRepository", FakeRepo)
-
-	result = txn_routes.get_transaction_state_history(txn_id="txn-2", db=db_stub, token=token_admin)
-
-	assert observed["service_db"] is db_stub
-	assert observed["repo_db"] is db_stub
-	assert observed["service_txn_id"] == "txn-2"
-	assert observed["repo_txn_id"] == "txn-2"
-	assert len(result) == 1
-	assert result[0].state_hist_id == "hist-1"
-	assert result[0].new_status == "APPROVED"

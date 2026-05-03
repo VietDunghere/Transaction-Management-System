@@ -22,8 +22,8 @@ def test_list_users_builds_paged_response(monkeypatch, db_stub: DbStub, token_ad
             user_id="user-1",
             username="operator01",
             full_name="Operator 01",
-            roles=["OPERATOR"],
-            is_active=True,
+            role="OPERATOR",
+            status="ACTIVE",
             created_at=NOW,
         )
     ]
@@ -42,7 +42,7 @@ def test_list_users_builds_paged_response(monkeypatch, db_stub: DbStub, token_ad
         db=db_stub,
         token=token_admin,
         role="OPERATOR",
-        is_active=True,
+        status="ACTIVE",
         page=2,
         limit=10,
     )
@@ -50,7 +50,7 @@ def test_list_users_builds_paged_response(monkeypatch, db_stub: DbStub, token_ad
     assert observed["db"] is db_stub
     assert observed["kwargs"] == {
         "role": "OPERATOR",
-        "is_active": True,
+        "status": "ACTIVE",
         "page": 2,
         "page_size": 10,
     }
@@ -68,8 +68,8 @@ def test_get_user_maps_domain_user(monkeypatch, db_stub: DbStub, token_admin, ma
         username="reviewer01",
         full_name="Reviewer 01",
         email="reviewer01@tms.local",
-        roles=["REVIEWER"],
-        is_active=True,
+        role="REVIEWER",
+        status="ACTIVE",
         created_at=NOW,
         updated_at=NOW,
     )

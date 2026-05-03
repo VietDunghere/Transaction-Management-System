@@ -24,7 +24,6 @@ EXPECTED_ENDPOINTS = {
     ("POST", "/api/v1/transactions/submit"),
     ("GET", "/api/v1/transactions"),
     ("GET", "/api/v1/transactions/{txn_id}"),
-    ("GET", "/api/v1/transactions/{txn_id}/state-history"),
     ("GET", "/api/v1/cases"),
     ("GET", "/api/v1/cases/{case_id}"),
     ("POST", "/api/v1/cases/{case_id}/assign"),
@@ -61,4 +60,4 @@ def test_all_api_v1_routes_are_covered_by_contract() -> None:
             actual.add((method, route.path))
 
     assert actual == EXPECTED_ENDPOINTS
-    assert len(actual) == 39
+    assert len(actual) == 38
