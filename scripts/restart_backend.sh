@@ -26,10 +26,16 @@ if [ -n "$STALE" ]; then
     sleep 1
 fi
 
-# ── Init DB (idempotent: create tables + seed) ─────────────
-echo "Running init_db..."
-python "$PROJECT_ROOT/scripts/init_db.py"
-echo "init_db done."
+# ── Init DB — chỉ chạy 1 lần duy nhất ────────────────────
+SENTINEL="$PROJECT_ROOT/.db_initialized"
+if [ ! -f "$SENTINEL" ]; then
+    echo "First deploy: running init_db..."
+    python3 "$PROJECT_ROOT/scripts/init_db.py"
+    touch "$SENTINEL"
+    echo "init_db done."
+else
+    echo "DB already initialized — skipping init_db."
+fi
 
 # ── Start backend ──────────────────────────────────────────
 echo "Starting backend..."
@@ -38,3 +44,6 @@ nohup python run.py >> "$LOG_FILE" 2>&1 &
 echo $! > "$PID_FILE"
 
 echo "Backend started (PID $(cat $PID_FILE))"
+
+# ── Start demo sender (liên tục gửi fake data) ─────────────
+bash "$PROJECT_ROOT/scripts/start_demo.sh" &
