@@ -1,32 +1,26 @@
 version: "3.9"
 
 # ============================================================
-# Transaction Management System — Docker Compose
-# Manages: Oracle 23ai Free DB + FastAPI backend
+# Transaction Management System — Oracle 23ai Free
 #
-# One-time setup on server:
-#   docker compose up -d oracle
-#   # wait ~60s for Oracle to initialize, then:
-#   cd backend && alembic upgrade head
+# Quản lý Oracle container. Backend chạy trực tiếp trên host
+# qua scripts/restart_backend.sh.
 #
-# Daily restart (CI deploy calls restart_backend.sh instead):
-#   docker compose up -d
+# Lần đầu:   docker compose up -d
+# Reload:     docker compose restart oracle
+# Xem log:   docker compose logs -f oracle
 # ============================================================
 
 services:
 
-  # ----------------------------------------------------------
-  # Oracle Database 23ai Free
-  # Image: gvenzl/oracle-free (no Oracle account required)
-  # ----------------------------------------------------------
   oracle:
     image: gvenzl/oracle-free:23-slim
     container_name: oracle-tms
     restart: unless-stopped
     environment:
-      ORACLE_PASSWORD: "${ORACLE_SYS_PASSWORD:-Admin1234!}"   # SYS/SYSTEM password
-      APP_USER: "${ORACLE_APP_USER:-tms_user}"                # auto-created app user
-      APP_USER_PASSWORD: "${ORACLE_APP_PASSWORD:-Tms1234!}"   # app user password
+      ORACLE_PASSWORD: "${ORACLE_SYS_PASSWORD:-Admin1234}"
+      APP_USER: "${ORACLE_APP_USER:-tms_user}"
+      APP_USER_PASSWORD: "${ORACLE_APP_PASSWORD:-Tms1234}"
     ports:
       - "1521:1521"
     volumes:
@@ -37,29 +31,6 @@ services:
       timeout: 10s
       retries: 10
       start_period: 120s
-
-  # ----------------------------------------------------------
-  # FastAPI backend (optional — keep if running via Docker)
-  # If you prefer nohup/PID-file approach, remove this service
-  # and use scripts/restart_backend.sh directly on the host.
-  # ----------------------------------------------------------
-  api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: tms-api
-    restart: unless-stopped
-    env_file: ./backend/.env
-    environment:
-      DATABASE_URL: "oracle+oracledb://${ORACLE_APP_USER:-tms_user}:${ORACLE_APP_PASSWORD:-Tms1234!}@oracle:1521/?service_name=FREEPDB1"
-      APP_ENV: production
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend/ml_models:/app/ml_models
-    depends_on:
-      oracle:
-        condition: service_healthy
 
 volumes:
   oracle_data:
