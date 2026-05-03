@@ -48,7 +48,7 @@ export function UserDetailPage() {
     const isSelf = currentUser?.user_id === userData.user_id;
 
     const handleToggleStatus = () => {
-        if (userData.is_active) {
+        if (userData.status === 'ACTIVE') {
             disableUser.mutate(userId);
         } else {
             enableUser.mutate(userId);
@@ -76,11 +76,11 @@ export function UserDetailPage() {
                                 {isAdmin && !isSelf && (
                                     <>
                                         <Button
-                                            variant={userData.is_active ? 'danger' : 'primary'}
+                                            variant={userData.status === 'ACTIVE' ? 'danger' : 'primary'}
                                             onClick={handleToggleStatus}
                                             loading={disableUser.isPending || enableUser.isPending}
                                         >
-                                            {userData.is_active ? 'Disable' : 'Enable'}
+                                            {userData.status === 'ACTIVE' ? 'Disable' : 'Enable'}
                                         </Button>
                                         <Button
                                             onClick={() => {
@@ -121,8 +121,8 @@ export function UserDetailPage() {
                             <KeyValueRow
                                 label="Status"
                                 value={
-                                    <Badge variant={userData.is_active ? 'success' : 'muted'}>
-                                        {userData.is_active ? 'Active' : 'Disabled'}
+                                    <Badge variant={userData.status === 'ACTIVE' ? 'success' : 'muted'}>
+                                        {userData.status === 'ACTIVE' ? 'Active' : 'Disabled'}
                                     </Badge>
                                 }
                             />

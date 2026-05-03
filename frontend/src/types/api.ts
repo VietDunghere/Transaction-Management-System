@@ -49,8 +49,9 @@ export interface User {
     full_name: string;
     email: string;
     role: Role;
-    is_active: boolean;
+    status: string;
     created_at: string;
+    updated_at?: string | null;
 }
 
 export interface LoginRequest {
@@ -90,7 +91,7 @@ export interface MeResponse {
     username: string;
     full_name: string | null;
     role: Role;
-    is_active: boolean;
+    status: string;
 }
 
 // ---- UC03: Transactions ----
@@ -100,7 +101,6 @@ export interface Transaction {
     customer_id: string;
     merchant_id: string;
     amount: number;
-    currency_code: string;
     status: TransactionStatus;
     fraud_score: number;
     txn_time: string;
@@ -111,19 +111,8 @@ export interface TransactionDetail extends Transaction {
     customer_name: string | null;
     merchant_name: string | null;
     card_number_masked: string;
-    reason_code?: string | null;
-    source_ip: string;
+    model_version: string | null;
     updated_at: string;
-}
-
-export interface TxnStateHistoryItem {
-    state_hist_id: string;
-    txn_id: string;
-    old_status: string | null;
-    new_status: string;
-    changed_by_user_id: string | null;
-    changed_at: string;
-    change_reason: string | null;
 }
 
 // ---- UC04: Users ----
@@ -179,7 +168,6 @@ export interface CaseDetail {
     transaction: {
         txn_id: string;
         amount: number;
-        currency_code: string;
         fraud_score: number | null;
         txn_time: string;
         customer_name: string | null;
@@ -187,7 +175,6 @@ export interface CaseDetail {
         merchant_category: string | null;
         merchant_risk_level: string | null;
         channel_name: string | null;
-        source_ip: string | null;
         card_number_masked: string | null;
         rule_hits: CaseRuleHit[];
         card_velocity: {
@@ -199,7 +186,6 @@ export interface CaseDetail {
         recent_transactions: {
             txn_id: string;
             amount: number;
-            currency_code: string;
             merchant_name: string | null;
             status: string;
             fraud_score: number | null;
@@ -240,7 +226,6 @@ export interface Loan {
     customer_name: string | null;
     status: LoanStatus;
     principal_amount: number;
-    currency_code: string;
     interest_rate: number;
     term_months: number;
     pd_score: number | null;

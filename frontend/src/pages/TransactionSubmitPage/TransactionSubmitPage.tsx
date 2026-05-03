@@ -24,16 +24,12 @@ const submitSchema = z.object({
         .transform((v) => v.replace(/[\s-]/g, ''))
         .pipe(z.string().min(13, 'Card number must be 13-19 digits').max(19).regex(/^\d+$/, 'Digits only')),
     amount: z.string().min(1, 'Amount is required'),
-    currency_code: z.string().min(1, 'Currency is required'),
     txn_time: z.string().min(1, 'Transaction time is required'),
 });
 
 type SubmitForm = z.infer<typeof submitSchema>;
 
-const currencyOptions = [
-    { label: 'VND', value: 'VND' },
-    { label: 'USD', value: 'USD' },
-];
+
 
 export function TransactionSubmitPage() {
     const navigate = useNavigate();
@@ -61,7 +57,6 @@ export function TransactionSubmitPage() {
     } = useForm<SubmitForm>({
         resolver: zodResolver(submitSchema),
         defaultValues: {
-            currency_code: 'VND',
             txn_time: new Date().toISOString().slice(0, 16),
         },
     });
@@ -112,7 +107,6 @@ export function TransactionSubmitPage() {
             channel_id: Number(data.channel_id),
             card_number: data.card_number.replace(/[\s-]/g, ''),
             amount: Number(data.amount),
-            currency_code: data.currency_code,
             txn_time: new Date(data.txn_time).toISOString(),
         });
     };
@@ -174,12 +168,6 @@ export function TransactionSubmitPage() {
                                 type="number"
                                 error={errors.amount?.message}
                                 {...register('amount')}
-                            />
-                            <Select
-                                label="Currency"
-                                options={currencyOptions}
-                                error={errors.currency_code?.message}
-                                {...register('currency_code')}
                             />
                             <Input
                                 label="Transaction Time"

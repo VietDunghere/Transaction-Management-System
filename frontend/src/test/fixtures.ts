@@ -13,7 +13,6 @@ import type {
     ThresholdListResponse,
     Transaction,
     TransactionDetail,
-    TxnStateHistoryItem,
     User,
 } from '~/types/api';
 import type { DemoEvent, DemoStatus } from '~/services/demoService';
@@ -37,7 +36,7 @@ export const adminUser = {
     full_name: 'Admin User',
     email: 'admin@example.com',
     role: 'ADMIN',
-    is_active: true,
+    status: 'ACTIVE',
     created_at: timestamp,
 } satisfies User;
 
@@ -47,7 +46,7 @@ export const analystUser = {
     full_name: 'Analyst User',
     email: 'analyst@example.com',
     role: 'ANALYST',
-    is_active: true,
+    status: 'ACTIVE',
     created_at: timestamp,
 } satisfies User;
 
@@ -57,7 +56,7 @@ export const reviewerUser = {
     full_name: 'Reviewer User',
     email: 'reviewer@example.com',
     role: 'REVIEWER',
-    is_active: true,
+    status: 'ACTIVE',
     created_at: timestamp,
 } satisfies User;
 
@@ -67,7 +66,7 @@ export const operatorUser = {
     full_name: 'Operator User',
     email: 'operator@example.com',
     role: 'OPERATOR',
-    is_active: true,
+    status: 'ACTIVE',
     created_at: timestamp,
 } satisfies User;
 
@@ -77,7 +76,7 @@ export const managerUser = {
     full_name: 'Manager User',
     email: 'manager@example.com',
     role: 'MANAGER',
-    is_active: true,
+    status: 'ACTIVE',
     created_at: timestamp,
 } satisfies User;
 
@@ -87,7 +86,7 @@ export const disabledOperatorUser = {
     username: 'disabled.operator',
     full_name: 'Disabled Operator',
     email: 'disabled.operator@example.com',
-    is_active: false,
+    status: 'DISABLED',
 } satisfies User;
 
 export const userListResponse = createPagedResponse<User>([operatorUser, reviewerUser], {
@@ -241,7 +240,6 @@ export const transactionListItem = {
     customer_id: 'cust-001',
     merchant_id: 'mer-001',
     amount: 12500,
-    currency_code: 'USD',
     status: 'MANUAL_REVIEW',
     fraud_score: 0.62,
     txn_time: timestamp,
@@ -253,30 +251,9 @@ export const transactionDetail = {
     card_number_masked: '4111********1111',
     customer_name: 'John Doe',
     merchant_name: 'Shop ABC',
-    source_ip: '203.0.113.10',
+    model_version: null,
     updated_at: updatedAt,
 } satisfies TransactionDetail;
-
-export const transactionStates = [
-    {
-        state_hist_id: 'state-001',
-        txn_id: 'txn-001',
-        old_status: null,
-        new_status: 'PENDING',
-        changed_by_user_id: null,
-        changed_at: timestamp,
-        change_reason: 'Submitted',
-    },
-    {
-        state_hist_id: 'state-002',
-        txn_id: 'txn-001',
-        old_status: 'PENDING',
-        new_status: 'MANUAL_REVIEW',
-        changed_by_user_id: 'user-reviewer',
-        changed_at: updatedAt,
-        change_reason: 'Fraud rule hit',
-    },
-] satisfies TxnStateHistoryItem[];
 
 export const transactionListResponse = createPagedResponse<Transaction>([transactionListItem], {
     total: 1,
@@ -314,7 +291,6 @@ export const caseDetail = {
     transaction: {
         txn_id: 'txn-001',
         amount: 12500,
-        currency_code: 'USD',
         fraud_score: 0.72,
         txn_time: timestamp,
         customer_name: 'Alice Johnson',
@@ -322,7 +298,6 @@ export const caseDetail = {
         merchant_category: 'Retail',
         merchant_risk_level: 'HIGH',
         channel_name: 'POS',
-        source_ip: '203.0.113.15',
         card_number_masked: '4111********1111',
         rule_hits: [
             {
@@ -342,7 +317,6 @@ export const caseDetail = {
             {
                 txn_id: 'txn-002',
                 amount: 220,
-                currency_code: 'USD',
                 merchant_name: 'Coffee Bar',
                 status: 'APPROVED',
                 fraud_score: 0.12,
@@ -382,7 +356,6 @@ export const loanListItem = {
     customer_name: 'Alice Johnson',
     status: 'PENDING',
     principal_amount: 250000,
-    currency_code: 'USD',
     interest_rate: 12.5,
     term_months: 24,
     pd_score: 0.18,
@@ -396,7 +369,6 @@ export const loanDetail = {
     customer_name: 'Alice Johnson',
     status: 'PENDING',
     principal_amount: 250000,
-    currency_code: 'USD',
     interest_rate: 12.5,
     term_months: 24,
     pd_score: 0.18,

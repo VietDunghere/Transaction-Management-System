@@ -59,7 +59,7 @@ export function TransactionListPage() {
         txn_id: <span className="text-xs font-mono">{txn.txn_id.slice(0, 8)}...</span>,
         amount: (
             <span className="text-sm font-medium">
-                {txn.amount.toLocaleString()} {txn.currency_code}
+                {txn.amount.toLocaleString()}
             </span>
         ),
         status: <Badge variant={statusVariant[txn.status]}>{txn.status}</Badge>,

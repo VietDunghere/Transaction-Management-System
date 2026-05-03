@@ -26,7 +26,7 @@ export function useMe() {
                 full_name: data.full_name ?? '',
                 email: '',
                 role: data.role,
-                is_active: data.is_active,
+                status: data.status,
                 created_at: '',
             });
             return data;
@@ -52,7 +52,7 @@ export function useLogin() {
                 full_name: res.full_name,
                 email: '',
                 role: res.role,
-                is_active: true,
+                status: 'ACTIVE',
                 created_at: '',
             });
             navigate({ to: '/' });

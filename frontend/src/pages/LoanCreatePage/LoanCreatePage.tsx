@@ -20,7 +20,7 @@ const createLoanSchema = z.object({
         .string()
         .min(1, 'Amount is required')
         .refine((v) => Number(v) > 0, 'Must be greater than 0'),
-    currency_code: z.string().min(1, 'Currency is required'),
+
     interest_rate: z
         .string()
         .min(1, 'Interest rate is required')
@@ -34,10 +34,6 @@ const createLoanSchema = z.object({
 
 type CreateLoanForm = z.infer<typeof createLoanSchema>;
 
-const currencyOptions = [
-    { label: 'VND', value: 'VND' },
-    { label: 'USD', value: 'USD' },
-];
 
 const purposeOptions = [
     { label: 'Personal', value: 'PERSONAL' },
@@ -66,9 +62,7 @@ export function LoanCreatePage() {
         formState: { errors },
     } = useForm<CreateLoanForm>({
         resolver: zodResolver(createLoanSchema),
-        defaultValues: {
-            currency_code: 'VND',
-        },
+        defaultValues: {},
     });
 
     const customerId = watch('customer_id');
@@ -92,7 +86,6 @@ export function LoanCreatePage() {
         createLoan.mutate({
             customer_id: data.customer_id,
             principal_amount: Number(data.principal_amount),
-            currency_code: data.currency_code,
             interest_rate: Number(data.interest_rate),
             term_months: Number(data.term_months),
             purpose: data.purpose,
@@ -132,12 +125,6 @@ export function LoanCreatePage() {
                                 type="number"
                                 error={errors.principal_amount?.message}
                                 {...register('principal_amount')}
-                            />
-                            <Select
-                                label="Currency"
-                                options={currencyOptions}
-                                error={errors.currency_code?.message}
-                                {...register('currency_code')}
                             />
                             <Input
                                 label="Interest Rate (%)"
