@@ -59,7 +59,7 @@ def require_roles(*roles: str):
     Dùng: Depends(require_roles("MANAGER", "ADMIN"))
     """
     def _check(token: TokenPayload = Depends(get_current_token)) -> TokenPayload:
-        if not any(r in token.roles for r in roles):
+        if "ADMIN" not in token.roles and not any(r in token.roles for r in roles):
             raise PermissionDeniedError(
                 f"Yêu cầu một trong các quyền: {', '.join(roles)}"
             )
