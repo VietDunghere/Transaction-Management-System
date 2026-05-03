@@ -19,7 +19,9 @@ services:
     container_name: oracle-tms
     restart: unless-stopped
     environment:
-      ORACLE_PWD: "${ORACLE_SYS_PASSWORD:-Admin1234}"        # SYS / SYSTEM password
+      ORACLE_PASSWORD: "${ORACLE_SYS_PASSWORD:-Admin1234}"     # SYS / SYSTEM password
+      APP_USER: "${ORACLE_APP_USER:-tms_user}"
+      APP_USER_PASSWORD: "${ORACLE_APP_PASSWORD:-Tms1234}"
     ports:
       - "1521:1521"
     volumes:
