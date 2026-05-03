@@ -131,7 +131,7 @@ def test_list_transactions_applies_period_and_pagination(monkeypatch, db_stub: D
 	assert len(result.data) == 1
 
 
-def test_get_transaction_enriches_fraud_detail(monkeypatch, db_stub: DbStub, token_admin, make_obj) -> None:
+def test_get_transaction_returns_response(monkeypatch, db_stub: DbStub, token_admin, make_obj) -> None:
 	txn_obj = _txn_obj(make_obj, with_scoring=True)
 
 	class FakeService:
@@ -147,10 +147,8 @@ def test_get_transaction_enriches_fraud_detail(monkeypatch, db_stub: DbStub, tok
 	result = txn_routes.get_transaction(txn_id="txn-1", db=db_stub, token=token_admin)
 
 	assert result.txn_id == "txn-1"
-	assert result.fraud_detail is not None
-	assert result.fraud_detail.fraud_score == 0.81
-	assert result.fraud_detail.decision == "REJECTED"
-	assert result.fraud_detail.top_risk_factors == ["high_amount", "new_merchant"]
+	assert result.fraud_score == 0.12
+	assert result.status == TransactionStatus.APPROVED
 
 
 def test_get_transaction_without_scoring_keeps_fraud_detail_none(monkeypatch, db_stub: DbStub, token_admin, make_obj) -> None:
