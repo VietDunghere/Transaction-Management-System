@@ -83,7 +83,7 @@ class TransactionResponse(BaseModel):
 
 class TransactionSubmitResponse(BaseModel):
     txn_id: str
-    status: TransactionStatus
+    status: str
     fraud_score: Optional[float]
     decision: str
     amount: Decimal

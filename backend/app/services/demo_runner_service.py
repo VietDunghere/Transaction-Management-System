@@ -249,14 +249,14 @@ class DemoRunnerService:
             result = svc.submit(payload, submitted_by_user_id=user_id)
 
             self._sent += 1
-            status = result.status
+            status = str(result.status)
             key = f"TXN_{status}"
             self._stats[key] = self._stats.get(key, 0) + 1
 
             return DemoEvent(
                 seq=self._sent,
                 type="TXN",
-                result=str(status),
+                result=status,
                 score=result.fraud_score,
                 amount=float(result.amount),
                 info=result.decision,

@@ -25,7 +25,6 @@ from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.models.scoring import AuditLog
 from app.models.transaction import Transaction
-from app.models.case import ReviewCase
 from app.repositories.analyst_repo import ModelConfigRepository
 from app.repositories.transaction_repo import TransactionRepository
 from app.repositories.velocity_repo import CustomerRepository, MerchantRepository, VelocityRepository
@@ -125,18 +124,10 @@ class TransactionService:
         )
         self._txn_repo.create(txn)
 
-        # ---- Create ReviewCase if MANUAL_REVIEW ----
+        # ---- ReviewCase created by Oracle trigger TRG_AUTO_CREATE_CASE ----
+        # Do NOT create ReviewCase in Python — the trigger handles it
+        # on INSERT when status = 'MANUAL_REVIEW'.
         case_id = None
-        if scoring_result.decision == "MANUAL_REVIEW":
-            case = ReviewCase(
-                case_id=str(uuid.uuid4()),
-                txn_id=txn.txn_id,
-                case_status="OPEN",
-            )
-            self._db.add(case)
-            self._db.flush()
-            case_id = case.case_id
-            logger.info("review_case_created", case_id=case_id, txn_id=txn.txn_id)
 
         # ---- Audit log ----
         actor_user = self._db.query(User.full_name).filter(User.user_id == submitted_by_user_id).first()
