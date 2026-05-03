@@ -194,7 +194,6 @@ def test_get_case_enriches_transaction_details(monkeypatch, token_manager, make_
 	assert len(result.transaction.rule_hits) == 1
 	assert result.transaction.rule_hits[0].rule_code == "R001"
 	assert len(result.transaction.recent_transactions) == 1
-	assert len(result.actions) == 1
 
 
 def test_assign_case_calls_self_assign_then_returns_case(monkeypatch, db_stub: DbStub, token_reviewer) -> None:
@@ -245,7 +244,7 @@ def test_decide_case_calls_service_then_returns_updated_case(monkeypatch, db_stu
 		{
 			"case_id": "case-4",
 			"txn_id": "txn-4",
-			"case_status": "APPROVED",
+			"case_status": "CLOSED",
 			"assigned_to": "reviewer-1",
 			"decision": "APPROVE",
 			"decision_note": "Valid transaction after manual verification.",

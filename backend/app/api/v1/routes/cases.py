@@ -124,7 +124,9 @@ def get_case(
     case = svc.get_case(case_id)
 
     # REVIEWER chỉ được xem case OPEN (chưa assign) hoặc case được giao cho mình.
-    if case.assigned_to is not None and case.assigned_to != token.sub:
+    # MANAGER/ADMIN được xem tất cả.
+    is_privileged = "MANAGER" in token.roles or "ADMIN" in token.roles
+    if not is_privileged and case.assigned_to is not None and case.assigned_to != token.sub:
         raise PermissionDeniedError("Case này không được giao cho bạn.")
 
     txn_summary = None

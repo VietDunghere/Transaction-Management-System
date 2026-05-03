@@ -73,8 +73,8 @@ def test_me_maps_current_user_payload(make_obj) -> None:
 		user_id="user-1",
 		username="reviewer01",
 		full_name="Reviewer 01",
-		roles=["REVIEWER"],
-		is_active=True,
+		role="REVIEWER",
+		status="ACTIVE",
 	)
 
 	result = auth_routes.me(user=current_user)
@@ -83,7 +83,7 @@ def test_me_maps_current_user_payload(make_obj) -> None:
 	assert result.username == "reviewer01"
 	assert result.full_name == "Reviewer 01"
 	assert result.role == "REVIEWER"
-	assert result.is_active is True
+	assert result.status == "ACTIVE"
 
 
 def test_change_password_forwards_context_and_commits(db_stub: DbStub, token_admin) -> None:

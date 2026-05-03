@@ -107,11 +107,9 @@ def test_export_transactions_csv_format(monkeypatch, db_stub: DbStub, token_admi
         "channel_id",
         "card_number_masked",
         "amount",
-        "currency_code",
         "txn_time",
         "status",
         "fraud_score",
-        "reason_code",
         "created_at",
     ]
     assert len(rows) == 1

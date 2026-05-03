@@ -52,6 +52,7 @@ def _loan_obj(make_obj, *, loan_id: str = "loan-1"):
             kyc_status="VERIFIED",
             income_level="HIGH",
         ),
+        reviewer=None,
     )
 
 
