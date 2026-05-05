@@ -31,16 +31,13 @@ export function ProfilePage() {
     const {
         register,
         handleSubmit,
-        reset,
         formState: { errors },
     } = useForm<ChangePasswordForm>({
         resolver: zodResolver(changePasswordSchema),
     });
 
     const onSubmit = (data: ChangePasswordForm) => {
-        changePassword.mutate(data, {
-            onSuccess: () => reset(),
-        });
+        changePassword.mutate(data);
     };
 
     return (
@@ -80,15 +77,6 @@ export function ProfilePage() {
                                 error={errors.confirm_password?.message}
                                 {...register('confirm_password')}
                             />
-
-                            {changePassword.isSuccess && (
-                                <p className="text-xs text-status-success">Password changed successfully.</p>
-                            )}
-                            {changePassword.isError && (
-                                <p className="text-xs text-status-danger">
-                                    Failed to change password. Check your current password.
-                                </p>
-                            )}
 
                             <div className="flex justify-end">
                                 <Button type="submit" loading={changePassword.isPending}>

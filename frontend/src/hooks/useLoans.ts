@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { loanService } from '~/services/loanService';
+import { toastMutationError } from '~/utils/mutationErrorToast';
 import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { LoanSearchParams } from '~/types/searchParams';
 import type { LoanDecisionRequest } from '~/types/api';
@@ -37,8 +37,7 @@ export function useCreateLoan() {
             toastSuccessWithActivity('Loan application submitted');
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error);
         },
     });
 }
@@ -47,8 +46,7 @@ export function useSimulateLoan() {
     return useMutation({
         mutationFn: (data: Record<string, unknown>) => loanService.simulateLoan(data),
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error);
         },
     });
 }
@@ -65,8 +63,7 @@ export function useDecideLoan() {
             toastSuccessWithActivity('Loan decision submitted');
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error);
         },
     });
 }

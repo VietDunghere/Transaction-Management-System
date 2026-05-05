@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { transactionService } from '~/services/transactionService';
+import { toastMutationError } from '~/utils/mutationErrorToast';
 import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { TransactionSearchParams } from '~/types/searchParams';
 
@@ -36,8 +36,7 @@ export function useSubmitTransaction() {
             toastSuccessWithActivity('Transaction submitted');
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error);
         },
     });
 }

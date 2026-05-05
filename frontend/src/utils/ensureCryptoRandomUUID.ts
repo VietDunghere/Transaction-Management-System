@@ -5,18 +5,22 @@ export function ensureCryptoRandomUUID(): void {
         crypto?: Crypto & { randomUUID?: () => string };
     };
 
-    if (!globalObj.crypto) {
-        Object.defineProperty(globalObj, 'crypto', {
-            value: { randomUUID: fallback },
-            configurable: true,
-        });
-        return;
-    }
+    try {
+        if (!globalObj.crypto) {
+            Object.defineProperty(globalObj, 'crypto', {
+                value: { randomUUID: fallback },
+                configurable: true,
+            });
+            return;
+        }
 
-    if (typeof globalObj.crypto.randomUUID !== 'function') {
-        Object.defineProperty(globalObj.crypto, 'randomUUID', {
-            value: fallback,
-            configurable: true,
-        });
+        if (typeof globalObj.crypto.randomUUID !== 'function') {
+            Object.defineProperty(globalObj.crypto, 'randomUUID', {
+                value: fallback,
+                configurable: true,
+            });
+        }
+    } catch {
+        // Keep app running even if the runtime blocks crypto monkey-patching.
     }
 }

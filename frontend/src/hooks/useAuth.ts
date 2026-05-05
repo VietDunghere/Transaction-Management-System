@@ -5,7 +5,7 @@ import { authService } from '~/services/authService';
 import { useAuthStore } from '~/stores/useAuthStore';
 import { useActivityStore } from '~/stores/useActivityStore';
 import { setAccessToken, setRefreshToken, clearTokens } from '~/utils/localStorage';
-import { toastSuccessWithActivity } from '~/utils/toastActivity';
+import { toastMutationError } from '~/utils/mutationErrorToast';
 import type { LoginRequest, ChangePasswordRequest } from '~/types/api';
 
 export const authKeys = {
@@ -80,14 +80,34 @@ export function useLogout() {
 }
 
 export function useChangePassword() {
+    const clearAuth = useAuthStore((s) => s.clearAuth);
+    const clearActivities = useActivityStore((s) => s.clearActivities);
+    const navigate = useNavigate();
+
     return useMutation({
         mutationFn: (data: ChangePasswordRequest) => authService.changePassword(data),
-        onSuccess: () => {
-            toastSuccessWithActivity('Password changed successfully');
+        onSuccess: async () => {
+            // Server-side logout is best-effort; local logout is mandatory after password change.
+            try {
+                await authService.logout();
+            } catch {
+                // Ignore and continue with local logout.
+            }
+
+            clearTokens();
+            clearAuth();
+            clearActivities();
+
+            try {
+                toast.success('Password changed successfully. Please login again.');
+            } catch {
+                // Ignore toast engine issues.
+            }
+
+            navigate({ to: '/login' });
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error, 'Failed to change password. Check your current password.');
         },
     });
 }
