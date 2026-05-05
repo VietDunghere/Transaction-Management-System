@@ -31,6 +31,7 @@ from app.repositories.velocity_repo import CustomerRepository, MerchantRepositor
 from app.schemas.transaction import TransactionSubmitRequest, TransactionSubmitResponse
 from app.services.fraud_scoring_service import FraudScoringInput, FraudScoringService
 from app.models.user import User
+from app.models.case import ReviewCase
 from app.utils.card import hash_card_number, mask_card_number
 
 logger = get_logger(__name__)
@@ -124,10 +125,16 @@ class TransactionService:
         )
         self._txn_repo.create(txn)
 
-        # ---- ReviewCase created by Oracle trigger TRG_AUTO_CREATE_CASE ----
-        # Do NOT create ReviewCase in Python — the trigger handles it
-        # on INSERT when status = 'MANUAL_REVIEW'.
+        # ---- Auto-create ReviewCase for MANUAL_REVIEW transactions ----
         case_id = None
+        if scoring_result.decision == "MANUAL_REVIEW":
+            review_case = ReviewCase(
+                case_id=str(uuid.uuid4()),
+                txn_id=txn.txn_id,
+                case_status="OPEN",
+            )
+            self._db.add(review_case)
+            case_id = review_case.case_id
 
         # ---- Audit log ----
         actor_user = self._db.query(User.full_name).filter(User.user_id == submitted_by_user_id).first()
