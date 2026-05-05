@@ -125,16 +125,8 @@ class TransactionService:
         )
         self._txn_repo.create(txn)
 
-        # ---- Auto-create ReviewCase for MANUAL_REVIEW transactions ----
-        case_id = None
-        if scoring_result.decision == "MANUAL_REVIEW":
-            review_case = ReviewCase(
-                case_id=str(uuid.uuid4()),
-                txn_id=txn.txn_id,
-                case_status="OPEN",
-            )
-            self._db.add(review_case)
-            case_id = review_case.case_id
+        # ---- ReviewCase for MANUAL_REVIEW is auto-created by Oracle
+        #      trigger TRG_AUTO_CREATE_CASE — no need to insert here ----
 
         # ---- Audit log ----
         actor_user = self._db.query(User.full_name).filter(User.user_id == submitted_by_user_id).first()
@@ -156,6 +148,15 @@ class TransactionService:
         # ---- Commit ----
         self._db.commit()
         self._db.refresh(txn)
+
+        # ---- Query case_id created by Oracle trigger (if MANUAL_REVIEW) ----
+        case_id = None
+        if scoring_result.decision == "MANUAL_REVIEW":
+            case_row = self._db.query(ReviewCase.case_id).filter(
+                ReviewCase.txn_id == txn.txn_id
+            ).first()
+            if case_row:
+                case_id = case_row.case_id
 
         return TransactionSubmitResponse(
             txn_id=txn.txn_id,
