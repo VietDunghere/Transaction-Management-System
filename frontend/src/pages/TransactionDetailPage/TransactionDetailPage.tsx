@@ -50,7 +50,7 @@ export function TransactionDetailPage() {
                     <div className="flex flex-col gap-2 rounded-xl bg-accent-blue p-6">
                         <span className="text-sm text-text-on-accent">Fraud Score</span>
                         <span className="text-2xl font-semibold leading-8 text-text-on-accent">
-                            {(txn.fraud_score * 100).toFixed(1)}%
+                            {txn.fraud_score != null ? `${(txn.fraud_score * 100).toFixed(1)}%` : '—'}
                         </span>
                     </div>
                     <div className="flex flex-col items-start gap-2 rounded-xl bg-accent-purple p-6">
@@ -85,7 +85,7 @@ export function TransactionDetailPage() {
                             label="Status"
                             value={<Badge variant={statusVariant[txn.status]}>{txn.status}</Badge>}
                         />
-                        <KeyValueRow label="Fraud Score" value={`${(txn.fraud_score * 100).toFixed(1)}%`} />
+                        <KeyValueRow label="Fraud Score" value={txn.fraud_score != null ? `${(txn.fraud_score * 100).toFixed(1)}%` : '—'} />
                         <KeyValueRow label="Model Version" value={txn.model_version ?? '-'} />
                         <KeyValueRow label="Transaction Time" value={new Date(txn.txn_time).toLocaleString()} />
                         <KeyValueRow label="Created At" value={new Date(txn.created_at).toLocaleString()} />
