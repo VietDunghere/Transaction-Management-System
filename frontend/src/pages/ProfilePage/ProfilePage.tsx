@@ -98,17 +98,6 @@ export function ProfilePage() {
                                 {...register('confirm_password')}
                             />
 
-                            {/* Show success message ONLY if we just succeeded and haven't moved on */}
-                            {changePassword.isSuccess && !changePassword.isPending && (
-                                <p className="text-xs text-status-success">Password changed successfully.</p>
-                            )}
-                            {/* Show error message ONLY if we have an error and it's not being retried */}
-                            {changePassword.isError && !changePassword.isPending && (
-                                <p className="text-xs text-status-danger">
-                                    Failed to change password. Check your current password.
-                                </p>
-                            )}
-
                             <div className="flex justify-end">
                                 <Button type="submit" loading={changePassword.isPending}>
                                     Update Password
