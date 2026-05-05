@@ -39,20 +39,20 @@ const createLoanSchema = z.object({
         .min(1, 'Income is required')
         .refine((v) => Number(v) >= 1000 && Number(v) <= 10000000, '1,000–10,000,000'),
     person_home_ownership: z.enum(['RENT', 'MORTGAGE', 'OWN', 'OTHER'], {
-        errorMap: () => ({ message: 'Required' }),
+        error: () => ({ message: 'Required' }),
     }),
     person_emp_length: z
         .string()
         .min(1, 'Required')
         .refine((v) => Number(v) >= 0 && Number(v) <= 50, '0–50 years'),
     loan_intent: z.enum(['PERSONAL', 'EDUCATION', 'MEDICAL', 'VENTURE', 'HOMEIMPROVEMENT', 'DEBTCONSOLIDATION'], {
-        errorMap: () => ({ message: 'Required' }),
+        error: () => ({ message: 'Required' }),
     }),
     loan_grade: z.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G'], {
-        errorMap: () => ({ message: 'Required' }),
+        error: () => ({ message: 'Required' }),
     }),
     cb_person_default_on_file: z.enum(['Y', 'N'], {
-        errorMap: () => ({ message: 'Required' }),
+        error: () => ({ message: 'Required' }),
     }),
     cb_person_cred_hist_length: z
         .string()
