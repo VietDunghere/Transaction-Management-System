@@ -211,15 +211,31 @@ def _pick_profile(target_status: str) -> str:
 def build_transaction(ctx: DemoContext, target_status: str) -> dict[str, Any]:
     profile = _pick_profile(target_status)
 
+    # Amount distributions calibrated from Kaggle fraudTrain.csv:
+    #   Non-fraud: median=$47, P90=$134, P99=$486
+    #   Fraud:     P25=$246, median=$397, P75=$901, max=$1,376
     if profile == "low":
-        amount = round(random.uniform(8, 180), 2)
-        hour = random.choices([random.randint(8, 21), random.choice([22, 23, 0, 1])], weights=[97, 3], k=1)[0]
+        # Normal daytime spend — non-fraud zone
+        amount = round(random.uniform(4, 134), 2)
+        hour = random.choices(
+            [random.randint(8, 21), random.choice([22, 23, 0, 1])],
+            weights=[97, 3], k=1
+        )[0]
     elif profile == "medium":
-        amount = round(random.uniform(250, 1400), 2)
-        hour = random.choices([random.randint(9, 21), random.choice([22, 23, 0, 1, 2])], weights=[70, 30], k=1)[0]
+        # Borderline — P90-P99 non-fraud, overlaps fraud P10-P25
+        amount = round(random.uniform(134, 487), 2)
+        hour = random.choices(
+            [random.randint(9, 21), random.choice([22, 23, 0, 1, 2])],
+            weights=[68, 32], k=1
+        )[0]
     else:
-        amount = round(random.uniform(1800, 9000), 2)
-        hour = random.choices([random.choice([22, 23, 0, 1, 2, 3]), random.randint(9, 21)], weights=[78, 22], k=1)[0]
+        # Fraud-like — Kaggle fraud P25-max ($246-$1,376), night-heavy
+        # Kaggle: 51% of fraud at hour 22-23, 34% at 0-3, 15% rest
+        amount = round(random.uniform(246, 1376), 2)
+        hour = random.choices(
+            [random.choice([22, 23]), random.choice([0, 1, 2, 3]), random.randint(4, 21)],
+            weights=[51, 34, 15], k=1
+        )[0]
 
     txn_time = datetime.now(timezone.utc).replace(
         hour=int(hour),
