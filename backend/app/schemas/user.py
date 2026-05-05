@@ -25,13 +25,21 @@ class CreateUserRequest(BaseModel):
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str = Field(..., min_length=1)
-    new_password: str = Field(..., min_length=8, max_length=128)
-    confirm_password: str = Field(..., min_length=8, max_length=128)
+    current_password: str = Field(..., min_length=1, description="Current password for verification")
+    new_password: str = Field(..., min_length=8, max_length=128, description="New password, must be at least 8 characters")
+    confirm_password: str = Field(..., min_length=8, max_length=128, description="Confirm new password")
 
     def model_post_init(self, __context) -> None:
+        # Validate that new_password and confirm_password match
+        if not self.new_password or not self.confirm_password:
+            raise ValueError("new_password và confirm_password không được để trống.")
+        
         if self.new_password != self.confirm_password:
             raise ValueError("new_password và confirm_password không khớp.")
+        
+        if not self.current_password:
+            raise ValueError("current_password không được để trống.")
+            
         if self.current_password == self.new_password:
             raise ValueError("Mật khẩu mới phải khác mật khẩu hiện t��i.")
 
