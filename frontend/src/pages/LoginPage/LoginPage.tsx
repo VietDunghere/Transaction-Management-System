@@ -13,8 +13,11 @@ import { GeometricBackground, type GeometricBackgroundHandle } from './Geometric
 import { CosmicBackground } from './CosmicBackground';
 import iconLogo from '~/assets/icon.png';
 
+type SidePanel = 'light-img' | 'dark-img' | 'dark-video' | 'light-video';
+
 const TRANSITION_MS = 500;
 const BG_FADE_MS = 1000;
+const VIDEO_BG_LEAD_S = 0.8; // bg fires this many seconds before video ends
 
 const loginSchema = z.object({
     username: z.string().min(1, 'Username is required'),
@@ -31,6 +34,48 @@ export function LoginPage() {
     const geometricRef = useRef<GeometricBackgroundHandle>(null);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const transitionTimeoutRef = useRef<number | null>(null);
+    const sidePanelTimeoutRef = useRef<number | null>(null);
+
+    // Special flow: 50% chance per mount — stable for the entire session
+    const isSpecialFlow = useRef(Math.random() < 0.5);
+    const [sidePanel, setSidePanel] = useState<SidePanel>(() =>
+        isSpecialFlow.current && theme === 'light' ? 'light-img' : 'dark-img',
+    );
+
+    // Video refs — elements stay mounted for preloading; driven imperatively
+    const darkVideoRef = useRef<HTMLVideoElement>(null);
+    const lightVideoRef = useRef<HTMLVideoElement>(null);
+
+    // True only between play() and onEnded/pause — used to collapse the
+    // protective source image the moment the video has its first frame,
+    // so it is already gone before onEnded fires (no end-of-video flash).
+    const [darkVideoPlaying, setDarkVideoPlaying] = useState(false);
+    const [lightVideoPlaying, setLightVideoPlaying] = useState(false);
+
+    useEffect(() => {
+        const dv = darkVideoRef.current;
+        const lv = lightVideoRef.current;
+        if (sidePanel === 'dark-video') {
+            lv?.pause();
+            setLightVideoPlaying(false);
+            if (dv) {
+                dv.currentTime = 0;
+                void dv.play();
+            }
+        } else if (sidePanel === 'light-video') {
+            dv?.pause();
+            setDarkVideoPlaying(false);
+            if (lv) {
+                lv.currentTime = 0;
+                void lv.play();
+            }
+        } else {
+            dv?.pause();
+            lv?.pause();
+            setDarkVideoPlaying(false);
+            setLightVideoPlaying(false);
+        }
+    }, [sidePanel]);
 
     const [mountedLight, setMountedLight] = useState(theme === 'light');
     const [mountedDark, setMountedDark] = useState(theme === 'dark');
@@ -39,47 +84,60 @@ export function LoginPage() {
         else setMountedDark(true);
     }, [theme]);
 
-    // Edge case 3: cleanup transition timeout on unmount
+    // Edge case 3: cleanup timeouts on unmount
     useEffect(() => {
         return () => {
             if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+            if (sidePanelTimeoutRef.current) clearTimeout(sidePanelTimeoutRef.current);
         };
     }, []);
 
-    const handleToggleTheme = () => {
-        // Edge case 1: transition lock — prevent overlapping animations
-        if (isTransitioning) return;
-
-        if (theme === 'light') {
-            // Phase 1: Shapes zoom to center, bg fade kicks in near the end
-            setIsTransitioning(true);
-            geometricRef.current?.implode();
-
-            // Start bg crossfade 200ms before implosion ends
+    // Extracted so they can be called from handleToggleTheme (normal flow)
+    // and from onPlay (special flow — scheduled at duration - VIDEO_BG_LEAD_S).
+    const startBgToDark = () => {
+        geometricRef.current?.implode();
+        transitionTimeoutRef.current = window.setTimeout(() => {
+            setMountedDark(true);
+            toggleTheme();
             transitionTimeoutRef.current = window.setTimeout(() => {
-                setMountedDark(true);
-                toggleTheme();
-                // Unlock after bg fade finishes
-                transitionTimeoutRef.current = window.setTimeout(() => {
+                setIsTransitioning(false);
+                transitionTimeoutRef.current = null;
+            }, BG_FADE_MS);
+        }, TRANSITION_MS - 200);
+    };
+
+    const startBgToLight = () => {
+        setMountedLight(true);
+        toggleTheme();
+        transitionTimeoutRef.current = window.setTimeout(() => {
+            requestAnimationFrame(() => {
+                geometricRef.current?.explode(() => {
                     setIsTransitioning(false);
                     transitionTimeoutRef.current = null;
-                }, BG_FADE_MS);
-            }, TRANSITION_MS - 200);
-        } else {
-            // Phase 2: Dark → Light — bg fades first, then particles spawn
-            setIsTransitioning(true);
-            setMountedLight(true);
-            toggleTheme(); // theme → 'light', starts bg opacity fade immediately
-
-            // Start particle explosion 200ms before bg fade ends (overlap)
-            transitionTimeoutRef.current = window.setTimeout(() => {
-                requestAnimationFrame(() => {
-                    geometricRef.current?.explode(() => {
-                        setIsTransitioning(false);
-                        transitionTimeoutRef.current = null;
-                    });
                 });
-            }, TRANSITION_MS - 200);
+            });
+        }, TRANSITION_MS - 200);
+    };
+
+    const handleToggleTheme = () => {
+        if (isTransitioning || darkVideoPlaying || lightVideoPlaying) return;
+
+        setIsTransitioning(true);
+
+        if (theme === 'light') {
+            if (isSpecialFlow.current) {
+                // Video fires immediately; bg is scheduled from onPlay
+                // once we know the exact duration.
+                setSidePanel('dark-video');
+            } else {
+                startBgToDark();
+            }
+        } else {
+            if (isSpecialFlow.current) {
+                setSidePanel('light-video');
+            } else {
+                startBgToLight();
+            }
         }
     };
 
@@ -146,8 +204,8 @@ export function LoginPage() {
                         {/* Theme Toggle Icon Button - Placed at bottom right of the card, visible on both Mobile and Desktop */}
                         <button
                             onClick={handleToggleTheme}
-                            disabled={isTransitioning}
-                            className={`absolute bottom-3 right-3 md:bottom-5 md:right-5 z-50 flex size-8 md:size-11 items-center justify-center rounded-full bg-text-primary/10 md:bg-white/10 hover:bg-text-primary/20 md:hover:bg-white/20 backdrop-blur-xl border border-border-default md:border-white/20 text-text-primary md:text-white shadow-xl transition-all duration-300 focus:outline-none hover:scale-110 active:scale-95 ${isTransitioning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            disabled={isTransitioning || darkVideoPlaying || lightVideoPlaying}
+                            className={`absolute bottom-3 right-3 md:bottom-5 md:right-5 z-50 flex size-8 md:size-11 items-center justify-center rounded-full bg-text-primary/10 md:bg-white/10 hover:bg-text-primary/20 md:hover:bg-white/20 backdrop-blur-xl border border-border-default md:border-white/20 text-text-primary md:text-white shadow-xl transition-all duration-300 focus:outline-none hover:scale-110 active:scale-95 ${isTransitioning || darkVideoPlaying || lightVideoPlaying ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                             aria-label="Toggle theme"
                         >
                             {theme === 'light' ? (
@@ -225,13 +283,96 @@ export function LoginPage() {
                         </div>
 
                         {/* Right: Abstract Graphic/Image */}
-                        <div className="hidden md:block w-full md:w-1/2 relative bg-black">
-                            <img
-                                src="/login_side_image.png"
-                                alt="Security and Analytics"
-                                className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-80"
-                            />
-                            <div className="absolute inset-0"></div>
+                        <div className="hidden md:block w-full md:w-1/2 relative bg-black overflow-hidden">
+                            {isSpecialFlow.current ? (
+                                <>
+                                    {/*
+                                     * Layer 1 (bottom): dark image — always painted.
+                                     * Already decoded before the video ends, so no
+                                     * loading gap when revealing it.
+                                     */}
+                                    <img
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        src="/login_side_image.png"
+                                        alt=""
+                                    />
+                                    {/*
+                                     * Layer 2: light image — sits on top of dark image.
+                                     * Visible only during light-facing states; fades out
+                                     * to reveal the dark image already painted below.
+                                     */}
+                                    {/*
+                                     * Layer 2: light image — only shown before the dark
+                                     * video fires onPlay (buffer guard). Hidden instantly
+                                     * once the video has its first frame, so it is
+                                     * already gone long before onEnded fires.
+                                     */}
+                                    <img
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        style={{
+                                            opacity:
+                                                sidePanel === 'light-img' ||
+                                                (sidePanel === 'dark-video' && !darkVideoPlaying)
+                                                    ? 1
+                                                    : 0,
+                                        }}
+                                        src="/login_side_image_1.png"
+                                        alt=""
+                                    />
+                                    {/*
+                                     * Layers 3 & 4: videos — always mounted for preload,
+                                     * driven imperatively. Never remounted.
+                                     */}
+                                    <video
+                                        ref={darkVideoRef}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        style={{ opacity: sidePanel === 'dark-video' ? 1 : 0 }}
+                                        src="/login_toggle_dark.mp4"
+                                        preload="auto"
+                                        muted
+                                        playsInline
+                                        onPlay={() => {
+                                            setDarkVideoPlaying(true);
+                                            const dur = darkVideoRef.current?.duration;
+                                            const delay = isFinite(dur!)
+                                                ? Math.max(0, (dur! - VIDEO_BG_LEAD_S) * 1000)
+                                                : 2000;
+                                            sidePanelTimeoutRef.current = window.setTimeout(startBgToDark, delay);
+                                        }}
+                                        onEnded={() => {
+                                            setDarkVideoPlaying(false);
+                                            setSidePanel('dark-img');
+                                        }}
+                                    />
+                                    <video
+                                        ref={lightVideoRef}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        style={{ opacity: sidePanel === 'light-video' ? 1 : 0 }}
+                                        src="/login_toggle_light.mp4"
+                                        preload="auto"
+                                        muted
+                                        playsInline
+                                        onPlay={() => {
+                                            setLightVideoPlaying(true);
+                                            const dur = lightVideoRef.current?.duration;
+                                            const delay = isFinite(dur!)
+                                                ? Math.max(0, (dur! - VIDEO_BG_LEAD_S) * 1000)
+                                                : 2000;
+                                            sidePanelTimeoutRef.current = window.setTimeout(startBgToLight, delay);
+                                        }}
+                                        onEnded={() => {
+                                            setLightVideoPlaying(false);
+                                            setSidePanel('light-img');
+                                        }}
+                                    />
+                                </>
+                            ) : (
+                                <img
+                                    src="/login_side_image.png"
+                                    alt="Security and Analytics"
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

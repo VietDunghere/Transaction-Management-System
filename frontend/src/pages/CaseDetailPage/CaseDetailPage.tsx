@@ -102,7 +102,7 @@ export function CaseDetailPage() {
                 header={
                     <PageHeader
                         title="Case Detail"
-                        subtitle={`${caseData.transaction.amount.toLocaleString()} ${caseData.transaction.currency_code} · ${caseData.case_status} · Created ${new Date(caseData.created_at).toLocaleString()}`}
+                        subtitle={`${caseData.transaction.amount.toLocaleString()} · ${caseData.case_status} · Created ${new Date(caseData.created_at).toLocaleString()}`}
                         actions={
                             <div className="flex items-center gap-2">
                                 {canAssign && (
@@ -209,12 +209,11 @@ export function CaseDetailPage() {
                                 <KeyValueRow
                                     label="Amount"
                                     value={
-                                        <span className="font-mono font-semibold">
+                                <span className="font-mono font-semibold">
                                             {caseData.transaction.amount.toLocaleString(undefined, {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2,
-                                            })}{' '}
-                                            {caseData.transaction.currency_code}
+                                            })}
                                         </span>
                                     }
                                 />
@@ -241,7 +240,6 @@ export function CaseDetailPage() {
                                     label="Transaction Time"
                                     value={new Date(caseData.transaction.txn_time).toLocaleString()}
                                 />
-                                <KeyValueRow label="Source IP" value={caseData.transaction.source_ip ?? '—'} />
                                 <KeyValueRow label="Card" value={caseData.transaction.card_number_masked ?? '—'} />
                             </div>
                         </Card>
@@ -339,7 +337,7 @@ export function CaseDetailPage() {
                                         </div>
                                         <div className="flex items-center gap-2 flex-shrink-0">
                                             <span className="text-xs font-mono font-medium">
-                                                {r.amount.toLocaleString()} {r.currency_code}
+                                                {r.amount.toLocaleString()}
                                             </span>
                                             <Badge variant={txnStatusVariant[r.status] ?? 'muted'}>{r.status}</Badge>
                                             {r.fraud_score !== null && (

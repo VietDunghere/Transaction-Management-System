@@ -74,7 +74,7 @@ export function LoanDetailPage() {
                 header={
                     <PageHeader
                         title="Loan Detail"
-                        subtitle={`${loan.principal_amount.toLocaleString()} ${loan.currency_code} · ${loan.interest_rate}% · ${loan.term_months}mo · ${loan.risk_level ? riskLabel[loan.risk_level] : loan.status} · Created ${new Date(loan.created_at).toLocaleString()}`}
+                        subtitle={`${loan.principal_amount.toLocaleString()} · ${loan.interest_rate}% · ${loan.term_months}mo · ${loan.risk_level ? riskLabel[loan.risk_level] : loan.status} · Created ${new Date(loan.created_at).toLocaleString()}`}
                         actions={
                             <div className="flex items-center gap-2">
                                 {canDecide && (
@@ -140,7 +140,7 @@ export function LoanDetailPage() {
                                 />
                                 <KeyValueRow
                                     label="Principal"
-                                    value={`${loan.principal_amount.toLocaleString()} ${loan.currency_code}`}
+                                    value={loan.principal_amount.toLocaleString()}
                                 />
                                 <KeyValueRow label="Interest Rate" value={`${loan.interest_rate}%`} />
                                 <KeyValueRow label="Term" value={`${loan.term_months} months`} />
@@ -153,7 +153,7 @@ export function LoanDetailPage() {
                                     label="Monthly Payment"
                                     value={
                                         loan.monthly_payment !== null
-                                            ? `${loan.monthly_payment.toLocaleString()} ${loan.currency_code}`
+                                            ? loan.monthly_payment.toLocaleString()
                                             : '—'
                                     }
                                 />
@@ -175,7 +175,7 @@ export function LoanDetailPage() {
                                     {loan.person_income !== null && (
                                         <KeyValueRow
                                             label="Annual Income"
-                                            value={`${loan.person_income.toLocaleString()} ${loan.currency_code}`}
+                                            value={loan.person_income.toLocaleString()}
                                         />
                                     )}
                                     {loan.person_home_ownership && (

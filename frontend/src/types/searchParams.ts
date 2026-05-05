@@ -36,7 +36,7 @@ export type CaseSearchParams = z.infer<typeof caseSearchSchema>;
 export const userSearchSchema = z.object({
     ...paginationSchema,
     role: z.enum(['OPERATOR', 'REVIEWER', 'ANALYST', 'MANAGER', 'ADMIN']).optional().catch(undefined),
-    is_active: z.boolean().optional().catch(undefined),
+    status: z.enum(['ACTIVE', 'DISABLED']).optional().catch(undefined),
 });
 export type UserSearchParams = z.infer<typeof userSearchSchema>;
 

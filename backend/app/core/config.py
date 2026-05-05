@@ -53,7 +53,7 @@ class Settings(BaseSettings):
 
     # ---- API ----
     api_prefix: str = "/api/v1"
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"]
 
     @field_validator("app_env")
     @classmethod

@@ -34,8 +34,8 @@ const roleOptions = [
 
 const statusOptions = [
     { label: 'All Status', value: '' },
-    { label: 'Active', value: 'true' },
-    { label: 'Disabled', value: 'false' },
+    { label: 'Active', value: 'ACTIVE' },
+    { label: 'Disabled', value: 'DISABLED' },
 ];
 
 const columns = [
@@ -61,7 +61,7 @@ export function UserListPage() {
         username: <span className="text-sm font-medium">{u.username}</span>,
         full_name: <span className="text-sm">{u.full_name}</span>,
         role: <Badge variant={roleVariant[u.role]}>{u.role}</Badge>,
-        status: <Badge variant={u.is_active ? 'success' : 'muted'}>{u.is_active ? 'Active' : 'Disabled'}</Badge>,
+        status: <Badge variant={u.status === 'ACTIVE' ? 'success' : 'muted'}>{u.status === 'ACTIVE' ? 'Active' : 'Disabled'}</Badge>,
         created_at: <span className="text-xs text-text-secondary">{new Date(u.created_at).toLocaleDateString()}</span>,
     }));
 
@@ -96,11 +96,11 @@ export function UserListPage() {
                     />
                     <Select
                         options={statusOptions}
-                        value={params.is_active === undefined ? '' : String(params.is_active)}
+                        value={params.status ?? ''}
                         onChange={(e) =>
                             setParams((p) => ({
                                 ...p,
-                                is_active: e.target.value === '' ? undefined : e.target.value === 'true',
+                                status: (e.target.value || undefined) as 'ACTIVE' | 'DISABLED' | undefined,
                                 page: 1,
                             }))
                         }

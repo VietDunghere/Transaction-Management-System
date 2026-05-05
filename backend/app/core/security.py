@@ -9,6 +9,7 @@ from typing import Optional
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 
 from app.core.config import get_settings
 
@@ -28,8 +29,15 @@ def hash_password(plain_password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """So sánh mật khẩu nhập vào với hash đã lưu."""
-    return _pwd_context.verify(plain_password, hashed_password)
+    """So sánh mật khẩu nhập vào với hash đã lưu.
+
+    Returns False (not 500) when the stored value is not a recognised hash
+    format — handles rows seeded before proper bcrypt hashing was in place.
+    """
+    try:
+        return _pwd_context.verify(plain_password, hashed_password)
+    except UnknownHashError:
+        return False
 
 
 # ============================================================

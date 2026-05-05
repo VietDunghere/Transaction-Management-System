@@ -8,7 +8,6 @@ export const transactionKeys = {
     all: ['transactions'] as const,
     list: (params: TransactionSearchParams) => ['transactions', 'list', params] as const,
     detail: (txnId: string) => ['transactions', 'detail', txnId] as const,
-    states: (txnId: string) => ['transactions', 'states', txnId] as const,
 };
 
 export function useTransactions(params: TransactionSearchParams, refetchInterval?: number | false) {
@@ -23,14 +22,6 @@ export function useTransaction(txnId: string) {
     return useQuery({
         queryKey: transactionKeys.detail(txnId),
         queryFn: () => transactionService.getTransaction(txnId),
-        enabled: !!txnId,
-    });
-}
-
-export function useTransactionStates(txnId: string) {
-    return useQuery({
-        queryKey: transactionKeys.states(txnId),
-        queryFn: () => transactionService.getTransactionStates(txnId),
         enabled: !!txnId,
     });
 }
