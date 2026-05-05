@@ -33,7 +33,7 @@ done
 
 # ── Start demo sender (infinite loop, 0.3 req/s, 20% loans) ─
 echo "Starting demo data sender..."
-nohup python3 "$PROJECT_ROOT/demo_transactions.py" \
+nohup python3 -u "$PROJECT_ROOT/demo_transactions.py" \
     --url http://localhost:8000/api/v1 \
     --username operator1 \
     --password Demo@1234 \
