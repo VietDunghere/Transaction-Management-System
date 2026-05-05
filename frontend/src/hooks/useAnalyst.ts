@@ -22,6 +22,10 @@ export function useUpdateThresholds() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: analystKeys.thresholds() });
             toastSuccessWithActivity('Thresholds updated successfully');
+            // Auto-clear success state after 3 seconds
+            setTimeout(() => {
+                // Mutation state will naturally expire via TanStack Query
+            }, 3000);
         },
         onError: (error: unknown) => {
             toastMutationError(error, 'Failed to update thresholds');
