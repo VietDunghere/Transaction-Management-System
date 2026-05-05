@@ -49,8 +49,20 @@ TXN_PROFILE_WEIGHTS: dict[str, dict[str, int]] = {
 }
 
 
-def _random_card_number() -> str:
-    return "4" + "".join(str(random.randint(0, 9)) for _ in range(15))
+# Fixed pool of 20 cards — reused so velocity accumulates across transactions
+_CARD_POOL = [
+    "4111111111111111", "4222222222222222", "4333333333333333", "4444444444444444",
+    "4555555555555555", "4666666666666666", "4777777777777777", "4888888888888888",
+    "4999999999999999", "4000000000000000", "4123456789012345", "4234567890123456",
+    "4345678901234567", "4456789012345678", "4567890123456789", "4678901234567890",
+    "4789012345678901", "4890123456789012", "4901234567890123", "4012345678901234",
+]
+
+def _pick_card(profile: str) -> str:
+    # High-profile cards (fraud-like) use same 5 cards → velocity spikes faster
+    if profile == "high":
+        return random.choice(_CARD_POOL[:5])
+    return random.choice(_CARD_POOL)
 
 
 @dataclass(frozen=True)
@@ -251,7 +263,7 @@ def build_transaction(ctx: DemoContext, target_status: str) -> dict[str, Any]:
         txn_time -= timedelta(days=1)
 
     return {
-        "card_number": _random_card_number(),
+        "card_number": _pick_card(profile),
         "customer_id": random.choice(ctx.customer_ids),
         "merchant_id": random.choice(ctx.merchant_ids),
         "channel_id": random.choice(ctx.channel_ids),
