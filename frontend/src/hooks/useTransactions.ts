@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { transactionService } from '~/services/transactionService';
+import { toastMutationError } from '~/utils/mutationErrorToast';
 import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { TransactionSearchParams } from '~/types/searchParams';
 
@@ -8,7 +8,6 @@ export const transactionKeys = {
     all: ['transactions'] as const,
     list: (params: TransactionSearchParams) => ['transactions', 'list', params] as const,
     detail: (txnId: string) => ['transactions', 'detail', txnId] as const,
-    states: (txnId: string) => ['transactions', 'states', txnId] as const,
 };
 
 export function useTransactions(params: TransactionSearchParams, refetchInterval?: number | false) {
@@ -27,14 +26,6 @@ export function useTransaction(txnId: string) {
     });
 }
 
-export function useTransactionStates(txnId: string) {
-    return useQuery({
-        queryKey: transactionKeys.states(txnId),
-        queryFn: () => transactionService.getTransactionStates(txnId),
-        enabled: !!txnId,
-    });
-}
-
 export function useSubmitTransaction() {
     const queryClient = useQueryClient();
 
@@ -45,8 +36,7 @@ export function useSubmitTransaction() {
             toastSuccessWithActivity('Transaction submitted');
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error);
         },
     });
 }

@@ -78,7 +78,7 @@ export function LoanListPage() {
         ),
         amount: (
             <span className="text-sm font-medium">
-                {loan.principal_amount.toLocaleString()} {loan.currency_code}
+                {loan.principal_amount.toLocaleString()}
             </span>
         ),
         term: <span className="text-sm">{loan.term_months} months</span>,

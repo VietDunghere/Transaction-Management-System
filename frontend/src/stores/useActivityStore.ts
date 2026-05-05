@@ -23,6 +23,17 @@ interface ActivityState {
 const STORAGE_KEY = 'activity_log';
 const MAX_ACTIVITIES = 50;
 
+function makeActivityId(): string {
+    const webCrypto = globalThis.crypto;
+
+    if (webCrypto && typeof webCrypto.randomUUID === 'function') {
+        return webCrypto.randomUUID();
+    }
+
+    // Fallback for older browsers/non-secure contexts without crypto.randomUUID.
+    return `act-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
+
 function toInitials(value: string): string {
     const parts = value.trim().split(/\s+/).filter(Boolean);
 

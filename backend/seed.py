@@ -37,7 +37,11 @@ def seed(db: Session) -> None:
     for u_data in users_data:
         existing = db.query(User).filter(User.username == u_data["username"]).first()
         if existing:
-            print(f"[users] skip {u_data['username']} (exists)")
+            # Always re-hash on seed — ensures rows from older scripts
+            # (plain-text or differently-hashed) are corrected on next run.
+            existing.password_hash = hash_password(u_data["password"])
+            db.flush()
+            print(f"[users] re-hashed {u_data['username']}")
             continue
 
         user = User(

@@ -7,8 +7,11 @@ import { Toaster } from 'sonner';
 
 import { queryClient } from './lib/queryClient';
 import { router } from './routes';
+import { ensureCryptoRandomUUID } from './utils/ensureCryptoRandomUUID';
 
 import './index.css';
+
+ensureCryptoRandomUUID();
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>

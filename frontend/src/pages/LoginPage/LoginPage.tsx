@@ -17,7 +17,7 @@ type SidePanel = 'light-img' | 'dark-img' | 'dark-video' | 'light-video';
 
 const TRANSITION_MS = 500;
 const BG_FADE_MS = 1000;
-const BG_DELAY_MS = 1000; // when video is playing, hold the bg animation for 1s
+const VIDEO_BG_LEAD_S = 0.8; // bg fires this many seconds before video ends
 
 const loginSchema = z.object({
     username: z.string().min(1, 'Username is required'),
@@ -92,67 +92,51 @@ export function LoginPage() {
         };
     }, []);
 
+    // Extracted so they can be called from handleToggleTheme (normal flow)
+    // and from onPlay (special flow — scheduled at duration - VIDEO_BG_LEAD_S).
+    const startBgToDark = () => {
+        geometricRef.current?.implode();
+        transitionTimeoutRef.current = window.setTimeout(() => {
+            setMountedDark(true);
+            toggleTheme();
+            transitionTimeoutRef.current = window.setTimeout(() => {
+                setIsTransitioning(false);
+                transitionTimeoutRef.current = null;
+            }, BG_FADE_MS);
+        }, TRANSITION_MS - 200);
+    };
+
+    const startBgToLight = () => {
+        setMountedLight(true);
+        toggleTheme();
+        transitionTimeoutRef.current = window.setTimeout(() => {
+            requestAnimationFrame(() => {
+                geometricRef.current?.explode(() => {
+                    setIsTransitioning(false);
+                    transitionTimeoutRef.current = null;
+                });
+            });
+        }, TRANSITION_MS - 200);
+    };
+
     const handleToggleTheme = () => {
-        // Edge case 1: transition lock — prevent overlapping animations
-        if (isTransitioning) return;
+        if (isTransitioning || darkVideoPlaying || lightVideoPlaying) return;
 
         setIsTransitioning(true);
 
         if (theme === 'light') {
             if (isSpecialFlow.current) {
-                // Video fires immediately; bg animation held back by BG_DELAY_MS
+                // Video fires immediately; bg is scheduled from onPlay
+                // once we know the exact duration.
                 setSidePanel('dark-video');
-                sidePanelTimeoutRef.current = window.setTimeout(() => {
-                    geometricRef.current?.implode();
-                    transitionTimeoutRef.current = window.setTimeout(() => {
-                        setMountedDark(true);
-                        toggleTheme();
-                        transitionTimeoutRef.current = window.setTimeout(() => {
-                            setIsTransitioning(false);
-                            transitionTimeoutRef.current = null;
-                        }, BG_FADE_MS);
-                    }, TRANSITION_MS - 200);
-                }, BG_DELAY_MS);
             } else {
-                // Normal flow — original timing
-                geometricRef.current?.implode();
-                transitionTimeoutRef.current = window.setTimeout(() => {
-                    setMountedDark(true);
-                    toggleTheme();
-                    transitionTimeoutRef.current = window.setTimeout(() => {
-                        setIsTransitioning(false);
-                        transitionTimeoutRef.current = null;
-                    }, BG_FADE_MS);
-                }, TRANSITION_MS - 200);
+                startBgToDark();
             }
         } else {
             if (isSpecialFlow.current) {
-                // Video fires immediately; bg animation held back by BG_DELAY_MS
                 setSidePanel('light-video');
-                sidePanelTimeoutRef.current = window.setTimeout(() => {
-                    setMountedLight(true);
-                    toggleTheme();
-                    transitionTimeoutRef.current = window.setTimeout(() => {
-                        requestAnimationFrame(() => {
-                            geometricRef.current?.explode(() => {
-                                setIsTransitioning(false);
-                                transitionTimeoutRef.current = null;
-                            });
-                        });
-                    }, TRANSITION_MS - 200);
-                }, BG_DELAY_MS);
             } else {
-                // Normal flow — original timing
-                setMountedLight(true);
-                toggleTheme();
-                transitionTimeoutRef.current = window.setTimeout(() => {
-                    requestAnimationFrame(() => {
-                        geometricRef.current?.explode(() => {
-                            setIsTransitioning(false);
-                            transitionTimeoutRef.current = null;
-                        });
-                    });
-                }, TRANSITION_MS - 200);
+                startBgToLight();
             }
         }
     };
@@ -220,8 +204,8 @@ export function LoginPage() {
                         {/* Theme Toggle Icon Button - Placed at bottom right of the card, visible on both Mobile and Desktop */}
                         <button
                             onClick={handleToggleTheme}
-                            disabled={isTransitioning}
-                            className={`absolute bottom-3 right-3 md:bottom-5 md:right-5 z-50 flex size-8 md:size-11 items-center justify-center rounded-full bg-text-primary/10 md:bg-white/10 hover:bg-text-primary/20 md:hover:bg-white/20 backdrop-blur-xl border border-border-default md:border-white/20 text-text-primary md:text-white shadow-xl transition-all duration-300 focus:outline-none hover:scale-110 active:scale-95 ${isTransitioning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            disabled={isTransitioning || darkVideoPlaying || lightVideoPlaying}
+                            className={`absolute bottom-3 right-3 md:bottom-5 md:right-5 z-50 flex size-8 md:size-11 items-center justify-center rounded-full bg-text-primary/10 md:bg-white/10 hover:bg-text-primary/20 md:hover:bg-white/20 backdrop-blur-xl border border-border-default md:border-white/20 text-text-primary md:text-white shadow-xl transition-all duration-300 focus:outline-none hover:scale-110 active:scale-95 ${isTransitioning || darkVideoPlaying || lightVideoPlaying ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                             aria-label="Toggle theme"
                         >
                             {theme === 'light' ? (
@@ -347,7 +331,14 @@ export function LoginPage() {
                                         preload="auto"
                                         muted
                                         playsInline
-                                        onPlay={() => setDarkVideoPlaying(true)}
+                                        onPlay={() => {
+                                            setDarkVideoPlaying(true);
+                                            const dur = darkVideoRef.current?.duration;
+                                            const delay = isFinite(dur!)
+                                                ? Math.max(0, (dur! - VIDEO_BG_LEAD_S) * 1000)
+                                                : 2000;
+                                            sidePanelTimeoutRef.current = window.setTimeout(startBgToDark, delay);
+                                        }}
                                         onEnded={() => {
                                             setDarkVideoPlaying(false);
                                             setSidePanel('dark-img');
@@ -361,7 +352,14 @@ export function LoginPage() {
                                         preload="auto"
                                         muted
                                         playsInline
-                                        onPlay={() => setLightVideoPlaying(true)}
+                                        onPlay={() => {
+                                            setLightVideoPlaying(true);
+                                            const dur = lightVideoRef.current?.duration;
+                                            const delay = isFinite(dur!)
+                                                ? Math.max(0, (dur! - VIDEO_BG_LEAD_S) * 1000)
+                                                : 2000;
+                                            sidePanelTimeoutRef.current = window.setTimeout(startBgToLight, delay);
+                                        }}
                                         onEnded={() => {
                                             setLightVideoPlaying(false);
                                             setSidePanel('light-img');

@@ -87,7 +87,6 @@ describe('loan pages', () => {
             {
                 customer_id: 'cust-900',
                 principal_amount: 300000,
-                currency_code: 'VND',
                 interest_rate: 11.5,
                 term_months: 36,
                 purpose: 'Home Improvement',

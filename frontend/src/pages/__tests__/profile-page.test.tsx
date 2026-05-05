@@ -43,7 +43,6 @@ describe('profile page', () => {
                 new_password: 'NewSecret123',
                 confirm_password: 'NewSecret123',
             },
-            expect.any(Object),
         );
     });
 });

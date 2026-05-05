@@ -26,7 +26,7 @@ export function useMe() {
                 full_name: data.full_name ?? '',
                 email: '',
                 role: data.role,
-                is_active: data.is_active,
+                status: data.status,
                 created_at: '',
             });
             return data;
@@ -52,7 +52,7 @@ export function useLogin() {
                 full_name: res.full_name,
                 email: '',
                 role: res.role,
-                is_active: true,
+                status: 'ACTIVE',
                 created_at: '',
             });
             navigate({ to: '/' });
@@ -90,8 +90,7 @@ export function useChangePassword() {
             }, 3000);
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error, 'Failed to change password. Check your current password.');
         },
     });
 }

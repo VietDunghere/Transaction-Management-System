@@ -43,6 +43,36 @@ export function AnalystThresholdsPage() {
 
     const paramOptions = modelName === 'fraud' ? FRAUD_PARAMS : LOAN_PARAMS;
 
+    function renderThresholdRows(items: ThresholdItem[], model: 'fraud' | 'loan') {
+        if (items.length === 0) {
+            return (
+                <p className="text-sm text-text-secondary">
+                    Threshold data is unavailable. Please refresh or contact admin.
+                </p>
+            );
+        }
+
+        return items.map((item) => (
+            <KeyValueRow
+                key={item.param_name}
+                label={PARAM_LABELS[item.param_name] ?? item.param_name}
+                value={
+                    <div className="flex items-center gap-4">
+                        <span className="font-mono text-sm font-semibold">{item.param_value.toFixed(2)}</span>
+                        <span className="text-xs text-text-secondary">
+                            v{item.version} · {item.updated_by ?? '—'} · {new Date(item.updated_at).toLocaleDateString()}
+                        </span>
+                        {canEdit && (
+                            <Button size="sm" variant="secondary" onClick={() => openModal(model, item)}>
+                                Edit
+                            </Button>
+                        )}
+                    </div>
+                }
+            />
+        ));
+    }
+
     function handleSubmit() {
         const val = parseFloat(paramValue);
         if (isNaN(val) || val <= 0 || val >= 1) return;
@@ -73,50 +103,14 @@ export function AnalystThresholdsPage() {
                 <Card>
                     <SectionHeader title="Fraud Detection Model" />
                     <div className="flex flex-col gap-1 mt-4">
-                        {data.fraud.map((item) => (
-                            <KeyValueRow
-                                key={item.param_name}
-                                label={PARAM_LABELS[item.param_name] ?? item.param_name}
-                                value={
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-mono text-sm font-semibold">{item.param_value.toFixed(2)}</span>
-                                        <span className="text-xs text-text-secondary">
-                                            v{item.version} · {item.updated_by ?? '—'} · {new Date(item.updated_at).toLocaleDateString()}
-                                        </span>
-                                        {canEdit && (
-                                            <Button size="sm" variant="secondary" onClick={() => openModal('fraud', item)}>
-                                                Edit
-                                            </Button>
-                                        )}
-                                    </div>
-                                }
-                            />
-                        ))}
+                        {renderThresholdRows(data.fraud, 'fraud')}
                     </div>
                 </Card>
 
                 <Card>
                     <SectionHeader title="Loan PD Score Model" />
                     <div className="flex flex-col gap-1 mt-4">
-                        {data.loan.map((item) => (
-                            <KeyValueRow
-                                key={item.param_name}
-                                label={PARAM_LABELS[item.param_name] ?? item.param_name}
-                                value={
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-mono text-sm font-semibold">{item.param_value.toFixed(2)}</span>
-                                        <span className="text-xs text-text-secondary">
-                                            v{item.version} · {item.updated_by ?? '—'} · {new Date(item.updated_at).toLocaleDateString()}
-                                        </span>
-                                        {canEdit && (
-                                            <Button size="sm" variant="secondary" onClick={() => openModal('loan', item)}>
-                                                Edit
-                                            </Button>
-                                        )}
-                                    </div>
-                                }
-                            />
-                        ))}
+                        {renderThresholdRows(data.loan, 'loan')}
                     </div>
                 </Card>
             </div>
