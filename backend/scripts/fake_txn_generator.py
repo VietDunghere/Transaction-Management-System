@@ -18,6 +18,7 @@ Sử dụng:
 from __future__ import annotations
 
 import argparse
+from collections import deque
 import json
 import random
 import sys
@@ -60,6 +61,58 @@ PATTERN_WEIGHTS = {
     "suspicious":  10,  # Số tiền lớn, ban đêm
     "fraud_like":   5,  # Số tiền cực lớn + xa nhà
 }
+
+TARGET_TXN_RATIOS: dict[str, float] = {
+    "APPROVED": 0.80,
+    "MANUAL_REVIEW": 0.10,
+    "REJECTED": 0.10,
+}
+
+STATUS_PATTERN_WEIGHTS: dict[str, dict[str, int]] = {
+    "APPROVED": {"normal": 86, "medium": 14, "suspicious": 0, "fraud_like": 0},
+    "MANUAL_REVIEW": {"normal": 12, "medium": 66, "suspicious": 22, "fraud_like": 0},
+    "REJECTED": {"normal": 0, "medium": 15, "suspicious": 45, "fraud_like": 40},
+}
+
+
+class TxnStatusBalancer:
+    """Giữ tỉ lệ trạng thái gần mục tiêu trong cửa sổ trượt 100 giao dịch."""
+
+    def __init__(self, window_size: int = 100):
+        self._window = deque(maxlen=window_size)
+        self._window_size = window_size
+
+    def choose_target(self) -> str:
+        statuses = list(TARGET_TXN_RATIOS.keys())
+        if len(self._window) < min(20, self._window_size):
+            return random.choices(statuses, weights=[80, 10, 10], k=1)[0]
+
+        counts = {status: self._window.count(status) for status in statuses}
+        current_size = len(self._window)
+        deficits = {
+            status: (TARGET_TXN_RATIOS[status] * current_size) - counts[status]
+            for status in statuses
+        }
+        best_status = max(deficits, key=deficits.get)
+        if deficits[best_status] <= 0:
+            return random.choices(statuses, weights=[80, 10, 10], k=1)[0]
+        return best_status
+
+    def observe(self, actual_status: str) -> None:
+        if actual_status in TARGET_TXN_RATIOS:
+            self._window.append(actual_status)
+
+    def rolling_counts(self) -> dict[str, int]:
+        return {
+            status: self._window.count(status)
+            for status in TARGET_TXN_RATIOS
+        }
+
+
+def choose_pattern_for_target(target_status: str) -> str:
+    weights = STATUS_PATTERN_WEIGHTS.get(target_status, STATUS_PATTERN_WEIGHTS["APPROVED"])
+    patterns = list(weights.keys())
+    return random.choices(patterns, weights=[weights[p] for p in patterns], k=1)[0]
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -258,19 +311,19 @@ def generate_transaction(
 
     # ---- Amount theo pattern ----
     if pattern == "normal":
-        amount = round(random.uniform(5.0, 150.0), 2)
+        amount = round(random.uniform(8.0, 180.0), 2)
     elif pattern == "medium":
-        amount = round(random.uniform(150.0, 1000.0), 2)
+        amount = round(random.uniform(250.0, 1400.0), 2)
     elif pattern == "suspicious":
-        amount = round(random.uniform(1000.0, 5000.0), 2)
+        amount = round(random.uniform(1200.0, 6000.0), 2)
     else:  # fraud_like
-        amount = round(random.uniform(5000.0, 50000.0), 2)
+        amount = round(random.uniform(5000.0, 25000.0), 2)
 
     # ---- Thời gian: fraud thường ban đêm ----
     if pattern in ("suspicious", "fraud_like"):
         hour = random.choice([0, 1, 2, 3, 23, 22])
     else:
-        hour = random.randint(8, 21)
+        hour = random.choices([random.randint(8, 21), random.choice([22, 23, 0, 1])], weights=[97, 3], k=1)[0]
 
     txn_time = datetime.now().replace(
         hour=hour,
@@ -395,6 +448,8 @@ def run(
     start_time = time.time()
     interval = 1.0 / rate
 
+    balancer = TxnStatusBalancer(window_size=100)
+
     patterns = list(PATTERN_WEIGHTS.keys())
     weights  = list(PATTERN_WEIGHTS.values())
 
@@ -404,7 +459,11 @@ def run(
             if max_txn and total >= max_txn:
                 break
 
-            pattern = random.choices(patterns, weights=weights, k=1)[0]
+            target_status = balancer.choose_target()
+            if target_status in STATUS_PATTERN_WEIGHTS:
+                pattern = choose_pattern_for_target(target_status)
+            else:
+                pattern = random.choices(patterns, weights=weights, k=1)[0]
             payload  = generate_transaction(customer_ids, merchant_ids, channel_ids, pattern)
 
             try:
@@ -413,6 +472,7 @@ def run(
                 fraud_score = result.get("fraud_score")
                 txn_id     = result.get("txn_id", "")[:8] + "..."
                 stats[status] = stats.get(status, 0) + 1
+                balancer.observe(status)
             except Exception as exc:
                 status      = "ERROR"
                 fraud_score = None
@@ -430,7 +490,7 @@ def run(
 
             table.add_row(
                 str(total),
-                f"{pattern_emoji(pattern)} {pattern}",
+                f"{pattern_emoji(pattern)} {pattern}→{target_status[:1]}",
                 f"${payload['amount']:>10,.2f}",
                 score_str,
                 status_badge(status),
