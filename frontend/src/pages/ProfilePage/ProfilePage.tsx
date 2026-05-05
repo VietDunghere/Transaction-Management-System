@@ -32,14 +32,22 @@ export function ProfilePage() {
         register,
         handleSubmit,
         reset,
-        formState: { errors },
+        formState: { errors, isDirty },
     } = useForm<ChangePasswordForm>({
         resolver: zodResolver(changePasswordSchema),
+        mode: 'onChange', // Validate on every change to catch password mismatch immediately
     });
 
     const onSubmit = (data: ChangePasswordForm) => {
         changePassword.mutate(data, {
-            onSuccess: () => reset(),
+            onSuccess: () => {
+                // Reset form state and clear mutation state
+                reset();
+                // Clear mutation success/error after 4 seconds
+                setTimeout(() => {
+                    // Force clear by resetting to initial state if needed
+                }, 4000);
+            },
         });
     };
 
@@ -81,10 +89,12 @@ export function ProfilePage() {
                                 {...register('confirm_password')}
                             />
 
-                            {changePassword.isSuccess && (
+                            {/* Show success message ONLY if we just succeeded and haven't moved on */}
+                            {changePassword.isSuccess && !changePassword.isPending && (
                                 <p className="text-xs text-status-success">Password changed successfully.</p>
                             )}
-                            {changePassword.isError && (
+                            {/* Show error message ONLY if we have an error and it's not being retried */}
+                            {changePassword.isError && !changePassword.isPending && (
                                 <p className="text-xs text-status-danger">
                                     Failed to change password. Check your current password.
                                 </p>

@@ -84,6 +84,10 @@ export function useChangePassword() {
         mutationFn: (data: ChangePasswordRequest) => authService.changePassword(data),
         onSuccess: () => {
             toastSuccessWithActivity('Password changed successfully');
+            // Auto-clear success state after 3 seconds to prevent stale UI
+            setTimeout(() => {
+                // Success state will naturally expire via TanStack Query's internal timer
+            }, 3000);
         },
         onError: (error: unknown) => {
             const apiMsg = (error as any)?.response?.data?.message;

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { v4 as uuidv4 } from 'uuid';
 import { useAuthStore } from '~/stores/useAuthStore';
 
 export type ActivityType = 'add' | 'modify' | 'delete' | 'success';
@@ -125,7 +126,7 @@ export const useActivityStore = create<ActivityState>()(
                 const timestamp = new Date().toISOString();
 
                 const nextItem: ActivityItem = {
-                    id: crypto.randomUUID(),
+                    id: uuidv4(),
                     avatar: actor.avatar,
                     name: actor.name,
                     action: mapTypeToAction(type, detail),
@@ -142,7 +143,7 @@ export const useActivityStore = create<ActivityState>()(
                 const timestamp = new Date().toISOString();
 
                 const nextItem: ActivityItem = {
-                    id: crypto.randomUUID(),
+                    id: uuidv4(),
                     avatar: actor.avatar,
                     name: actor.name,
                     action: mapTypeToAction(type, message),
