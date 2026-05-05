@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { v4 as uuidv4 } from 'uuid';
 import { useAuthStore } from '~/stores/useAuthStore';
 
 export type ActivityType = 'add' | 'modify' | 'delete' | 'success';
@@ -23,16 +22,6 @@ interface ActivityState {
 const STORAGE_KEY = 'activity_log';
 const MAX_ACTIVITIES = 50;
 
-function makeActivityId(): string {
-    const webCrypto = globalThis.crypto;
-
-    if (webCrypto && typeof webCrypto.randomUUID === 'function') {
-        return webCrypto.randomUUID();
-    }
-
-    // Fallback for older browsers/non-secure contexts without crypto.randomUUID.
-    return `act-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
-}
 
 function toInitials(value: string): string {
     const parts = value.trim().split(/\s+/).filter(Boolean);
@@ -137,7 +126,7 @@ export const useActivityStore = create<ActivityState>()(
                 const timestamp = new Date().toISOString();
 
                 const nextItem: ActivityItem = {
-                    id: uuidv4(),
+                    id: crypto.randomUUID(),
                     avatar: actor.avatar,
                     name: actor.name,
                     action: mapTypeToAction(type, detail),
@@ -154,7 +143,7 @@ export const useActivityStore = create<ActivityState>()(
                 const timestamp = new Date().toISOString();
 
                 const nextItem: ActivityItem = {
-                    id: uuidv4(),
+                    id: crypto.randomUUID(),
                     avatar: actor.avatar,
                     name: actor.name,
                     action: mapTypeToAction(type, message),
