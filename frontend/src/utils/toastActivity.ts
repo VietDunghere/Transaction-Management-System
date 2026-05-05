@@ -11,7 +11,12 @@ export function trackActivity(type: ActivityType, detail: string): void {
 }
 
 export function toastSuccessWithActivity(message: string): void {
-    toast.success(message);
+    try {
+        toast.success(message);
+    } catch {
+        // Ignore toast engine failures to avoid converting successful actions into errors.
+    }
+
     try {
         useActivityStore.getState().addFromSuccessToast(message);
     } catch {
