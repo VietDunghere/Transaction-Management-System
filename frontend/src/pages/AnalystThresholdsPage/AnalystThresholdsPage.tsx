@@ -43,16 +43,58 @@ export function AnalystThresholdsPage() {
 
     const paramOptions = modelName === 'fraud' ? FRAUD_PARAMS : LOAN_PARAMS;
 
+    function renderThresholdRows(items: ThresholdItem[], model: 'fraud' | 'loan') {
+        if (items.length === 0) {
+            return (
+                <p className="text-sm text-text-secondary">
+                    Threshold data is unavailable. Please refresh or contact admin.
+                </p>
+            );
+        }
+
+        return items.map((item) => (
+            <KeyValueRow
+                key={item.param_name}
+                label={PARAM_LABELS[item.param_name] ?? item.param_name}
+                value={
+                    <div className="flex items-center gap-4">
+                        <span className="font-mono text-sm font-semibold">{item.param_value.toFixed(2)}</span>
+                        <span className="text-xs text-text-secondary">
+                            v{item.version} · {item.updated_by ?? '—'} ·{' '}
+                            {new Date(item.updated_at).toLocaleDateString()}
+                        </span>
+                        {canEdit && (
+                            <Button size="sm" variant="secondary" onClick={() => openModal(model, item)}>
+                                Edit
+                            </Button>
+                        )}
+                    </div>
+                }
+            />
+        ));
+    }
+
     function handleSubmit() {
         const val = parseFloat(paramValue);
         if (isNaN(val) || val <= 0 || val >= 1) return;
         updateThresholds.mutate(
             { updates: [{ model_name: modelName, param_name: paramName, param_value: val }] },
-            { onSuccess: () => setModal(false) },
+            {
+                onSuccess: () => {
+                    // Close modal immediately on success
+                    setModal(false);
+                    // Clear form state
+                    setParamValue('');
+                },
+                onError: () => {
+                    // Error state will be displayed via mutation state
+                },
+            },
         );
     }
 
     function openModal(model: 'fraud' | 'loan', item: ThresholdItem) {
+        updateThresholds.reset();
         setModelName(model);
         setParamName(item.param_name);
         setParamValue(String(item.param_value));
@@ -72,52 +114,12 @@ export function AnalystThresholdsPage() {
 
                 <Card>
                     <SectionHeader title="Fraud Detection Model" />
-                    <div className="flex flex-col gap-1 mt-4">
-                        {data.fraud.map((item) => (
-                            <KeyValueRow
-                                key={item.param_name}
-                                label={PARAM_LABELS[item.param_name] ?? item.param_name}
-                                value={
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-mono text-sm font-semibold">{item.param_value.toFixed(2)}</span>
-                                        <span className="text-xs text-text-secondary">
-                                            v{item.version} · {item.updated_by ?? '—'} · {new Date(item.updated_at).toLocaleDateString()}
-                                        </span>
-                                        {canEdit && (
-                                            <Button size="sm" variant="secondary" onClick={() => openModal('fraud', item)}>
-                                                Edit
-                                            </Button>
-                                        )}
-                                    </div>
-                                }
-                            />
-                        ))}
-                    </div>
+                    <div className="flex flex-col gap-1 mt-4">{renderThresholdRows(data.fraud, 'fraud')}</div>
                 </Card>
 
                 <Card>
                     <SectionHeader title="Loan PD Score Model" />
-                    <div className="flex flex-col gap-1 mt-4">
-                        {data.loan.map((item) => (
-                            <KeyValueRow
-                                key={item.param_name}
-                                label={PARAM_LABELS[item.param_name] ?? item.param_name}
-                                value={
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-mono text-sm font-semibold">{item.param_value.toFixed(2)}</span>
-                                        <span className="text-xs text-text-secondary">
-                                            v{item.version} · {item.updated_by ?? '—'} · {new Date(item.updated_at).toLocaleDateString()}
-                                        </span>
-                                        {canEdit && (
-                                            <Button size="sm" variant="secondary" onClick={() => openModal('loan', item)}>
-                                                Edit
-                                            </Button>
-                                        )}
-                                    </div>
-                                }
-                            />
-                        ))}
-                    </div>
+                    <div className="flex flex-col gap-1 mt-4">{renderThresholdRows(data.loan, 'loan')}</div>
                 </Card>
             </div>
 
@@ -127,15 +129,22 @@ export function AnalystThresholdsPage() {
                 title="Update Threshold"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <Button variant="ghost" onClick={() => setModal(false)}>Cancel</Button>
-                        <Button onClick={handleSubmit} loading={updateThresholds.isPending}>Save</Button>
+                        <Button variant="ghost" onClick={() => setModal(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSubmit} loading={updateThresholds.isPending}>
+                            Save
+                        </Button>
                     </div>
                 }
             >
                 <div className="flex flex-col gap-4">
                     <Select
                         label="Model"
-                        options={[{ label: 'Fraud Detection', value: 'fraud' }, { label: 'Loan PD Score', value: 'loan' }]}
+                        options={[
+                            { label: 'Fraud Detection', value: 'fraud' },
+                            { label: 'Loan PD Score', value: 'loan' },
+                        ]}
                         value={modelName}
                         onChange={(e) => {
                             const m = e.target.value as 'fraud' | 'loan';
@@ -158,7 +167,8 @@ export function AnalystThresholdsPage() {
                         value={paramValue}
                         onChange={(e) => setParamValue(e.target.value)}
                     />
-                    {updateThresholds.isError && (
+                    {/* Only show error if mutation failed and is not currently loading */}
+                    {updateThresholds.isError && !updateThresholds.isPending && (
                         <p className="text-xs text-status-danger">Failed to update. Please try again.</p>
                     )}
                 </div>

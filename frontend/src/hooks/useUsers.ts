@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { userService } from '~/services/userService';
+import { toastMutationError } from '~/utils/mutationErrorToast';
 import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { UserSearchParams } from '~/types/searchParams';
 import type { CreateUserRequest, UpdateRoleRequest, Role } from '~/types/api';
@@ -36,8 +36,7 @@ export function useCreateUser() {
             toastSuccessWithActivity('User created successfully');
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error);
         },
     });
 }
@@ -53,8 +52,7 @@ export function useDisableUser() {
             toastSuccessWithActivity('User disabled');
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error);
         },
     });
 }
@@ -70,8 +68,7 @@ export function useEnableUser() {
             toastSuccessWithActivity('User enabled');
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error);
         },
     });
 }
@@ -88,8 +85,7 @@ export function useUpdateUserRole() {
             toastSuccessWithActivity('Role updated successfully');
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error);
         },
     });
 }

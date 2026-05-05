@@ -32,20 +32,44 @@ logger = get_logger(__name__)
 
 
 class AnalystService:
+    _DEFAULT_THRESHOLDS: dict[tuple[str, str], tuple[float, str]] = {
+        ("fraud", "reject_threshold"): (0.65, "Auto reject threshold for fraud"),
+        ("fraud", "review_threshold"): (0.35, "Manual review threshold for fraud"),
+        ("loan", "high_risk_threshold"): (0.50, "High risk threshold for loan PD"),
+        ("loan", "medium_risk_threshold"): (0.20, "Medium risk threshold for loan PD"),
+    }
+
     def __init__(self, db: Session) -> None:
         self._db = db
         self._config_repo = ModelConfigRepository(db)
+
+    def _ensure_default_thresholds(self) -> None:
+        created = False
+        for (model_name, param_name), (param_value, description) in self._DEFAULT_THRESHOLDS.items():
+            cfg = self._config_repo.get(model_name, param_name)
+            if cfg is None:
+                self._config_repo.create(
+                    model_name=model_name,
+                    param_name=param_name,
+                    param_value=param_value,
+                    description=description,
+                )
+                created = True
+        if created:
+            self._db.commit()
 
     # ============================================================
     # 1. Threshold management
     # ============================================================
 
     def get_thresholds(self) -> ThresholdListResponse:
+        self._ensure_default_thresholds()
         fraud_cfgs = self._config_repo.get_by_model("fraud")
         loan_cfgs = self._config_repo.get_by_model("loan")
         return ThresholdListResponse(fraud=fraud_cfgs, loan=loan_cfgs)
 
     def update_thresholds(self, request: ThresholdUpdateRequest, actor_user_id: str) -> ThresholdListResponse:
+        self._ensure_default_thresholds()
         pending: dict[tuple[str, str], float] = {
             (item.model_name, item.param_name): item.param_value for item in request.updates
         }

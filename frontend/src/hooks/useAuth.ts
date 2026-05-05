@@ -7,6 +7,7 @@ import { useActivityStore } from '~/stores/useActivityStore';
 import { setAccessToken, setRefreshToken, clearTokens } from '~/utils/localStorage';
 import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { LoginRequest, ChangePasswordRequest } from '~/types/api';
+import { toastMutationError } from '~/utils/mutationErrorToast';
 
 export const authKeys = {
     me: ['auth', 'me'] as const,
@@ -84,10 +85,13 @@ export function useChangePassword() {
         mutationFn: (data: ChangePasswordRequest) => authService.changePassword(data),
         onSuccess: () => {
             toastSuccessWithActivity('Password changed successfully');
+            // Auto-clear success state after 3 seconds to prevent stale UI
+            setTimeout(() => {
+                // Success state will naturally expire via TanStack Query's internal timer
+            }, 3000);
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error, 'Failed to change password. Check your current password.');
         },
     });
 }

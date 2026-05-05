@@ -96,10 +96,6 @@ export function createAxiosInstance(baseURL: string): AxiosInstance {
                 console.error(`Error ${status}: `, error.response?.data?.message);
             }
 
-            if (status === 422) {
-                return Promise.resolve(error.response.data);
-            }
-
             return Promise.reject(error);
         },
     );

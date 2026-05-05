@@ -12,6 +12,29 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        var fallback = function () {
+          return 'uuid-' + Date.now() + '-' + Math.random().toString(16).slice(2, 10);
+        };
+
+        try {
+          if (!window.crypto) {
+            window.crypto = { randomUUID: fallback };
+            return;
+          }
+
+          if (typeof window.crypto.randomUUID !== 'function') {
+            Object.defineProperty(window.crypto, 'randomUUID', {
+              value: fallback,
+              configurable: true,
+            });
+          }
+        } catch (_e) {
+          // Keep app booting even if browser disallows crypto patching.
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -13,13 +13,17 @@ import { SectionHeader } from '~/components/ui/SectionHeader/SectionHeader';
 
 const changePasswordSchema = z
     .object({
-        current_password: z.string().min(1, 'Current password is required'),
+        current_password: z.string().min(1, 'Current password is required').min(1, 'Current password cannot be empty'),
         new_password: z.string().min(8, 'New password must be at least 8 characters'),
-        confirm_password: z.string().min(1, 'Confirm password is required'),
+        confirm_password: z.string().min(8, 'Confirm password must be at least 8 characters'),
     })
     .refine((d) => d.new_password === d.confirm_password, {
         message: 'Passwords do not match',
         path: ['confirm_password'],
+    })
+    .refine((d) => d.current_password !== d.new_password, {
+        message: 'New password must be different from current password',
+        path: ['new_password'],
     });
 
 type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
@@ -28,6 +32,12 @@ export function ProfilePage() {
     const user = useAuthStore((s) => s.user);
     const changePassword = useChangePassword();
 
+    const defaultFormValues: ChangePasswordForm = {
+        current_password: '',
+        new_password: '',
+        confirm_password: '',
+    };
+
     const {
         register,
         handleSubmit,
@@ -35,9 +45,16 @@ export function ProfilePage() {
         formState: { errors },
     } = useForm<ChangePasswordForm>({
         resolver: zodResolver(changePasswordSchema),
+        mode: 'onChange', // Validate on every change to catch password mismatch immediately
+        defaultValues: defaultFormValues,
     });
 
     const onSubmit = (data: ChangePasswordForm) => {
+        // Ensure all fields are properly validated before submission
+        if (!data.current_password || !data.new_password || !data.confirm_password) {
+            return;
+        }
+
         changePassword.mutate(data, {
             onSuccess: () => reset(),
         });
@@ -80,15 +97,6 @@ export function ProfilePage() {
                                 error={errors.confirm_password?.message}
                                 {...register('confirm_password')}
                             />
-
-                            {changePassword.isSuccess && (
-                                <p className="text-xs text-status-success">Password changed successfully.</p>
-                            )}
-                            {changePassword.isError && (
-                                <p className="text-xs text-status-danger">
-                                    Failed to change password. Check your current password.
-                                </p>
-                            )}
 
                             <div className="flex justify-end">
                                 <Button type="submit" loading={changePassword.isPending}>

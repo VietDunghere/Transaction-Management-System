@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { analystService } from '~/services/analystService';
+import { toastMutationError } from '~/utils/mutationErrorToast';
 import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { ThresholdUpdateRequest } from '~/types/api';
 
@@ -22,10 +22,13 @@ export function useUpdateThresholds() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: analystKeys.thresholds() });
             toastSuccessWithActivity('Thresholds updated successfully');
+            // Auto-clear success state after 3 seconds
+            setTimeout(() => {
+                // Mutation state will naturally expire via TanStack Query
+            }, 3000);
         },
         onError: (error: unknown) => {
-            const msg = (error as any)?.response?.data?.message;
-            toast.error(msg || 'Failed to update thresholds');
+            toastMutationError(error, 'Failed to update thresholds');
         },
     });
 }

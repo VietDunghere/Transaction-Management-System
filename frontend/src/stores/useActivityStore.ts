@@ -22,6 +22,7 @@ interface ActivityState {
 const STORAGE_KEY = 'activity_log';
 const MAX_ACTIVITIES = 50;
 
+
 function toInitials(value: string): string {
     const parts = value.trim().split(/\s+/).filter(Boolean);
 

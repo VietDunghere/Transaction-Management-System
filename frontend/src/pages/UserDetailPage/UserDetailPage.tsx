@@ -26,6 +26,7 @@ const roleVariant: Record<Role, 'info' | 'warning' | 'success' | 'danger'> = {
 const roleOptions = [
     { label: 'Operator', value: 'OPERATOR' },
     { label: 'Reviewer', value: 'REVIEWER' },
+    { label: 'Analyst', value: 'ANALYST' },
     { label: 'Manager', value: 'MANAGER' },
 ];
 
