@@ -237,12 +237,18 @@ def build_transaction(ctx: DemoContext, target_status: str) -> dict[str, Any]:
             weights=[51, 34, 15], k=1
         )[0]
 
-    txn_time = datetime.now(timezone.utc).replace(
+    now = datetime.now(timezone.utc)
+    txn_time = now.replace(
         hour=int(hour),
         minute=random.randint(0, 59),
         second=random.randint(0, 59),
         microsecond=0,
-    ) - timedelta(days=random.choice([0, 0, 0, 1]))
+    )
+    # If the replaced hour is in the future, push back 1 day
+    if txn_time > now:
+        txn_time -= timedelta(days=1)
+    elif random.random() < 0.25:
+        txn_time -= timedelta(days=1)
 
     return {
         "card_number": _random_card_number(),
