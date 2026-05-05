@@ -31,6 +31,7 @@ class Customer(Base):
     gender: Mapped[Optional[str]] = mapped_column(String(10))
     address: Mapped[Optional[str]] = mapped_column(String(255))
     city: Mapped[Optional[str]] = mapped_column(String(100))
+    state: Mapped[Optional[str]] = mapped_column(String(10))
     job: Mapped[Optional[str]] = mapped_column(String(150))
 
     # ---- Toạ độ địa lý ----
