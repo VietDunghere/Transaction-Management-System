@@ -7,6 +7,7 @@ import { useActivityStore } from '~/stores/useActivityStore';
 import { setAccessToken, setRefreshToken, clearTokens } from '~/utils/localStorage';
 import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { LoginRequest, ChangePasswordRequest } from '~/types/api';
+import { toastMutationError } from '~/utils/mutationErrorToast';
 
 export const authKeys = {
     me: ['auth', 'me'] as const,
