@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useThresholds, useUpdateThresholds } from '~/hooks/useAnalyst';
 import { useAuthStore } from '~/stores/useAuthStore';
 import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
@@ -42,14 +42,6 @@ export function AnalystThresholdsPage() {
     const [paramValue, setParamValue] = useState('');
 
     const paramOptions = modelName === 'fraud' ? FRAUD_PARAMS : LOAN_PARAMS;
-
-    // Reset mutation error when modal closes or opens
-    useEffect(() => {
-        if (!modal && updateThresholds.isError) {
-            // Clear error state by invalidating mutation when modal closes
-            // This prevents stale errors from showing on next open
-        }
-    }, [modal, updateThresholds.isError]);
 
     function renderThresholdRows(items: ThresholdItem[], model: 'fraud' | 'loan') {
         if (items.length === 0) {
@@ -102,6 +94,7 @@ export function AnalystThresholdsPage() {
     }
 
     function openModal(model: 'fraud' | 'loan', item: ThresholdItem) {
+        updateThresholds.reset();
         setModelName(model);
         setParamName(item.param_name);
         setParamValue(String(item.param_value));
