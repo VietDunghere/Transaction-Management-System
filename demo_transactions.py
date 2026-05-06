@@ -14,6 +14,7 @@ Script này bám theo API hiện tại:
 from __future__ import annotations
 
 import argparse
+from collections import deque
 import random
 import time
 import uuid
@@ -35,6 +36,18 @@ LOAN_PURPOSES = [
     "Debt consolidation to reduce monthly payments",
 ]
 
+TARGET_TXN_RATIOS: dict[str, float] = {
+    "APPROVED": 0.80,
+    "MANUAL_REVIEW": 0.10,
+    "REJECTED": 0.10,
+}
+
+TXN_PROFILE_WEIGHTS: dict[str, dict[str, int]] = {
+    "APPROVED": {"low": 92, "medium": 8, "high": 0},
+    "MANUAL_REVIEW": {"low": 12, "medium": 74, "high": 14},
+    "REJECTED": {"low": 0, "medium": 25, "high": 75},
+}
+
 
 def _random_card_number() -> str:
     return "4" + "".join(str(random.randint(0, 9)) for _ in range(15))
@@ -45,6 +58,41 @@ class DemoContext:
     customer_ids: list[str]
     merchant_ids: list[str]
     channel_ids: list[int]
+
+
+class TxnStatusBalancer:
+    """Cân bằng tỉ lệ trạng thái TXN theo cửa sổ trượt để giảm drift lâu dài."""
+
+    def __init__(self, window_size: int = 100):
+        self._window = deque(maxlen=window_size)
+        self._window_size = window_size
+
+    def choose_target(self) -> str:
+        statuses = list(TARGET_TXN_RATIOS.keys())
+        if len(self._window) < min(20, self._window_size):
+            return random.choices(statuses, weights=[80, 10, 10], k=1)[0]
+
+        counts = {status: self._window.count(status) for status in statuses}
+        current_size = len(self._window)
+        deficits = {
+            status: (TARGET_TXN_RATIOS[status] * current_size) - counts[status]
+            for status in statuses
+        }
+
+        best_status = max(deficits, key=deficits.get)
+        if deficits[best_status] <= 0:
+            return random.choices(statuses, weights=[80, 10, 10], k=1)[0]
+        return best_status
+
+    def observe(self, actual_status: str) -> None:
+        if actual_status in TARGET_TXN_RATIOS:
+            self._window.append(actual_status)
+
+    def rolling_counts(self) -> dict[str, int]:
+        return {
+            status: self._window.count(status)
+            for status in TARGET_TXN_RATIOS
+        }
 
 
 class TokenManager:
@@ -154,9 +202,48 @@ def load_demo_context(
     return DemoContext(customer_ids=customer_ids, merchant_ids=merchant_ids, channel_ids=channel_ids)
 
 
-def build_transaction(ctx: DemoContext) -> dict[str, Any]:
-    txn_time = datetime.now(timezone.utc) - timedelta(minutes=random.randint(0, 60 * 24))
-    amount = round(random.uniform(3000, 8000), 2) if random.random() < 0.20 else round(random.uniform(10, 500), 2)
+def _pick_profile(target_status: str) -> str:
+    weights = TXN_PROFILE_WEIGHTS.get(target_status, TXN_PROFILE_WEIGHTS["APPROVED"])
+    profiles = list(weights.keys())
+    return random.choices(profiles, weights=[weights[p] for p in profiles], k=1)[0]
+
+
+def build_transaction(ctx: DemoContext, target_status: str) -> dict[str, Any]:
+    profile = _pick_profile(target_status)
+
+    # Amount distributions calibrated from Kaggle fraudTrain.csv:
+    #   Non-fraud: median=$47, P90=$134, P99=$486
+    #   Fraud:     P25=$246, median=$397, P75=$901, max=$1,376
+    if profile == "low":
+        # Normal daytime spend — non-fraud zone
+        amount = round(random.uniform(4, 134), 2)
+        hour = random.choices(
+            [random.randint(8, 21), random.choice([22, 23, 0, 1])],
+            weights=[97, 3], k=1
+        )[0]
+    elif profile == "medium":
+        # Borderline — P90-P99 non-fraud, overlaps fraud P10-P25
+        amount = round(random.uniform(134, 487), 2)
+        hour = random.choices(
+            [random.randint(9, 21), random.choice([22, 23, 0, 1, 2])],
+            weights=[68, 32], k=1
+        )[0]
+    else:
+        # Fraud-like — Kaggle fraud P25-max ($246-$1,376), night-heavy
+        # Kaggle: 51% of fraud at hour 22-23, 34% at 0-3, 15% rest
+        amount = round(random.uniform(246, 1376), 2)
+        hour = random.choices(
+            [random.choice([22, 23]), random.choice([0, 1, 2, 3]), random.randint(4, 21)],
+            weights=[51, 34, 15], k=1
+        )[0]
+
+    txn_time = datetime.now(timezone.utc).replace(
+        hour=int(hour),
+        minute=random.randint(0, 59),
+        second=random.randint(0, 59),
+        microsecond=0,
+    ) - timedelta(days=random.choice([0, 0, 0, 1]))
+
     return {
         "card_number": _random_card_number(),
         "customer_id": random.choice(ctx.customer_ids),
@@ -242,6 +329,8 @@ def send_loop(client: ApiClient, ctx: DemoContext, rate: float, count: int | Non
     print(f"{'#':>5}  {'Type':<6}  {'Result':<15}  {'Score/PD':>8}  {'Amount':>10}  Info")
     print(f"{'-' * 70}")
 
+    balancer = TxnStatusBalancer(window_size=100)
+
     try:
         while count is None or sent < count:
             is_loan = random.randint(1, 100) <= loan_pct
@@ -261,7 +350,8 @@ def send_loop(client: ApiClient, ctx: DemoContext, rate: float, count: int | Non
                         f"{pd_score:>8.4f}  {amount:>10.2f}  {grade} | {risk}"
                     )
                 else:
-                    payload = build_transaction(ctx)
+                    target_status = balancer.choose_target()
+                    payload = build_transaction(ctx, target_status)
                     data = client.post("/transactions/submit", json=payload).json()
                     status = str(data.get("status") or "?")
                     decision = str(data.get("decision") or "?")
@@ -269,10 +359,13 @@ def send_loop(client: ApiClient, ctx: DemoContext, rate: float, count: int | Non
                     amount = float(payload["amount"])
                     key = f"TXN_{status}"
                     stats[key] = stats.get(key, 0) + 1
+                    balancer.observe(status)
                     c = color.get(status, "")
+                    rolling = balancer.rolling_counts()
                     print(
                         f"{seq:>5}  {'TXN':<6}  {c}{status:<15}{reset}  "
-                        f"{fraud_score:>8.4f}  {amount:>10.2f}  {decision}"
+                        f"{fraud_score:>8.4f}  {amount:>10.2f}  {decision} "
+                        f"(W100 A/M/R={rolling['APPROVED']}/{rolling['MANUAL_REVIEW']}/{rolling['REJECTED']})"
                     )
             except (requests.RequestException, RuntimeError) as exc:
                 stats["ERROR"] += 1

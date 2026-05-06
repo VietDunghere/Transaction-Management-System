@@ -20,12 +20,12 @@ const simulateSchema = z.object({
     person_income: z.string().min(1, 'Income is required'),
     person_home_ownership: z.string().min(1, 'Home ownership is required'),
     person_emp_length: z.string().min(1, 'Employment length is required'),
-    loan_amount: z.string().min(1, 'Loan amount is required'),
+    loan_amnt: z.string().min(1, 'Loan amount is required'),
+    loan_int_rate: z.string().min(1, 'Interest rate is required'),
     loan_grade: z.string().min(1, 'Loan grade is required'),
     loan_intent: z.string().min(1, 'Loan intent is required'),
     cb_person_default_on_file: z.string().min(1, 'Default on file is required'),
     cb_person_cred_hist_length: z.string().min(1, 'Credit history length is required'),
-    requested_term_months: z.string().min(1, 'Term is required'),
 });
 
 type SimulateForm = z.infer<typeof simulateSchema>;
@@ -90,12 +90,12 @@ export function LoanSimulatePage() {
                 person_income: Number(data.person_income),
                 person_home_ownership: data.person_home_ownership,
                 person_emp_length: Number(data.person_emp_length),
-                loan_amount: Number(data.loan_amount),
+                loan_amnt: Number(data.loan_amnt),
+                loan_int_rate: Number(data.loan_int_rate),
                 loan_grade: data.loan_grade,
                 loan_intent: data.loan_intent,
                 cb_person_default_on_file: data.cb_person_default_on_file,
                 cb_person_cred_hist_length: Number(data.cb_person_cred_hist_length),
-                requested_term_months: Number(data.requested_term_months),
             },
             {
                 onSuccess: () => setShowResult(true),
@@ -142,8 +142,16 @@ export function LoanSimulatePage() {
                             <Input
                                 label="Loan Amount"
                                 type="number"
-                                error={errors.loan_amount?.message}
-                                {...register('loan_amount')}
+                                error={errors.loan_amnt?.message}
+                                {...register('loan_amnt')}
+                            />
+                            <Input
+                                label="Interest Rate (%)"
+                                type="number"
+                                step="0.01"
+                                placeholder="e.g. 8.5"
+                                error={errors.loan_int_rate?.message}
+                                {...register('loan_int_rate')}
                             />
                             <Select
                                 label="Loan Grade"
@@ -156,12 +164,6 @@ export function LoanSimulatePage() {
                                 options={intentOptions}
                                 error={errors.loan_intent?.message}
                                 {...register('loan_intent')}
-                            />
-                            <Input
-                                label="Requested Term (months)"
-                                type="number"
-                                error={errors.requested_term_months?.message}
-                                {...register('requested_term_months')}
                             />
                         </div>
 
@@ -199,25 +201,21 @@ export function LoanSimulatePage() {
                 showResult && simulateLoan.isSuccess ? (
                     <Card>
                         <SectionHeader title="Simulation Results" />
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                             <StatCard label="PD Score" value={`${(simulateLoan.data.pd_score * 100).toFixed(1)}%`} />
-                            <StatCard label="Risk Level" value={riskLabel[simulateLoan.data.risk_level as RiskLevel]} />
-                            <StatCard label="Decision" value={simulateLoan.data.decision} />
-                            <StatCard
-                                label="Confidence"
-                                value={`${(simulateLoan.data.confidence * 100).toFixed(1)}%`}
-                            />
+                            <StatCard label="Risk Level" value={riskLabel[simulateLoan.data.risk_level as RiskLevel] ?? simulateLoan.data.risk_level} />
+                            <StatCard label="Model" value={simulateLoan.data.model_version} />
                         </div>
-                        <div className="mt-4 p-3 rounded-sm bg-secondary">
-                            <Badge variant={riskVariant[simulateLoan.data.risk_level as RiskLevel]}>
-                                {riskLabel[simulateLoan.data.risk_level as RiskLevel]}
-                            </Badge>
-                            <span className="text-sm ml-2">
-                                {simulateLoan.data.decision === 'APPROVE'
-                                    ? 'This loan application is likely to be approved.'
-                                    : 'This loan application may require further review.'}
-                            </span>
-                        </div>
+                        {simulateLoan.data.top_risk_factors.length > 0 && (
+                            <div className="mt-4 p-3 rounded-sm bg-secondary">
+                                <Badge variant={riskVariant[simulateLoan.data.risk_level as RiskLevel]}>
+                                    {riskLabel[simulateLoan.data.risk_level as RiskLevel] ?? simulateLoan.data.risk_level}
+                                </Badge>
+                                <span className="text-sm ml-2 text-text-secondary">
+                                    Top risk factors: {simulateLoan.data.top_risk_factors.slice(0, 3).join(', ')}
+                                </span>
+                            </div>
+                        )}
                     </Card>
                 ) : (
                     <div />

@@ -11,12 +11,18 @@ import asyncio
 import random
 import uuid
 from collections import deque
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
+from sqlalchemy.orm import Session
+
+from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.db.base import SessionLocal
+from app.models.customer import Customer
+from app.models.merchant import Channel, Merchant
 from app.schemas.demo import DemoEvent, DemoStartRequest, DemoStatusResponse
 from app.schemas.loan import LoanApplyRequest
 from app.schemas.transaction import TransactionSubmitRequest
@@ -25,20 +31,14 @@ from app.services.transaction_service import TransactionService
 
 logger = get_logger(__name__)
 
-# ── Seed data (same as demo_transactions.py) ─────────────────────────────────
+# ── Demo data pool (resolved from DB at runtime) ─────────────────────────────
 
-CUSTOMERS = [
-    "cust-0001-0000-0000-000000000001",
-    "cust-0002-0000-0000-000000000002",
-    "cust-0003-0000-0000-000000000003",
-]
-MERCHANTS = [
-    "mcht-0001-0000-0000-000000000001",
-    "mcht-0002-0000-0000-000000000002",
-    "mcht-0003-0000-0000-000000000003",
-    "mcht-0004-0000-0000-000000000004",
-]
-CHANNEL_IDS = [1, 2, 3, 4]
+
+@dataclass(frozen=True)
+class DemoDataPool:
+    customer_ids: list[str]
+    merchant_ids: list[str]
+    channel_ids: list[int]
 
 LOAN_INTENTS = ["PERSONAL", "EDUCATION", "MEDICAL", "VENTURE", "HOMEIMPROVEMENT", "DEBTCONSOLIDATION"]
 HOME_OWNERSHIPS = ["RENT", "MORTGAGE", "OWN", "OTHER"]
@@ -59,7 +59,7 @@ def _random_card_number() -> str:
     return "4" + "".join(str(random.randint(0, 9)) for _ in range(15))
 
 
-def _build_transaction() -> TransactionSubmitRequest:
+def _build_transaction(pool: DemoDataPool) -> TransactionSubmitRequest:
     txn_time = datetime.now(timezone.utc) - timedelta(minutes=random.randint(0, 60 * 24))
 
     # 20% chance: large amount → likely triggers MANUAL_REVIEW or REJECTED
@@ -70,15 +70,15 @@ def _build_transaction() -> TransactionSubmitRequest:
 
     return TransactionSubmitRequest(
         card_number=_random_card_number(),
-        customer_id=random.choice(CUSTOMERS),
-        merchant_id=random.choice(MERCHANTS),
-        channel_id=random.choice(CHANNEL_IDS),
+        customer_id=random.choice(pool.customer_ids),
+        merchant_id=random.choice(pool.merchant_ids),
+        channel_id=random.choice(pool.channel_ids),
         amount=Decimal(str(amount)),
         txn_time=txn_time,
     )
 
 
-def _build_loan() -> LoanApplyRequest:
+def _build_loan(pool: DemoDataPool) -> LoanApplyRequest:
     """Build loan with risk-stratified profiles (30% low / 40% med / 30% high)."""
     risk_bucket = random.choices(["low", "medium", "high"], weights=[30, 40, 30])[0]
 
@@ -113,7 +113,7 @@ def _build_loan() -> LoanApplyRequest:
     cred_hist = random.randint(1, 30)
 
     return LoanApplyRequest(
-        customer_id=random.choice(CUSTOMERS),
+        customer_id=random.choice(pool.customer_ids),
         principal_amount=Decimal(str(loan_amnt)),
         interest_rate=Decimal(str(int_rate_dec)),
         term_months=term,
@@ -149,6 +149,7 @@ class DemoRunnerService:
         self._sent = 0
         self._stats: dict[str, int] = {}
         self._events: deque[DemoEvent] = deque(maxlen=50)
+        self._data_pool: Optional[DemoDataPool] = None
 
     @classmethod
     def get_instance(cls) -> DemoRunnerService:
@@ -206,6 +207,37 @@ class DemoRunnerService:
             "LOAN_PENDING": 0, "ERROR": 0,
         }
         self._events.clear()
+        self._data_pool = None
+
+    @staticmethod
+    def _build_data_pool(db: Session) -> DemoDataPool:
+        customer_ids = [row[0] for row in db.query(Customer.customer_id).all()]
+        merchant_ids = [row[0] for row in db.query(Merchant.merchant_id).all()]
+        channel_ids = [row[0] for row in db.query(Channel.channel_id).all()]
+
+        missing: list[str] = []
+        if not customer_ids:
+            missing.append("customers")
+        if not merchant_ids:
+            missing.append("merchants")
+        if not channel_ids:
+            missing.append("channels")
+
+        if missing:
+            raise RuntimeError(
+                "Thiếu dữ liệu demo trong DB: " + ", ".join(missing)
+            )
+
+        return DemoDataPool(
+            customer_ids=customer_ids,
+            merchant_ids=merchant_ids,
+            channel_ids=channel_ids,
+        )
+
+    def _get_data_pool(self, db: Session, *, force_refresh: bool = False) -> DemoDataPool:
+        if force_refresh or self._data_pool is None:
+            self._data_pool = self._build_data_pool(db)
+        return self._data_pool
 
     async def _run_loop(self, config: DemoStartRequest, user_id: str) -> None:
         delay = 1.0 / config.rate
@@ -244,9 +276,24 @@ class DemoRunnerService:
         """Run one transaction — called in a thread to avoid blocking the loop."""
         db = SessionLocal()
         try:
-            payload = _build_transaction()
             svc = TransactionService(db)
-            result = svc.submit(payload, submitted_by_user_id=user_id)
+
+            # Retry 1 lần với data pool refresh nếu gặp NotFound do ID stale.
+            result = None
+            for attempt in range(2):
+                payload = _build_transaction(
+                    self._get_data_pool(db, force_refresh=(attempt == 1))
+                )
+                try:
+                    result = svc.submit(payload, submitted_by_user_id=user_id)
+                    break
+                except NotFoundError:
+                    db.rollback()
+                    if attempt == 1:
+                        raise
+
+            if result is None:
+                raise RuntimeError("Không thể tạo transaction demo.")
 
             self._sent += 1
             status = str(result.status)
@@ -269,9 +316,25 @@ class DemoRunnerService:
         """Run one loan application — called in a thread."""
         db = SessionLocal()
         try:
-            payload = _build_loan()
             svc = LoanService(db)
-            loan = svc.apply(payload, submitted_by_user_id=user_id)
+
+            # Retry 1 lần với data pool refresh nếu gặp NotFound do ID stale.
+            payload = None
+            loan = None
+            for attempt in range(2):
+                payload = _build_loan(
+                    self._get_data_pool(db, force_refresh=(attempt == 1))
+                )
+                try:
+                    loan = svc.apply(payload, submitted_by_user_id=user_id)
+                    break
+                except NotFoundError:
+                    db.rollback()
+                    if attempt == 1:
+                        raise
+
+            if payload is None or loan is None:
+                raise RuntimeError("Không thể tạo loan demo.")
 
             self._sent += 1
             self._stats["LOAN_PENDING"] = self._stats.get("LOAN_PENDING", 0) + 1

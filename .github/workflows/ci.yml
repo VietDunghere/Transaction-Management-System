@@ -46,6 +46,5 @@ jobs:
           script: |
             cd /root/Transaction-Management-System
             git pull origin master
-            pip install -r backend/requirements.txt --quiet
-            python scripts/init_db.py
+            pip3 install -r backend/requirements.txt --quiet
             bash scripts/restart_backend.sh

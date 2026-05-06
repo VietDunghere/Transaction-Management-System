@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { caseService } from '~/services/caseService';
+import { toastMutationError } from '~/utils/mutationErrorToast';
 import { toastSuccessWithActivity } from '~/utils/toastActivity';
 import type { CaseSearchParams } from '~/types/searchParams';
 import type { CaseDecisionRequest } from '~/types/api';
@@ -38,8 +38,7 @@ export function useAssignCase() {
             toastSuccessWithActivity('Case assigned to you');
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || (error instanceof Error ? error.message : 'Something went wrong'));
+            toastMutationError(error);
         },
     });
 }
@@ -56,8 +55,7 @@ export function useDecideCase() {
             toastSuccessWithActivity('Case decision submitted');
         },
         onError: (error: unknown) => {
-            const apiMsg = (error as any)?.response?.data?.message;
-            toast.error(apiMsg || 'Failed to submit decision. This may be a version conflict — please refresh.');
+            toastMutationError(error, 'Failed to submit decision. This may be a version conflict - please refresh.');
         },
     });
 }

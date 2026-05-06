@@ -74,7 +74,7 @@ export function LoanDetailPage() {
                 header={
                     <PageHeader
                         title="Loan Detail"
-                        subtitle={`${loan.principal_amount.toLocaleString()} · ${loan.interest_rate}% · ${loan.term_months}mo · ${loan.risk_level ? riskLabel[loan.risk_level] : loan.status} · Created ${new Date(loan.created_at).toLocaleString()}`}
+                        subtitle={`${loan.principal_amount.toLocaleString()} · ${(Number(loan.interest_rate) * 100).toFixed(2)}% · ${loan.term_months}mo · ${loan.risk_level ? riskLabel[loan.risk_level] : loan.status} · Created ${new Date(loan.created_at).toLocaleString()}`}
                         actions={
                             <div className="flex items-center gap-2">
                                 {canDecide && (
@@ -142,7 +142,7 @@ export function LoanDetailPage() {
                                     label="Principal"
                                     value={loan.principal_amount.toLocaleString()}
                                 />
-                                <KeyValueRow label="Interest Rate" value={`${loan.interest_rate}%`} />
+                                <KeyValueRow label="Interest Rate" value={`${(Number(loan.interest_rate) * 100).toFixed(2)}%`} />
                                 <KeyValueRow label="Term" value={`${loan.term_months} months`} />
                                 <KeyValueRow label="Purpose" value={loan.purpose} />
                                 <KeyValueRow
