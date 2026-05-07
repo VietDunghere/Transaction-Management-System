@@ -249,13 +249,6 @@ const analystModelPerfRoute = createRoute({
     beforeLoad: () => guardRole(['ANALYST']),
 });
 
-// -- 404 --
-const notFoundRoute = createRoute({
-    getParentRoute: () => authLayoutRoute,
-    path: '*',
-    component: NotFoundPage,
-});
-
 // ============================================================
 // ROUTE TREE
 // ============================================================
@@ -283,12 +276,12 @@ const routeTree = rootRoute.addChildren([
         analystThresholdsRoute,
         analystModelPerfRoute,
         demoRoute,
-        notFoundRoute,
     ]),
 ]);
 
 export const router = createRouter({
     routeTree,
+    defaultNotFoundComponent: NotFoundPage,
 });
 
 declare module '@tanstack/react-router' {
