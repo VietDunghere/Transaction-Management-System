@@ -1,0 +1,4709 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "TMS — Transaction Management System API",
+    "description": "Bo test API day du cho He thong Quan ly Giao dich Ngan hang.\n\n## Huong dan su dung\n1. Chay **Login - Admin (saves token)** de lay va luu token tu dong\n2. Doi voi endpoint can role khac, chay login tuong ung roi copy access_token\n3. Thu tu chay goi y: Health -> Auth -> Lookup -> Transactions -> Cases -> Loans -> Dashboard -> Reports -> Analyst\n\n## Tai khoan mac dinh (sau khi chay seed.py)\n| Username  | Password     | Role     |\n|-----------|--------------|----------|\n| admin     | Admin@123    | ADMIN    |\n| operator1 | Operator@123 | OPERATOR |\n| reviewer1 | Reviewer@123 | REVIEWER |\n| manager1  | Manager@123  | MANAGER  |\n| analyst1  | Analyst@123  | ANALYST  |\n\n## Du lieu mau (seed.py)\n- Customers: CUST001 / CUST002 / CUST003\n- Merchants: Vinmart / Shopee Online / CGV Cinema / Unknown Online Store\n- Channels: 1=POS, 2=ATM, 3=Online Banking, 4=Mobile App",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "Backend server URL"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token (auto-saved by Login)"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT refresh token (auto-saved by Login)"
+    },
+    {
+      "key": "current_user_id",
+      "value": "",
+      "type": "string",
+      "description": "Logged-in user_id"
+    },
+    {
+      "key": "target_user_id",
+      "value": "",
+      "type": "string",
+      "description": "User ID for management tests (auto-saved by Create User)"
+    },
+    {
+      "key": "txn_id",
+      "value": "",
+      "type": "string",
+      "description": "Transaction ID (auto-saved by Submit Transaction)"
+    },
+    {
+      "key": "case_id",
+      "value": "",
+      "type": "string",
+      "description": "Case ID (auto-saved by List Cases or Submit Transaction)"
+    },
+    {
+      "key": "loan_id",
+      "value": "",
+      "type": "string",
+      "description": "Loan ID (auto-saved by Apply Loan)"
+    },
+    {
+      "key": "log_id",
+      "value": "",
+      "type": "string",
+      "description": "Audit Log ID (auto-saved by List Audit Logs)"
+    },
+    {
+      "key": "customer_id",
+      "value": "cust-0001-0000-0000-000000000001",
+      "type": "string",
+      "description": "Sample customer (Nguyen Van An) from seed data"
+    },
+    {
+      "key": "merchant_id",
+      "value": "mcht-0001-0000-0000-000000000001",
+      "type": "string",
+      "description": "Sample merchant (Vinmart) from seed data"
+    }
+  ],
+  "item": [
+    {
+      "name": "🏥 System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"System healthy\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"status\");",
+                  "  pm.expect([\"ok\",\"degraded\"]).to.include(j.status);",
+                  "  pm.expect(j.checks.database).to.equal(\"ok\");",
+                  "  console.log(\"Status:\", j.status, \"| Checks:\", JSON.stringify(j.checks));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Login — Admin (saves token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"Saves tokens\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"access_token\");",
+                  "  pm.collectionVariables.set(\"access_token\", j.access_token);",
+                  "  pm.collectionVariables.set(\"refresh_token\", j.refresh_token);",
+                  "  pm.collectionVariables.set(\"current_user_id\", j.user_id);",
+                  "  console.log(\"Logged in:\", j.username, \"role:\", j.role);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login — Operator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"operator1\",\n  \"password\": \"Operator@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has token\", () => pm.expect(pm.response.json()).to.have.property(\"access_token\"));",
+                  "// To switch role: copy the access_token from response body and update collection variable"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login — Reviewer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"reviewer1\",\n  \"password\": \"Reviewer@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has token\", () => pm.expect(pm.response.json()).to.have.property(\"access_token\"));",
+                  "// To switch role: copy the access_token from response body and update collection variable"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login — Manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"manager1\",\n  \"password\": \"Manager@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has token\", () => pm.expect(pm.response.json()).to.have.property(\"access_token\"));",
+                  "// To switch role: copy the access_token from response body and update collection variable"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login — Analyst",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"analyst1\",\n  \"password\": \"Analyst@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has token\", () => pm.expect(pm.response.json()).to.have.property(\"access_token\"));",
+                  "// To switch role: copy the access_token from response body and update collection variable"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User (me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"User info fields\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"user_id\");",
+                  "  pm.expect(j).to.have.property(\"username\");",
+                  "  pm.expect(j).to.have.property(\"role\");",
+                  "  console.log(\"Logged in as:\", j.username, \"role:\", j.role);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"New access_token received\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"access_token\");",
+                  "  pm.collectionVariables.set(\"access_token\", j.access_token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change Password (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Admin@123\",\n  \"new_password\": \"Admin@456\",\n  \"confirm_password\": \"Admin@456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "CAUTION: After testing, revert password back to Admin@123 to avoid breaking other tests."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Password changed\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"message\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Logout message\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"message\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔍 Lookup",
+      "description": "Yeu cau OPERATOR (channels: tat ca roles)",
+      "item": [
+        {
+          "name": "Search Customers — by name (nguyen)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/lookup/customers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lookup",
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "nguyen"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Customer search result\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.be.an(\"array\");",
+                  "  if (j.length > 0) { pm.collectionVariables.set(\"customer_id\", j[0].customer_id); console.log(\"Found:\", j.length, \"customers\"); }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search Customers — by code (CUST001)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/lookup/customers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lookup",
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "CUST001"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search Merchants — by name (vinmart)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/lookup/merchants",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lookup",
+                "merchants"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "vinmart"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Merchant search result\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.be.an(\"array\");",
+                  "  if (j.length > 0) { pm.collectionVariables.set(\"merchant_id\", j[0].merchant_id); }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search Merchants — high risk (unknown)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/lookup/merchants",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lookup",
+                "merchants"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "unknown"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Channels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/lookup/channels",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lookup",
+                "channels"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Channels available\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.be.an(\"array\");",
+                  "  pm.expect(j.length).to.be.above(0);",
+                  "  console.log(\"Channels:\", j.map(c=>c.channel_id+\":\"+c.channel_name).join(\", \"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👥 Users",
+      "description": "Yeu cau MANAGER (list/get) hoac ADMIN (create/disable/enable/role)",
+      "item": [
+        {
+          "name": "List Users (all)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "",
+                  "disabled": true,
+                  "description": "OPERATOR|REVIEWER|ANALYST|MANAGER|ADMIN"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true,
+                  "description": "ACTIVE|DISABLED"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Users — filter OPERATOR",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "OPERATOR"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Users — filter ACTIVE",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create User (ADMIN only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testoperator99\",\n  \"full_name\": \"Test Operator Nguyen\",\n  \"email\": \"testop99@tms.local\",\n  \"password\": \"Pass@1234\",\n  \"role\": \"OPERATOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ]
+            },
+            "description": "Saves user_id into target_user_id variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"Saves target_user_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"user_id\");",
+                  "  pm.collectionVariables.set(\"target_user_id\", j.user_id);",
+                  "  console.log(\"Created user_id:\", j.user_id, \"role:\", j.role);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{target_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{target_user_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"User fields\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"user_id\");",
+                  "  pm.expect(j).to.have.property(\"username\");",
+                  "  pm.expect(j).to.have.property(\"role\");",
+                  "  pm.expect(j).to.have.property(\"status\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update User Role (ADMIN only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"REVIEWER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{target_user_id}}/role",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{target_user_id}}",
+                "role"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Role updated\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"user_id\");",
+                  "  pm.expect(j.role).to.equal(\"REVIEWER\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Disable User (ADMIN only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{target_user_id}}/disable",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{target_user_id}}",
+                "disable"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Disable message\", () => pm.expect(pm.response.json()).to.have.property(\"message\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enable User (ADMIN only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{target_user_id}}/enable",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{target_user_id}}",
+                "enable"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Enable message\", () => pm.expect(pm.response.json()).to.have.property(\"message\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💳 Transactions",
+      "description": "Submit: OPERATOR. List/Get: OPERATOR + ANALYST + MANAGER.",
+      "item": [
+        {
+          "name": "Submit Transaction — Normal (Vinmart, Low Risk)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_number\": \"4111111111111111\",\n  \"customer_id\": \"{{customer_id}}\",\n  \"merchant_id\": \"mcht-0001-0000-0000-000000000001\",\n  \"channel_id\": 1,\n  \"amount\": 150.5,\n  \"txn_time\": \"2025-05-07T10:00:00+07:00\",\n  \"idempotency_key\": \"idem-normal-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "submit"
+              ]
+            },
+            "description": "Low-risk transaction at Vinmart (POS). Expected: APPROVED."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"Saves txn_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"txn_id\");",
+                  "  pm.collectionVariables.set(\"txn_id\", j.txn_id);",
+                  "  if (j.case_id) pm.collectionVariables.set(\"case_id\", j.case_id);",
+                  "  console.log(\"txn_id:\", j.txn_id, \"status:\", j.status, \"fraud_score:\", j.fraud_score);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Transaction — High Amount (Shopee, may MANUAL_REVIEW)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_number\": \"4111111111111112\",\n  \"customer_id\": \"cust-0002-0000-0000-000000000002\",\n  \"merchant_id\": \"mcht-0002-0000-0000-000000000002\",\n  \"channel_id\": 3,\n  \"amount\": 9500000.0,\n  \"txn_time\": \"2025-05-07T11:00:00+07:00\",\n  \"idempotency_key\": \"idem-highamount-002\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "submit"
+              ]
+            },
+            "description": "High-amount online transaction. May route to MANUAL_REVIEW and create a Case."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"Saves txn_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"txn_id\");",
+                  "  pm.collectionVariables.set(\"txn_id\", j.txn_id);",
+                  "  if (j.case_id) pm.collectionVariables.set(\"case_id\", j.case_id);",
+                  "  console.log(\"txn_id:\", j.txn_id, \"status:\", j.status, \"fraud_score:\", j.fraud_score);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Transaction — High Risk Merchant (Unknown, may REJECT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_number\": \"5500005555555559\",\n  \"customer_id\": \"cust-0003-0000-0000-000000000003\",\n  \"merchant_id\": \"mcht-0004-0000-0000-000000000004\",\n  \"channel_id\": 3,\n  \"amount\": 850000.0,\n  \"txn_time\": \"2025-05-07T12:00:00+07:00\",\n  \"idempotency_key\": \"idem-highrisk-003\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "submit"
+              ]
+            },
+            "description": "Transaction at HIGH-risk merchant Unknown Online Store. Likely REJECTED."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"Saves txn_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"txn_id\");",
+                  "  pm.collectionVariables.set(\"txn_id\", j.txn_id);",
+                  "  if (j.case_id) pm.collectionVariables.set(\"case_id\", j.case_id);",
+                  "  console.log(\"txn_id:\", j.txn_id, \"status:\", j.status, \"fraud_score:\", j.fraud_score);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Transaction — CGV Cinema",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_number\": \"4000000000000002\",\n  \"customer_id\": \"{{customer_id}}\",\n  \"merchant_id\": \"mcht-0003-0000-0000-000000000003\",\n  \"channel_id\": 4,\n  \"amount\": 250000.0,\n  \"txn_time\": \"2025-05-07T14:00:00+07:00\",\n  \"idempotency_key\": \"idem-cgv-004\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "submit"
+              ]
+            },
+            "description": "Mobile App transaction at CGV Cinema."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"Saves txn_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"txn_id\");",
+                  "  pm.collectionVariables.set(\"txn_id\", j.txn_id);",
+                  "  if (j.case_id) pm.collectionVariables.set(\"case_id\", j.case_id);",
+                  "  console.log(\"txn_id:\", j.txn_id, \"status:\", j.status, \"fraud_score:\", j.fraud_score);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Transaction — Duplicate Idempotency Key (409 expected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_number\": \"4111111111111111\",\n  \"customer_id\": \"{{customer_id}}\",\n  \"merchant_id\": \"mcht-0001-0000-0000-000000000001\",\n  \"channel_id\": 1,\n  \"amount\": 150.5,\n  \"txn_time\": \"2025-05-07T10:00:00+07:00\",\n  \"idempotency_key\": \"idem-normal-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "submit"
+              ]
+            },
+            "description": "Replay with same idempotency_key — must be blocked."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Idempotent replay: system returns 200/201 (existing) or 409 (conflict)",
+                  "pm.test(\"Idempotency handled (200/201/409)\", () => {",
+                  "  pm.expect([200,201,409]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Transactions (all)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true,
+                  "description": "PENDING|APPROVED|REJECTED|MANUAL_REVIEW"
+                },
+                {
+                  "key": "customer_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "merchant_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "period",
+                  "value": "",
+                  "disabled": true,
+                  "description": "D=1d, W=7d, M=30d"
+                },
+                {
+                  "key": "min_amount",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "max_amount",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from_date",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to_date",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Transactions — APPROVED last 7 days",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "APPROVED"
+                },
+                {
+                  "key": "period",
+                  "value": "W"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Transactions — MANUAL_REVIEW",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "MANUAL_REVIEW"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Transactions — by customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "customer_id",
+                  "value": "{{customer_id}}"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Transaction by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/{{txn_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "{{txn_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Transaction detail\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"txn_id\");",
+                  "  pm.expect(j).to.have.property(\"amount\");",
+                  "  pm.expect(j).to.have.property(\"status\");",
+                  "  pm.expect(j).to.have.property(\"fraud_score\");",
+                  "  console.log(\"Status:\", j.status, \"| Fraud score:\", j.fraud_score);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📋 Cases (Manual Review)",
+      "description": "Yeu cau REVIEWER (hoac MANAGER). Case duoc tao tu dong khi Transaction co status MANUAL_REVIEW.",
+      "item": [
+        {
+          "name": "List Cases (all, saves first case_id)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cases",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cases"
+              ],
+              "query": [
+                {
+                  "key": "case_status",
+                  "value": "",
+                  "disabled": true,
+                  "description": "OPEN|ASSIGNED|CLOSED"
+                },
+                {
+                  "key": "assigned_to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "period",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse + saves case_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "  if (j.data.length > 0) {",
+                  "    pm.collectionVariables.set(\"case_id\", j.data[0].case_id);",
+                  "    console.log(\"First case_id:\", j.data[0].case_id, \"status:\", j.data[0].case_status);",
+                  "  } else { console.log(\"No cases found. Submit a high-risk transaction first.\"); }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Cases — OPEN only",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cases",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cases"
+              ],
+              "query": [
+                {
+                  "key": "case_status",
+                  "value": "OPEN"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Cases — ASSIGNED",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cases",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cases"
+              ],
+              "query": [
+                {
+                  "key": "case_status",
+                  "value": "ASSIGNED"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Case by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cases/{{case_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cases",
+                "{{case_id}}"
+              ]
+            },
+            "description": "Returns case details with transaction info, rule_hits, card_velocity. Saves version."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Case fields + saves version\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"case_id\");",
+                  "  pm.expect(j).to.have.property(\"case_status\");",
+                  "  pm.expect(j).to.have.property(\"version\");",
+                  "  pm.collectionVariables.set(\"case_version\", String(j.version));",
+                  "  console.log(\"Case:\", j.case_id, \"status:\", j.case_status, \"version:\", j.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign Case (Self-assign)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cases/{{case_id}}/assign",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cases",
+                "{{case_id}}",
+                "assign"
+              ]
+            },
+            "description": "REVIEWER self-assigns OPEN case. Will fail if already assigned to another reviewer."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Case assigned\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.case_status).to.equal(\"ASSIGNED\");",
+                  "  pm.collectionVariables.set(\"case_version\", String(j.version));",
+                  "  console.log(\"Assigned. New version:\", j.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Decide Case — APPROVE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"APPROVE\",\n  \"decision_note\": \"Giao dich hop le sau khi kiem tra thu cong. Khach hang xac nhan giao dich nay.\",\n  \"version\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/cases/{{case_id}}/decision",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cases",
+                "{{case_id}}",
+                "decision"
+              ]
+            },
+            "description": "REVIEWER approves case. 'version' must match current version (optimistic locking)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Case CLOSED + APPROVED\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.case_status).to.equal(\"CLOSED\");",
+                  "  pm.expect(j.decision).to.equal(\"APPROVE\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Decide Case — REJECT",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"REJECT\",\n  \"decision_note\": \"Giao dich bi tu choi vi phat hien dau hieu gian lan. The da bi su dung trai phep.\",\n  \"version\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/cases/{{case_id}}/decision",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cases",
+                "{{case_id}}",
+                "decision"
+              ]
+            },
+            "description": "REVIEWER rejects case. Update 'version' to match current."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Case CLOSED + REJECTED\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.case_status).to.equal(\"CLOSED\");",
+                  "  pm.expect(j.decision).to.equal(\"REJECT\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💰 Loans",
+      "description": "Apply: OPERATOR. Simulate/List/Get: OPERATOR+REVIEWER. Decision: REVIEWER.",
+      "item": [
+        {
+          "name": "Apply Loan — Good Profile (Low Risk)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"principal_amount\": 50000000.0,\n  \"interest_rate\": 0.12,\n  \"term_months\": 24,\n  \"purpose\": \"Mua xe o to phuc vu cong viec kinh doanh ca nhan\",\n  \"person_age\": 35,\n  \"person_income\": 30000000,\n  \"person_home_ownership\": \"OWN\",\n  \"person_emp_length\": 8,\n  \"loan_intent\": \"PERSONAL\",\n  \"loan_grade\": \"A\",\n  \"cb_person_default_on_file\": \"N\",\n  \"cb_person_cred_hist_length\": 8\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans"
+              ]
+            },
+            "description": "Good credit profile: age 35, high income, homeowner, 8yr employment, grade A."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"Saves loan_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"loan_id\");",
+                  "  pm.collectionVariables.set(\"loan_id\", j.loan_id);",
+                  "  console.log(\"loan_id:\", j.loan_id, \"pd_score:\", j.pd_score, \"risk:\", j.risk_level);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Apply Loan — High Risk Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"cust-0002-0000-0000-000000000002\",\n  \"principal_amount\": 200000000.0,\n  \"interest_rate\": 0.18,\n  \"term_months\": 60,\n  \"purpose\": \"Dau tu kinh doanh mao hiem vao thi truong chung khoan quoc te\",\n  \"person_age\": 22,\n  \"person_income\": 6000000,\n  \"person_home_ownership\": \"RENT\",\n  \"person_emp_length\": 1,\n  \"loan_intent\": \"VENTURE\",\n  \"loan_grade\": \"F\",\n  \"cb_person_default_on_file\": \"Y\",\n  \"cb_person_cred_hist_length\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans"
+              ]
+            },
+            "description": "High risk: young, low income, renter, short employment, grade F, previous default."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"Saves loan_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"loan_id\");",
+                  "  pm.collectionVariables.set(\"loan_id\", j.loan_id);",
+                  "  console.log(\"loan_id:\", j.loan_id, \"pd_score:\", j.pd_score, \"risk:\", j.risk_level);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Apply Loan — Medical Purpose",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"cust-0003-0000-0000-000000000003\",\n  \"principal_amount\": 20000000.0,\n  \"interest_rate\": 0.09,\n  \"term_months\": 12,\n  \"purpose\": \"Chi phi phau thuat va dieu tri benh vien cho nguoi than trong gia dinh\",\n  \"person_age\": 45,\n  \"person_income\": 50000000,\n  \"person_home_ownership\": \"MORTGAGE\",\n  \"person_emp_length\": 15,\n  \"loan_intent\": \"MEDICAL\",\n  \"loan_grade\": \"B\",\n  \"cb_person_default_on_file\": \"N\",\n  \"cb_person_cred_hist_length\": 12\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"Saves loan_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"loan_id\");",
+                  "  pm.collectionVariables.set(\"loan_id\", j.loan_id);",
+                  "  console.log(\"loan_id:\", j.loan_id, \"pd_score:\", j.pd_score, \"risk:\", j.risk_level);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Loan Simulation — Low Risk Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"person_age\": 35,\n  \"person_income\": 30000000,\n  \"person_home_ownership\": \"OWN\",\n  \"person_emp_length\": 8,\n  \"loan_intent\": \"PERSONAL\",\n  \"loan_grade\": \"A\",\n  \"loan_amnt\": 50000,\n  \"loan_int_rate\": 8.5,\n  \"cb_person_default_on_file\": \"N\",\n  \"cb_person_cred_hist_length\": 8\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans/simulate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans",
+                "simulate"
+              ]
+            },
+            "description": "AI PD Score simulation — does NOT create a real loan. Returns pd_score + risk_level."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Simulation result\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"pd_score\");",
+                  "  pm.expect(j).to.have.property(\"risk_level\");",
+                  "  pm.expect(j).to.have.property(\"top_risk_factors\");",
+                  "  pm.expect(j).to.have.property(\"model_version\");",
+                  "  pm.expect(j.pd_score).to.be.a(\"number\").that.is.within(0, 1);",
+                  "  console.log(\"PD Score:\", j.pd_score, \"| Risk:\", j.risk_level, \"| Factors:\", j.top_risk_factors.join(\", \"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Loan Simulation — High Risk Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"person_age\": 21,\n  \"person_income\": 4000000,\n  \"person_home_ownership\": \"RENT\",\n  \"person_emp_length\": 0,\n  \"loan_intent\": \"VENTURE\",\n  \"loan_grade\": \"G\",\n  \"loan_amnt\": 25000,\n  \"loan_int_rate\": 25.0,\n  \"cb_person_default_on_file\": \"Y\",\n  \"cb_person_cred_hist_length\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans/simulate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans",
+                "simulate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Loan Simulation — Education Purpose",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"person_age\": 26,\n  \"person_income\": 12000000,\n  \"person_home_ownership\": \"RENT\",\n  \"person_emp_length\": 2,\n  \"loan_intent\": \"EDUCATION\",\n  \"loan_grade\": \"C\",\n  \"loan_amnt\": 15000,\n  \"loan_int_rate\": 14.5,\n  \"cb_person_default_on_file\": \"N\",\n  \"cb_person_cred_hist_length\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans/simulate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans",
+                "simulate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Loans (all)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans"
+              ],
+              "query": [
+                {
+                  "key": "customer_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true,
+                  "description": "PENDING|APPROVED|REJECTED|DISBURSED|CLOSED|DEFAULTED"
+                },
+                {
+                  "key": "period",
+                  "value": "",
+                  "disabled": true,
+                  "description": "D|W|M"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Loans — PENDING only",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Loans — by customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans"
+              ],
+              "query": [
+                {
+                  "key": "customer_id",
+                  "value": "{{customer_id}}"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Loan by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans/{{loan_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans",
+                "{{loan_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Loan detail + saves version\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"loan_id\");",
+                  "  pm.expect(j).to.have.property(\"status\");",
+                  "  pm.expect(j).to.have.property(\"version\");",
+                  "  pm.collectionVariables.set(\"loan_version\", String(j.version));",
+                  "  console.log(\"Status:\", j.status, \"| PD Score:\", j.pd_score, \"| Risk:\", j.risk_level, \"| Version:\", j.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Loan Decision — APPROVE (REVIEWER only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"APPROVE\",\n  \"review_note\": \"Ho so tin dung tot, PD score thap, thu nhap on dinh. Duyet khoan vay.\",\n  \"version\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans/{{loan_id}}/decision",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans",
+                "{{loan_id}}",
+                "decision"
+              ]
+            },
+            "description": "REVIEWER approves loan. System auto-calculates monthly_payment and maturity_date."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Loan APPROVED\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.status).to.equal(\"APPROVED\");",
+                  "  pm.expect(j).to.have.property(\"monthly_payment\");",
+                  "  pm.expect(j).to.have.property(\"maturity_date\");",
+                  "  console.log(\"Monthly payment:\", j.monthly_payment, \"| Maturity:\", j.maturity_date);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Loan Decision — REJECT (REVIEWER only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"REJECT\",\n  \"review_note\": \"PD score qua cao, lich su tin dung kem. Khong du dieu kien vay.\",\n  \"version\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/loans/{{loan_id}}/decision",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "loans",
+                "{{loan_id}}",
+                "decision"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Loan REJECTED\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.status).to.equal(\"REJECTED\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📜 Audit Logs",
+      "description": "Yeu cau MANAGER hoac ADMIN. Audit log la immutable.",
+      "item": [
+        {
+          "name": "List Audit Logs (all, saves first log_id)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "event_type",
+                  "value": "",
+                  "disabled": true,
+                  "description": "TRANSACTION_SUBMITTED|CASE_ASSIGNED|CASE_APPROVED|CASE_REJECTED|LOAN_APPLIED|LOAN_APPROVED|LOAN_REJECTED|USER_CREATED|USER_DISABLED|USER_ENABLED|USER_ROLE_UPDATED"
+                },
+                {
+                  "key": "entity_type",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Transaction|Loan|ReviewCase|User"
+                },
+                {
+                  "key": "actor_user_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from_date",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to_date",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse + saves log_id\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  if (j.data.length > 0) {",
+                  "    pm.collectionVariables.set(\"log_id\", j.data[0].log_id);",
+                  "    console.log(\"First log_id:\", j.data[0].log_id, \"event:\", j.data[0].event_type);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Audit Logs — TRANSACTION_SUBMITTED",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "event_type",
+                  "value": "TRANSACTION_SUBMITTED"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Audit Logs — LOAN events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "entity_type",
+                  "value": "Loan"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Audit Logs — USER events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "event_type",
+                  "value": "USER_CREATED"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Audit Trail — Transaction",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs/entities/Transaction/{{txn_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit-logs",
+                "entities",
+                "Transaction",
+                "{{txn_id}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Audit Trail — Loan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs/entities/Loan/{{loan_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit-logs",
+                "entities",
+                "Loan",
+                "{{loan_id}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Audit Trail — ReviewCase",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs/entities/ReviewCase/{{case_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit-logs",
+                "entities",
+                "ReviewCase",
+                "{{case_id}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Audit Trail — User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs/entities/User/{{target_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit-logs",
+                "entities",
+                "User",
+                "{{target_user_id}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+                  "pm.test(\"PagedResponse\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j).to.have.property(\"total\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Audit Log by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs/{{log_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "audit-logs",
+                "{{log_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Audit log detail\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"log_id\");",
+                  "  pm.expect(j).to.have.property(\"event_type\");",
+                  "  pm.expect(j).to.have.property(\"entity_type\");",
+                  "  pm.expect(j).to.have.property(\"entity_id\");",
+                  "  console.log(\"Event:\", j.event_type, \"| Entity:\", j.entity_type, j.entity_id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📊 Dashboard",
+      "description": "Yeu cau ANALYST hoac MANAGER.",
+      "item": [
+        {
+          "name": "Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "summary"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Summary structure\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"total_transactions\");",
+                  "  pm.expect(j).to.have.property(\"fraud_rate\");",
+                  "  console.log(\"Total txn:\", j.total_transactions, \"| Fraud rate:\", j.fraud_rate);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fraud Trend — Last 30 Days",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/fraud-trend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "fraud-trend"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Trend data array\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"data\");",
+                  "  pm.expect(j.data).to.be.an(\"array\");",
+                  "  console.log(\"Trend points:\", j.data.length, \"days\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fraud Trend — Last 7 Days",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/fraud-trend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "fraud-trend"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fraud Trend — Last 90 Days (max)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/fraud-trend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "fraud-trend"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "90"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📁 Reports (Export)",
+      "description": "Yeu cau MANAGER hoac ADMIN. Toi da 5000 rows moi lan export.",
+      "item": [
+        {
+          "name": "Export Transactions — JSON",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "json"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from_date",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to_date",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"JSON array\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.be.an(\"array\");",
+                  "  if (j.length > 0) { pm.expect(j[0]).to.have.property(\"txn_id\"); }",
+                  "  console.log(\"Exported\", j.length, \"transactions\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Transactions — CSV Download",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "csv"
+                },
+                {
+                  "key": "status",
+                  "value": "APPROVED"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"CSV content-type\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/csv\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Transactions — REJECTED JSON",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "json"
+                },
+                {
+                  "key": "status",
+                  "value": "REJECTED"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Fraud Report — JSON",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/fraud",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "fraud"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "json"
+                },
+                {
+                  "key": "from_date",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to_date",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Fraud report structure\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.be.an(\"array\");",
+                  "  if (j.length > 0) {",
+                  "    pm.expect(j[0]).to.have.property(\"date\");",
+                  "    pm.expect(j[0]).to.have.property(\"total_txn\");",
+                  "    pm.expect(j[0]).to.have.property(\"fraud_rate\");",
+                  "  }",
+                  "  console.log(\"Fraud report rows:\", j.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Fraud Report — CSV Download",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reports/fraud",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "fraud"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "csv"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"CSV content-type\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/csv\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔬 Analyst",
+      "description": "Yeu cau ANALYST.",
+      "item": [
+        {
+          "name": "Get Thresholds",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analyst/thresholds",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analyst",
+                "thresholds"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Threshold structure\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"fraud\");",
+                  "  pm.expect(j).to.have.property(\"loan\");",
+                  "  pm.expect(j.fraud).to.be.an(\"array\");",
+                  "  console.log(\"Fraud thresholds:\", j.fraud.map(t=>t.param_name+\":\"+t.param_value).join(\", \"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Thresholds — Fraud Model",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"updates\": [\n    {\n      \"model_name\": \"fraud\",\n      \"param_name\": \"reject_threshold\",\n      \"param_value\": 0.65\n    },\n    {\n      \"model_name\": \"fraud\",\n      \"param_name\": \"review_threshold\",\n      \"param_value\": 0.35\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/analyst/thresholds",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analyst",
+                "thresholds"
+              ]
+            },
+            "description": "Update fraud model thresholds. Changes are applied immediately."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Thresholds — Loan Model",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"updates\": [\n    {\n      \"model_name\": \"loan\",\n      \"param_name\": \"high_risk_threshold\",\n      \"param_value\": 0.5\n    },\n    {\n      \"model_name\": \"loan\",\n      \"param_name\": \"medium_risk_threshold\",\n      \"param_value\": 0.2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/analyst/thresholds",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analyst",
+                "thresholds"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fraud Model Performance — 30 days",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analyst/model-performance/fraud",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analyst",
+                "model-performance",
+                "fraud"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Performance fields\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"period_days\");",
+                  "  pm.expect(j).to.have.property(\"score_distribution\");",
+                  "  pm.expect(j).to.have.property(\"current_thresholds\");",
+                  "  const d = j.score_distribution;",
+                  "  console.log(\"Fraud dist: approved:\", d.approved_count, \"review:\", d.review_count, \"rejected:\", d.rejected_count);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fraud Model Performance — 7 days",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analyst/model-performance/fraud",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analyst",
+                "model-performance",
+                "fraud"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Loan Model Performance — 30 days",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analyst/model-performance/loan",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analyst",
+                "model-performance",
+                "loan"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Loan performance fields\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"risk_distribution\");",
+                  "  pm.expect(j).to.have.property(\"current_thresholds\");",
+                  "  const d = j.risk_distribution;",
+                  "  console.log(\"Loan dist: low:\", d.low_risk_count, \"med:\", d.medium_risk_count, \"high:\", d.high_risk_count);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Loan Model Performance — 7 days",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analyst/model-performance/loan",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analyst",
+                "model-performance",
+                "loan"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response < 3s\", () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🎮 Demo Runner",
+      "description": "Start/Stop: OPERATOR. Status: tat ca roles.",
+      "item": [
+        {
+          "name": "Start Demo — Normal Rate (1 rps, 50 req)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rate\": 1.0,\n  \"count\": 50,\n  \"loan_pct\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/demo/start",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "start"
+              ]
+            },
+            "description": "Spawns background task: 1 req/s, 50 total requests, 20% loans."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200 or 409 (already running)\", () => {",
+                  "  pm.expect([200,409]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test(\"Demo started\", () => pm.expect(pm.response.json().running).to.equal(true));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start Demo — High Rate (5 rps, 100 req)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rate\": 5.0,\n  \"count\": 100,\n  \"loan_pct\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/demo/start",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "start"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Started or conflict\", () => pm.expect([200,409]).to.include(pm.response.code));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start Demo — Continuous (no count limit)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rate\": 2.0,\n  \"count\": null,\n  \"loan_pct\": 25\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/demo/start",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "start"
+              ]
+            },
+            "description": "Runs until manually stopped. Use Stop Demo to terminate."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Started or conflict\", () => pm.expect([200,409]).to.include(pm.response.code));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Demo Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/demo/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Status fields\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property(\"running\");",
+                  "  pm.expect(j).to.have.property(\"sent\");",
+                  "  pm.expect(j).to.have.property(\"stats\");",
+                  "  console.log(\"Running:\", j.running, \"| Sent:\", j.sent, \"| Stats:\", JSON.stringify(j.stats));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stop Demo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/demo/stop",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "demo",
+                "stop"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Demo stopped\", () => {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.running).to.equal(false);",
+                  "  console.log(\"Demo stopped. Total sent:\", j.sent, \"| Stats:\", JSON.stringify(j.stats));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
