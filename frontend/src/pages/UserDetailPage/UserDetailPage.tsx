@@ -28,7 +28,6 @@ const roleOptions = [
     { label: 'Reviewer', value: 'REVIEWER' },
     { label: 'Analyst', value: 'ANALYST' },
     { label: 'Manager', value: 'MANAGER' },
-    { label: 'Analyst', value: 'ANALYST' },
 ];
 
 export function UserDetailPage() {

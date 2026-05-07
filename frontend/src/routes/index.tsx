@@ -289,6 +289,7 @@ const routeTree = rootRoute.addChildren([
 
 export const router = createRouter({
     routeTree,
+    defaultNotFoundComponent: NotFoundPage,
 });
 
 declare module '@tanstack/react-router' {
