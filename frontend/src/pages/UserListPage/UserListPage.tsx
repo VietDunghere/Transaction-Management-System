@@ -28,6 +28,7 @@ const roleOptions = [
     { label: 'All Roles', value: '' },
     { label: 'Operator', value: 'OPERATOR' },
     { label: 'Reviewer', value: 'REVIEWER' },
+    { label: 'Analyst', value: 'ANALYST' },
     { label: 'Manager', value: 'MANAGER' },
     { label: 'Admin', value: 'ADMIN' },
 ];

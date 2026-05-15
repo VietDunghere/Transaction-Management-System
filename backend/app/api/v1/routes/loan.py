@@ -58,7 +58,7 @@ def _build_loan_response(loan, db) -> LoanResponse:
         total_loans=len(all_loans),
         approved=sum(1 for r in all_loans if r.status == "APPROVED"),
         rejected=sum(1 for r in all_loans if r.status == "REJECTED"),
-        active=sum(1 for r in all_loans if r.status in ("PENDING", "SCORING", "MANUAL_REVIEW")),
+        active=sum(1 for r in all_loans if r.status == "PENDING"),
     )
     resp.customer_loan_stats = stats
 

@@ -249,13 +249,6 @@ const analystModelPerfRoute = createRoute({
     beforeLoad: () => guardRole(['ANALYST']),
 });
 
-// -- 404 --
-const notFoundRoute = createRoute({
-    getParentRoute: () => authLayoutRoute,
-    path: '*',
-    component: NotFoundPage,
-});
-
 // ============================================================
 // ROUTE TREE
 // ============================================================
@@ -283,7 +276,6 @@ const routeTree = rootRoute.addChildren([
         analystThresholdsRoute,
         analystModelPerfRoute,
         demoRoute,
-        notFoundRoute,
     ]),
 ]);
 

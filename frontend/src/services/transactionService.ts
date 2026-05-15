@@ -13,7 +13,7 @@ export const transactionService = {
 
 
     submitTransaction(data: Record<string, unknown>) {
-        return apiClient.post<unknown, { txn_id: string; status: string; fraud_score: number }>(
+        return apiClient.post<unknown, { txn_id: string; status: string; fraud_score: number; decision: string; amount: number; case_id: string | null; message: string }>(
             '/transactions/submit',
             data,
         );

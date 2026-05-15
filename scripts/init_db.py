@@ -44,6 +44,16 @@ print("[init_db] Creating tables...")
 Base.metadata.create_all(bind=engine, checkfirst=True)
 print("[init_db] Tables OK.")
 
+# ── 1b. Idempotent migrations (columns added after initial deploy) ────
+from sqlalchemy import text
+with engine.connect() as _conn:
+    try:
+        _conn.execute(text("ALTER TABLE customers ADD COLUMN state VARCHAR(10)"))
+        _conn.commit()
+        print("[init_db] Migration: added customers.state column.")
+    except Exception:
+        pass  # column already exists
+
 
 def _seed(db: Session) -> None:
     # ── 2. Channels ───────────────────────────────────────────
@@ -122,14 +132,18 @@ def _seed(db: Session) -> None:
          "San Diego",      "CA",  33.0067, -117.0690, 1241364),
     ]
     for cid, name, gender, dob, job, city, state, lat, lon, pop in demo_customers:
-        if not db.query(Customer).filter_by(customer_id=cid).first():
+        existing = db.query(Customer).filter_by(customer_id=cid).first()
+        if not existing:
             db.add(Customer(
                 customer_id=cid, customer_code=cid, full_name=name,
                 gender=gender, date_of_birth=dob, job=job,
-                city=city, address=city, latitude=lat, longitude=lon,
+                city=city, state=state, address=city, latitude=lat, longitude=lon,
                 kyc_status="VERIFIED",
             ))
             print(f"[init_db] Seeded customer: {cid} ({name}, {job}, {city} {state})")
+        elif existing.state is None:
+            existing.state = state
+            print(f"[init_db] Updated customer state: {cid} → {state}")
     db.flush()
 
     # ── 6. Demo merchants — one per Kaggle category ───────────

@@ -79,7 +79,7 @@ class TransactionService:
             gender=customer.gender or "M",
             job=customer.job or "unknown",
             city=customer.city or "unknown",
-            state=customer.city or "unknown",
+            state=customer.state or "unknown",
             city_population=50000,
             date_of_birth=datetime.combine(customer.date_of_birth, datetime.min.time())
             if customer.date_of_birth else datetime(1980, 1, 1),

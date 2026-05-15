@@ -94,7 +94,7 @@ def search_merchants(
 )
 def list_channels(
     db: DbSession,
-    token: TokenPayload = Depends(require_roles("OPERATOR")),
+    token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER", "MANAGER", "ANALYST", "ADMIN")),
 ) -> List[ChannelItem]:
     rows = db.query(Channel).all()
     return [
