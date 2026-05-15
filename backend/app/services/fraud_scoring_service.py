@@ -82,7 +82,7 @@ class FraudScoringService:
     """
 
     _instance: "FraudScoringService | None" = None
-    _pipeline = None                       # sklearn Pipeline (ColumnTransformer + RF)
+    _pipeline = None                      
     _feature_names: List[str] = []
     _feature_importances: np.ndarray | None = None
 
