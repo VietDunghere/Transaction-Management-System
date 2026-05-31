@@ -16,8 +16,8 @@ from sqlalchemy.orm import Session
 
 from app.db.base import engine
 from app.models.case import ReviewCase
-from app.models.loan import Loan
-from app.models.transaction import Transaction
+from app.models.loan import Loans
+from app.models.transaction import TransactionLive
 
 
 def _day_trunc_expr(col: Any) -> Any:
@@ -51,10 +51,10 @@ class DashboardRepository:
         """
         rows = (
             self._db.query(
-                Transaction.status,
-                func.count(Transaction.txn_id).label("cnt"),
+                TransactionLive.status,
+                func.count(TransactionLive.txn_id).label("cnt"),
             )
-            .group_by(Transaction.status)
+            .group_by(TransactionLive.status)
             .all()
         )
         return {status: cnt for status, cnt in rows}
@@ -62,8 +62,8 @@ class DashboardRepository:
     def get_txn_count_since(self, since: datetime) -> int:
         """Đếm transactions được tạo từ thời điểm `since` trở đi (dùng created_at)."""
         result = (
-            self._db.query(func.count(Transaction.txn_id))
-            .filter(Transaction.created_at >= since)
+            self._db.query(func.count(TransactionLive.txn_id))
+            .filter(TransactionLive.created_at >= since)
             .scalar()
         )
         return result or 0
@@ -71,8 +71,8 @@ class DashboardRepository:
     def get_avg_fraud_score(self) -> Optional[float]:
         """Điểm fraud trung bình trên toàn bộ giao dịch có fraud_score."""
         result = (
-            self._db.query(func.avg(Transaction.fraud_score))
-            .filter(Transaction.fraud_score.isnot(None))
+            self._db.query(func.avg(TransactionLive.fraud_score))
+            .filter(TransactionLive.fraud_score.isnot(None))
             .scalar()
         )
         return float(result) if result is not None else None
@@ -114,10 +114,10 @@ class DashboardRepository:
         try:
             rows = (
                 self._db.query(
-                    Loan.status,
-                    func.count(Loan.loan_id).label("cnt"),
+                    Loans.status,
+                    func.count(Loans.loan_id).label("cnt"),
                 )
-                .group_by(Loan.status)
+                .group_by(Loans.status)
                 .all()
             )
             return {status: cnt for status, cnt in rows}
@@ -141,16 +141,16 @@ class DashboardRepository:
 
         max_points: giới hạn số ngày tối đa — ngăn query quá lớn.
         """
-        day_expr = _day_trunc_expr(Transaction.txn_time)
+        day_expr = _day_trunc_expr(TransactionLive.txn_time)
 
         rows = (
             self._db.query(
                 day_expr.label("day"),
-                Transaction.status,
-                func.count(Transaction.txn_id).label("cnt"),
+                TransactionLive.status,
+                func.count(TransactionLive.txn_id).label("cnt"),
             )
-            .filter(Transaction.txn_time >= cutoff)
-            .group_by(day_expr, Transaction.status)
+            .filter(TransactionLive.txn_time >= cutoff)
+            .group_by(day_expr, TransactionLive.status)
             .order_by(day_expr)
             .limit(max_points * 4)   # 4 statuses per day max
             .all()
@@ -175,23 +175,23 @@ class DashboardRepository:
         from_date: Optional[datetime] = None,
         to_date: Optional[datetime] = None,
         max_rows: int = 5000,
-    ) -> list[Transaction]:
+    ) -> list[TransactionLive]:
         """
         Fetch transactions cho export — có giới hạn max_rows.
         Eager-load không cần thiết vì chỉ export field từ transactions_live.
         Sắp xếp theo txn_time giảm dần (mới nhất trước).
         """
-        query = self._db.query(Transaction)
+        query = self._db.query(TransactionLive)
 
         if status:
-            query = query.filter(Transaction.status == status)
+            query = query.filter(TransactionLive.status == status)
         if from_date:
-            query = query.filter(Transaction.txn_time >= from_date)
+            query = query.filter(TransactionLive.txn_time >= from_date)
         if to_date:
-            query = query.filter(Transaction.txn_time <= to_date)
+            query = query.filter(TransactionLive.txn_time <= to_date)
 
         return (
-            query.order_by(Transaction.txn_time.desc())
+            query.order_by(TransactionLive.txn_time.desc())
             .limit(max_rows)
             .all()
         )
@@ -206,22 +206,22 @@ class DashboardRepository:
         Cùng logic với get_fraud_trend_daily nhưng không giới hạn max_points.
         Dùng cho export báo cáo fraud toàn bộ khoảng thời gian.
         """
-        day_expr = _day_trunc_expr(Transaction.txn_time)
+        day_expr = _day_trunc_expr(TransactionLive.txn_time)
         query = (
             self._db.query(
                 day_expr.label("day"),
-                Transaction.status,
-                func.count(Transaction.txn_id).label("cnt"),
-                func.avg(Transaction.fraud_score).label("avg_score"),
+                TransactionLive.status,
+                func.count(TransactionLive.txn_id).label("cnt"),
+                func.avg(TransactionLive.fraud_score).label("avg_score"),
             )
-            .group_by(day_expr, Transaction.status)
+            .group_by(day_expr, TransactionLive.status)
             .order_by(day_expr)
         )
 
         if from_date:
-            query = query.filter(Transaction.txn_time >= from_date)
+            query = query.filter(TransactionLive.txn_time >= from_date)
         if to_date:
-            query = query.filter(Transaction.txn_time <= to_date)
+            query = query.filter(TransactionLive.txn_time <= to_date)
 
         rows = query.limit(10000).all()
         return [

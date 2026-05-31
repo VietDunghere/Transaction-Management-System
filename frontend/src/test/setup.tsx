@@ -38,11 +38,11 @@ vi.mock('recharts', () => ({
     Cell: () => null,
 }));
 
-vi.mock('../pages/LoginPage/GeometricBackground', () => ({
+vi.mock('../pages/LoginFRM/GeometricBackground', () => ({
     GeometricBackground: () => <div data-testid="geometric-background" />,
 }));
 
-vi.mock('../pages/LoginPage/CosmicBackground', () => ({
+vi.mock('../pages/LoginFRM/CosmicBackground', () => ({
     CosmicBackground: () => <div data-testid="cosmic-background" />,
 }));
 

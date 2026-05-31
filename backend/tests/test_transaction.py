@@ -62,12 +62,12 @@ def test_submit_transaction_forwards_payload_and_actor(monkeypatch, db_stub: DbS
 		def __init__(self, db):
 			observed["db"] = db
 
-		def submit(self, body, submitted_by_user_id):
+		def addTransaction(self, body, submitted_by_user_id):
 			observed["body"] = body
 			observed["submitted_by_user_id"] = submitted_by_user_id
 			return expected
 
-	monkeypatch.setattr(txn_routes, "TransactionService", FakeService)
+	monkeypatch.setattr(txn_routes, "TransactionLiveDAO", FakeService)
 
 	body = TransactionSubmitRequest(
 		card_number="4111111111111111",
@@ -97,11 +97,11 @@ def test_list_transactions_applies_period_and_pagination(monkeypatch, db_stub: D
 		def __init__(self, db):
 			observed["db"] = db
 
-		def list_transactions(self, **kwargs):
+		def filterTransaction(self, **kwargs):
 			observed["kwargs"] = kwargs
 			return items, 1
 
-	monkeypatch.setattr(txn_routes, "TransactionService", FakeService)
+	monkeypatch.setattr(txn_routes, "TransactionLiveDAO", FakeService)
 
 	result = txn_routes.list_transactions(
 		db=db_stub,
@@ -138,11 +138,11 @@ def test_get_transaction_returns_response(monkeypatch, db_stub: DbStub, token_ad
 		def __init__(self, db):
 			self.db = db
 
-		def get_transaction(self, txn_id):
+		def viewTransactionDetail(self, txn_id):
 			assert txn_id == "txn-1"
 			return txn_obj
 
-	monkeypatch.setattr(txn_routes, "TransactionService", FakeService)
+	monkeypatch.setattr(txn_routes, "TransactionLiveDAO", FakeService)
 
 	result = txn_routes.get_transaction(txn_id="txn-1", db=db_stub, token=token_admin)
 
@@ -159,11 +159,11 @@ def test_get_transaction_without_scoring_keeps_fraud_detail_none(monkeypatch, db
 		def __init__(self, db):
 			self.db = db
 
-		def get_transaction(self, txn_id):
+		def viewTransactionDetail(self, txn_id):
 			assert txn_id == "txn-plain"
 			return txn_obj
 
-	monkeypatch.setattr(txn_routes, "TransactionService", FakeService)
+	monkeypatch.setattr(txn_routes, "TransactionLiveDAO", FakeService)
 
 	result = txn_routes.get_transaction(txn_id="txn-plain", db=db_stub, token=token_admin)
 

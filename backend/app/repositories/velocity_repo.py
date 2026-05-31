@@ -9,8 +9,8 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.models.card_velocity import CardVelocityStats
-from app.models.customer import Customer
-from app.models.merchant import Merchant
+from app.models.customer import Customers
+from app.models.merchant import Merchants
 
 
 class CustomerRepository:
@@ -19,8 +19,8 @@ class CustomerRepository:
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def get_by_id(self, customer_id: str) -> Optional[Customer]:
-        return self._db.query(Customer).filter(Customer.customer_id == customer_id).first()
+    def get_by_id(self, customer_id: str) -> Optional[Customers]:
+        return self._db.query(Customers).filter(Customers.customer_id == customer_id).first()
 
 
 class MerchantRepository:
@@ -29,8 +29,8 @@ class MerchantRepository:
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def get_by_id(self, merchant_id: str) -> Optional[Merchant]:
-        return self._db.query(Merchant).filter(Merchant.merchant_id == merchant_id).first()
+    def get_by_id(self, merchant_id: str) -> Optional[Merchants]:
+        return self._db.query(Merchants).filter(Merchants.merchant_id == merchant_id).first()
 
 
 class VelocityRepository:

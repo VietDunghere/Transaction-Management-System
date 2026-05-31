@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AnalystThresholdsPage } from '~/pages/AnalystThresholdsPage/AnalystThresholdsPage';
-import { AnalystModelPerformancePage } from '~/pages/AnalystModelPerformancePage/AnalystModelPerformancePage';
+import { ModelConfigFRM } from '~/pages/ModelConfigFRM/ModelConfigFRM';
+import { ModelPerformanceFRM } from '~/pages/ModelPerformanceFRM/ModelPerformanceFRM';
 import { analystUser, fraudPerformance, loanPerformance, thresholds } from '~/test/fixtures';
 import { createMutationResult, createQueryResult, setAuthUser } from '~/test/testUtils';
 
@@ -36,7 +36,7 @@ describe('analyst pages', () => {
         analystHookMocks.useUpdateThresholds.mockReturnValue(updateThresholdsMutation);
         setAuthUser(analystUser);
 
-        render(<AnalystThresholdsPage />);
+        render(<ModelConfigFRM />);
 
         expect(screen.getByRole('heading', { name: 'Model Thresholds' })).toBeInTheDocument();
         expect(screen.getByText('Fraud Detection Model')).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('analyst pages', () => {
         analystHookMocks.useFraudPerformance.mockReturnValue(createQueryResult(fraudPerformance));
         analystHookMocks.useLoanPerformance.mockReturnValue(createQueryResult(loanPerformance));
 
-        render(<AnalystModelPerformancePage />);
+        render(<ModelPerformanceFRM />);
 
         expect(screen.getByRole('heading', { name: 'Model Performance' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Fraud Model' })).toBeInTheDocument();

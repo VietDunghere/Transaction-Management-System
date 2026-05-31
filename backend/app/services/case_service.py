@@ -1,6 +1,6 @@
 from __future__ import annotations
 """
-Service: CaseService (ERD v2)
+Service: ReviewCaseDAO (ERD v2)
 Simplified: no ReviewCaseAction, TxnState, TxnStateHistory.
 case_status: OPEN → ASSIGNED → CLOSED. Decision stored in decision column.
 """
@@ -22,7 +22,7 @@ from app.core.exceptions import (
 from app.core.logging import get_logger
 from app.models.case import ReviewCase
 from app.models.scoring import AuditLog
-from app.models.transaction import Transaction
+from app.models.transaction import TransactionLive
 from app.repositories.case_repo import CaseRepository
 from app.schemas.case import CaseDecideRequest
 from app.schemas.common import CaseStatus
@@ -30,19 +30,19 @@ from app.schemas.common import CaseStatus
 logger = get_logger(__name__)
 
 
-class CaseService:
+class ReviewCaseDAO:
 
     def __init__(self, db: Session) -> None:
         self._db = db
         self._case_repo = CaseRepository(db)
 
-    def get_case(self, case_id: str) -> ReviewCase:
+    def viewCaseDetail(self, case_id: str) -> ReviewCase:
         case = self._case_repo.get_by_id(case_id)
         if case is None:
             raise NotFoundError("Case")
         return case
 
-    def list_cases(
+    def filterCase(
         self,
         case_status=None,
         assigned_to=None,
@@ -60,7 +60,7 @@ class CaseService:
             page_size=page_size,
         )
 
-    def self_assign(self, case_id: str, reviewer_user_id: str) -> ReviewCase:
+    def assignCase(self, case_id: str, reviewer_user_id: str) -> ReviewCase:
         case = self._get_open_case(case_id)
 
         if case.assigned_to is not None:
@@ -92,7 +92,7 @@ class CaseService:
         logger.info("case_self_assigned", case_id=case_id, reviewer=reviewer_user_id)
         return self._case_repo.get_by_id(case_id)
 
-    def decide(
+    def reviewCase(
         self,
         case_id: str,
         request: CaseDecideRequest,
@@ -112,7 +112,7 @@ class CaseService:
             raise PermissionDeniedError("Case này không được giao cho bạn.")
 
         if not is_privileged:
-            txn = self._db.query(Transaction).filter(Transaction.txn_id == case.txn_id).first()
+            txn = self._db.query(TransactionLive).filter(TransactionLive.txn_id == case.txn_id).first()
             if txn and txn.submitted_by == actor_user_id:
                 raise PermissionDeniedError(
                     "Vi phạm nguyên tắc 4 mắt (SoD): không thể review giao dịch do chính mình tạo."
@@ -136,7 +136,7 @@ class CaseService:
 
         # Update transaction status
         txn_new_status = "APPROVED" if request.decision.value == "APPROVE" else "REJECTED"
-        self._db.query(Transaction).filter(Transaction.txn_id == case.txn_id).update(
+        self._db.query(TransactionLive).filter(TransactionLive.txn_id == case.txn_id).update(
             {"status": txn_new_status}, synchronize_session="fetch"
         )
 
@@ -159,8 +159,8 @@ class CaseService:
         return case
 
     def _write_audit(self, entity_id: str, actor: str, event_type: str, detail: dict) -> None:
-        from app.models.user import User
-        user = self._db.query(User.full_name).filter(User.user_id == actor).first()
+        from app.models.user import Users
+        user = self._db.query(Users.full_name).filter(Users.user_id == actor).first()
         audit = AuditLog(
             log_id=str(uuid.uuid4()),
             event_type=event_type,

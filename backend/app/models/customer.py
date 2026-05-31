@@ -14,7 +14,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Customer(Base):
+class Customers(Base):
     """Bảng customers — khách hàng/chủ thẻ (ERD v2)."""
 
     __tablename__ = "customers"
@@ -45,6 +45,6 @@ class Customer(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
 
     # Relationships
-    transactions: Mapped[list["Transaction"]] = relationship(  # noqa: F821
-        "Transaction", back_populates="customer"
+    transactions: Mapped[list["TransactionLive"]] = relationship(  # noqa: F821
+        "TransactionLive", back_populates="customer"
     )

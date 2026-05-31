@@ -16,10 +16,10 @@ from sqlalchemy.orm import Session
 
 from app.db.base import SessionLocal, create_tables
 from app.core.security import hash_password
-from app.models.user import User
-from app.models.customer import Customer
-from app.models.merchant import Merchant, Channel
-from app.models.loan import Loan
+from app.models.user import Users
+from app.models.customer import Customers
+from app.models.merchant import Merchants, Channels
+from app.models.loan import Loans
 from app.models.analyst import ModelConfig
 
 
@@ -35,7 +35,7 @@ def seed(db: Session) -> None:
     ]
 
     for u_data in users_data:
-        existing = db.query(User).filter(User.username == u_data["username"]).first()
+        existing = db.query(Users).filter(Users.username == u_data["username"]).first()
         if existing:
             # Always re-hash on seed — ensures rows from older scripts
             # (plain-text or differently-hashed) are corrected on next run.
@@ -44,7 +44,7 @@ def seed(db: Session) -> None:
             print(f"[users] re-hashed {u_data['username']}")
             continue
 
-        user = User(
+        user = Users(
             user_id=str(uuid.uuid4()),
             username=u_data["username"],
             password_hash=hash_password(u_data["password"]),
@@ -66,9 +66,9 @@ def seed(db: Session) -> None:
     ]
 
     for c_data in channels_data:
-        existing = db.query(Channel).filter(Channel.channel_code == c_data["channel_code"]).first()
+        existing = db.query(Channels).filter(Channels.channel_code == c_data["channel_code"]).first()
         if not existing:
-            db.add(Channel(**c_data))
+            db.add(Channels(**c_data))
             print(f"[channels] created {c_data['channel_code']}")
         else:
             print(f"[channels] skip {c_data['channel_code']} (exists)")
@@ -117,9 +117,9 @@ def seed(db: Session) -> None:
     ]
 
     for c_data in customers_data:
-        existing = db.query(Customer).filter(Customer.customer_id == c_data["customer_id"]).first()
+        existing = db.query(Customers).filter(Customers.customer_id == c_data["customer_id"]).first()
         if not existing:
-            db.add(Customer(**c_data))
+            db.add(Customers(**c_data))
             print(f"[customers] created {c_data['customer_code']}")
         else:
             print(f"[customers] skip {c_data['customer_code']} (exists)")
@@ -181,17 +181,17 @@ def seed(db: Session) -> None:
     ]
 
     for m_data in merchants_data:
-        existing = db.query(Merchant).filter(Merchant.merchant_id == m_data["merchant_id"]).first()
+        existing = db.query(Merchants).filter(Merchants.merchant_id == m_data["merchant_id"]).first()
         if not existing:
-            db.add(Merchant(**m_data))
+            db.add(Merchants(**m_data))
             print(f"[merchants] created {m_data['merchant_code']}")
         else:
             print(f"[merchants] skip {m_data['merchant_code']} (exists)")
 
     # ── Loans (ERD v2: no currency_code, added model_version) ──
     db.flush()
-    op_user = db.query(User).filter(User.username == "operator1").first()
-    mgr_user = db.query(User).filter(User.username == "manager1").first()
+    op_user = db.query(Users).filter(Users.username == "operator1").first()
+    mgr_user = db.query(Users).filter(Users.username == "manager1").first()
 
     if not op_user:
         print("[loans] skip — operator1 user not found")
@@ -309,9 +309,9 @@ def seed(db: Session) -> None:
         ]
 
         for l_data in loans_data:
-            existing = db.query(Loan).filter(Loan.loan_id == l_data["loan_id"]).first()
+            existing = db.query(Loans).filter(Loans.loan_id == l_data["loan_id"]).first()
             if not existing:
-                db.add(Loan(**l_data))
+                db.add(Loans(**l_data))
                 print(f"[loans] created {l_data['loan_id'][:18]}... ({l_data['status']}, {l_data['risk_level']})")
             else:
                 print(f"[loans] skip {l_data['loan_id'][:18]}... (exists)")

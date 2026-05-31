@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CaseListPage } from '~/pages/CaseListPage/CaseListPage';
-import { CaseDetailPage } from '~/pages/CaseDetailPage/CaseDetailPage';
+import { CaseFrm } from '~/pages/CaseFrm/CaseFrm';
+import { CaseDetailFrm } from '~/pages/CaseDetailFrm/CaseDetailFrm';
 import { createMutationResult, createQueryResult, navigateMock, setAuthUser, setRouteParams } from '~/test/testUtils';
 import { caseDetail, caseListResponse, caseDecisionResponse, reviewerUser } from '~/test/fixtures';
 
@@ -41,7 +41,7 @@ describe('case pages', () => {
         caseHookMocks.useDemoRunning.mockReturnValue(false);
         caseHookMocks.useCases.mockReturnValue(createQueryResult(caseListResponse));
 
-        render(<CaseListPage />);
+        render(<CaseFrm />);
 
         expect(screen.getByRole('heading', { name: 'Cases' })).toBeInTheDocument();
         expect(screen.getByText('1 total cases')).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe('case pages', () => {
         setAuthUser(reviewerUser);
         setRouteParams({ caseId: caseDetail.case_id });
 
-        render(<CaseDetailPage />);
+        render(<CaseDetailFrm />);
 
         expect(screen.getByRole('heading', { name: 'Case Detail' })).toBeInTheDocument();
         expect(screen.getByText('Case Details')).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('case pages', () => {
         setAuthUser(reviewerUser);
         setRouteParams({ caseId: caseDetail.case_id });
 
-        render(<CaseDetailPage />);
+        render(<CaseDetailFrm />);
 
         await user.click(screen.getByRole('button', { name: 'Approve' }));
         expect(screen.getByText('Approve Case')).toBeInTheDocument();

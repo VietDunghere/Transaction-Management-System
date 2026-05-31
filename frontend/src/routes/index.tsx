@@ -2,27 +2,27 @@ import { Outlet, createRootRoute, createRoute, createRouter, redirect } from '@t
 import { DefaultLayout } from '~/layouts/DefaultLayout';
 import { PublicLayout } from '~/layouts/PublicLayout';
 import {
-    LoginPage,
-    ProfilePage,
-    DashboardPage,
-    TransactionListPage,
-    TransactionDetailPage,
-    TransactionSubmitPage,
-    CaseListPage,
-    CaseDetailPage,
-    UserListPage,
-    UserCreatePage,
+    LoginFRM,
+    ChangePasswordFRM,
+    DashboardView,
+    TransactionFRM,
+    TransactionDetailFrm,
+    AddTransactionFRM,
+    CaseFrm,
+    CaseDetailFrm,
+    UserView,
+    AddUserView,
     UserDetailPage,
-    LoanListPage,
-    LoanDetailPage,
-    LoanCreatePage,
+    LoanFrm,
+    LoanDetailFrm,
+    AddLoanFrm,
     LoanSimulatePage,
-    AuditLogListPage,
-    AuditLogDetailPage,
+    AuditLogView,
+    AuditLogDetailView,
     ForbiddenPage,
     NotFoundPage,
-    AnalystThresholdsPage,
-    AnalystModelPerformancePage,
+    ModelConfigFRM,
+    ModelPerformanceFRM,
     DemoPage,
 } from '~/pages';
 import { useAuthStore } from '~/stores/useAuthStore';
@@ -63,7 +63,7 @@ const publicLayoutRoute = createRoute({
 const loginRoute = createRoute({
     getParentRoute: () => publicLayoutRoute,
     path: '/login',
-    component: LoginPage,
+    component: LoginFRM,
 });
 
 // ============================================================
@@ -100,7 +100,7 @@ const authLayoutRoute = createRoute({
 const dashboardRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/',
-    component: DashboardPage,
+    component: DashboardView,
     beforeLoad: () => {
         const role = getUserRole();
         if (role === 'OPERATOR') throw redirect({ to: '/transactions' });
@@ -113,7 +113,7 @@ const dashboardRoute = createRoute({
 const profileRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/profile',
-    component: ProfilePage,
+    component: ChangePasswordFRM,
 });
 
 // -- Forbidden --
@@ -127,21 +127,21 @@ const forbiddenRoute = createRoute({
 const transactionsRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/transactions',
-    component: TransactionListPage,
+    component: TransactionFRM,
     beforeLoad: () => guardRole(['OPERATOR', 'ANALYST', 'MANAGER']),
 });
 
 const transactionSubmitRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/transactions/submit',
-    component: TransactionSubmitPage,
+    component: AddTransactionFRM,
     beforeLoad: () => guardRole(['OPERATOR']),
 });
 
 const transactionDetailRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/transactions/$txnId',
-    component: TransactionDetailPage,
+    component: TransactionDetailFrm,
     beforeLoad: () => guardRole(['OPERATOR', 'ANALYST', 'MANAGER']),
 });
 
@@ -149,14 +149,14 @@ const transactionDetailRoute = createRoute({
 const casesRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/cases',
-    component: CaseListPage,
+    component: CaseFrm,
     beforeLoad: () => guardRole(['REVIEWER']),
 });
 
 const caseDetailRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/cases/$caseId',
-    component: CaseDetailPage,
+    component: CaseDetailFrm,
     beforeLoad: () => guardRole(['REVIEWER']),
 });
 
@@ -164,14 +164,14 @@ const caseDetailRoute = createRoute({
 const loansRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/loans',
-    component: LoanListPage,
+    component: LoanFrm,
     beforeLoad: () => guardRole(['OPERATOR', 'REVIEWER']),
 });
 
 const loanCreateRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/loans/create',
-    component: LoanCreatePage,
+    component: AddLoanFrm,
     beforeLoad: () => guardRole(['OPERATOR']),
 });
 
@@ -185,7 +185,7 @@ const loanSimulateRoute = createRoute({
 const loanDetailRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/loans/$loanId',
-    component: LoanDetailPage,
+    component: LoanDetailFrm,
     beforeLoad: () => guardRole(['OPERATOR', 'REVIEWER']),
 });
 
@@ -193,14 +193,14 @@ const loanDetailRoute = createRoute({
 const usersRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/users',
-    component: UserListPage,
+    component: UserView,
     beforeLoad: () => guardRole(['MANAGER', 'ADMIN']),
 });
 
 const userCreateRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/users/create',
-    component: UserCreatePage,
+    component: AddUserView,
     beforeLoad: () => guardRole(['ADMIN']),
 });
 
@@ -215,14 +215,14 @@ const userDetailRoute = createRoute({
 const auditLogsRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/audit-logs',
-    component: AuditLogListPage,
+    component: AuditLogView,
     beforeLoad: () => guardRole(['MANAGER', 'ADMIN']),
 });
 
 const auditLogDetailRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/audit-logs/$logId',
-    component: AuditLogDetailPage,
+    component: AuditLogDetailView,
     beforeLoad: () => guardRole(['MANAGER', 'ADMIN']),
 });
 
@@ -230,7 +230,7 @@ const auditLogDetailRoute = createRoute({
 const analystThresholdsRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/analyst/thresholds',
-    component: AnalystThresholdsPage,
+    component: ModelConfigFRM,
     beforeLoad: () => guardRole(['ANALYST']),
 });
 
@@ -245,7 +245,7 @@ const demoRoute = createRoute({
 const analystModelPerfRoute = createRoute({
     getParentRoute: () => authLayoutRoute,
     path: '/analyst/model-performance',
-    component: AnalystModelPerformancePage,
+    component: ModelPerformanceFRM,
     beforeLoad: () => guardRole(['ANALYST']),
 });
 

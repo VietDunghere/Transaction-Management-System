@@ -1,6 +1,6 @@
 from __future__ import annotations
 """
-Service: AnalystService
+Service: ModelConfigDAO
 Cung cấp các chức năng dành riêng cho ANALYST:
   1. Threshold management — xem/cập nhật ngưỡng fraud & loan
   2. Model performance — thống kê score distribution, false positive rate
@@ -15,9 +15,9 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import BusinessValidationError, NotFoundError
 from app.core.logging import get_logger
 from app.models.case import ReviewCase
-from app.models.loan import Loan
+from app.models.loan import Loans
 from app.models.scoring import AuditLog
-from app.models.transaction import Transaction
+from app.models.transaction import TransactionLive
 from app.repositories.analyst_repo import ModelConfigRepository
 from app.schemas.analyst import (
     FraudModelPerformanceResponse,
@@ -31,7 +31,7 @@ from app.schemas.analyst import (
 logger = get_logger(__name__)
 
 
-class AnalystService:
+class ModelConfigDAO:
     _DEFAULT_THRESHOLDS: dict[tuple[str, str], tuple[float, str]] = {
         ("fraud", "reject_threshold"): (0.65, "Auto reject threshold for fraud"),
         ("fraud", "review_threshold"): (0.35, "Manual review threshold for fraud"),
@@ -62,13 +62,13 @@ class AnalystService:
     # 1. Threshold management
     # ============================================================
 
-    def get_thresholds(self) -> ThresholdListResponse:
+    def getModelConfig(self) -> ThresholdListResponse:
         self._ensure_default_thresholds()
         fraud_cfgs = self._config_repo.get_by_model("fraud")
         loan_cfgs = self._config_repo.get_by_model("loan")
         return ThresholdListResponse(fraud=fraud_cfgs, loan=loan_cfgs)
 
-    def update_thresholds(self, request: ThresholdUpdateRequest, actor_user_id: str) -> ThresholdListResponse:
+    def changeConfig(self, request: ThresholdUpdateRequest, actor_user_id: str) -> ThresholdListResponse:
         self._ensure_default_thresholds()
         pending: dict[tuple[str, str], float] = {
             (item.model_name, item.param_name): item.param_value for item in request.updates
@@ -99,8 +99,8 @@ class AnalystService:
             if cfg is None:
                 raise NotFoundError(f"ModelConfig {item.model_name}.{item.param_name}")
 
-        from app.models.user import User
-        user = self._db.query(User.full_name).filter(User.user_id == actor_user_id).first()
+        from app.models.user import Users
+        user = self._db.query(Users.full_name).filter(Users.user_id == actor_user_id).first()
         self._db.add(AuditLog(
             log_id=str(uuid.uuid4()),
             event_type="THRESHOLD_UPDATED",
@@ -112,17 +112,17 @@ class AnalystService:
         ))
         self._db.commit()
         logger.info("thresholds_updated", actor=actor_user_id, count=len(request.updates))
-        return self.get_thresholds()
+        return self.getModelConfig()
 
     # ============================================================
     # 2. Model performance
     # ============================================================
 
-    def get_fraud_performance(self, days: int = 30) -> FraudModelPerformanceResponse:
+    def reportFraudPerformance(self, days: int = 30) -> FraudModelPerformanceResponse:
         from datetime import timedelta
         cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
 
-        txns = self._db.query(Transaction).filter(Transaction.created_at >= cutoff).all()
+        txns = self._db.query(TransactionLive).filter(TransactionLive.created_at >= cutoff).all()
 
         reject_cfg = self._config_repo.get("fraud", "reject_threshold")
         review_cfg = self._config_repo.get("fraud", "review_threshold")
@@ -160,11 +160,11 @@ class AnalystService:
             current_thresholds={"reject_threshold": reject_th, "review_threshold": review_th},
         )
 
-    def get_loan_performance(self, days: int = 30) -> LoanModelPerformanceResponse:
+    def reportLoanPerformance(self, days: int = 30) -> LoanModelPerformanceResponse:
         from datetime import timedelta
         cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
 
-        loans = self._db.query(Loan).filter(Loan.created_at >= cutoff).all()
+        loans = self._db.query(Loans).filter(Loans.created_at >= cutoff).all()
         total = len(loans)
 
         low = sum(1 for l in loans if l.risk_level == "LOW RISK")

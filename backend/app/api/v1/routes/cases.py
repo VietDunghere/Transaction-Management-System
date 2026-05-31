@@ -28,9 +28,9 @@ from app.schemas.case import (
 )
 from app.models.card_velocity import CardVelocityStats
 from app.models.scoring import RuleHit
-from app.models.user import User
+from app.models.user import Users
 from app.schemas.common import CaseStatus, PagedResponse
-from app.services.case_service import CaseService
+from app.services.case_service import ReviewCaseDAO
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
 
@@ -39,7 +39,7 @@ def _resolve_user_names(db, user_ids: list[str]) -> dict[str, str]:
     """Batch-resolve user_id → full_name."""
     if not user_ids:
         return {}
-    rows = db.query(User.user_id, User.full_name).filter(User.user_id.in_(user_ids)).all()
+    rows = db.query(Users.user_id, Users.full_name).filter(Users.user_id.in_(user_ids)).all()
     return {r.user_id: r.full_name for r in rows}
 
 
@@ -58,7 +58,7 @@ def list_cases(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> PagedResponse[CaseListItem]:
-    svc = CaseService(db)
+    svc = ReviewCaseDAO(db)
 
     is_reviewer_only = "MANAGER" not in token.roles and "ADMIN" not in token.roles
 
@@ -74,7 +74,7 @@ def list_cases(
         if period and period in _period_days else None
     )
 
-    items, total = svc.list_cases(
+    items, total = svc.filterCase(
         case_status=case_status,
         assigned_to=assigned_to if not is_reviewer_only else None,
         reviewer_queue_for=reviewer_queue_for,
@@ -120,8 +120,8 @@ def get_case(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("REVIEWER")),
 ) -> CaseResponse:
-    svc = CaseService(db)
-    case = svc.get_case(case_id)
+    svc = ReviewCaseDAO(db)
+    case = svc.viewCaseDetail(case_id)
 
     # REVIEWER chỉ được xem case OPEN (chưa assign) hoặc case được giao cho mình.
     # MANAGER/ADMIN được xem tất cả.
@@ -132,7 +132,7 @@ def get_case(
     txn_summary = None
     if case.transaction:
         from sqlalchemy import desc as _desc
-        from app.models.transaction import Transaction as _Txn
+        from app.models.transaction import TransactionLive as _Txn
         t = case.transaction
 
         # Card velocity stats
@@ -195,7 +195,7 @@ def get_case(
 
     assignee_name = None
     if case.assigned_to:
-        u = db.query(User.full_name).filter(User.user_id == case.assigned_to).scalar()
+        u = db.query(Users.full_name).filter(Users.user_id == case.assigned_to).scalar()
         assignee_name = u
 
     return CaseResponse(
@@ -227,8 +227,8 @@ def assign_case(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("REVIEWER")),
 ) -> CaseResponse:
-    svc = CaseService(db)
-    svc.self_assign(case_id, reviewer_user_id=token.sub)
+    svc = ReviewCaseDAO(db)
+    svc.assignCase(case_id, reviewer_user_id=token.sub)
     return get_case(case_id, db, token)
 
 
@@ -248,6 +248,6 @@ def decide_case(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("REVIEWER")),
 ) -> CaseResponse:
-    svc = CaseService(db)
-    svc.decide(case_id, body, actor_user_id=token.sub, actor_roles=token.roles)
+    svc = ReviewCaseDAO(db)
+    svc.reviewCase(case_id, body, actor_user_id=token.sub, actor_roles=token.roles)
     return get_case(case_id, db, token)

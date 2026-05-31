@@ -15,7 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Loan(Base):
+class Loans(Base):
     """Bảng loans — khoản vay (ERD v2)."""
 
     __tablename__ = "loans"
@@ -79,6 +79,6 @@ class Loan(Base):
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, onupdate=func.now())
 
     # ---- Relationships ----
-    customer: Mapped["Customer"] = relationship("Customer", foreign_keys=[customer_id])        # noqa: F821
-    submitter: Mapped["User"] = relationship("User", foreign_keys=[submitted_by])              # noqa: F821
-    reviewer: Mapped[Optional["User"]] = relationship("User", foreign_keys=[reviewed_by])      # noqa: F821
+    customer: Mapped["Customers"] = relationship("Customers", foreign_keys=[customer_id])        # noqa: F821
+    submitter: Mapped["Users"] = relationship("Users", foreign_keys=[submitted_by])              # noqa: F821
+    reviewer: Mapped[Optional["Users"]] = relationship("Users", foreign_keys=[reviewed_by])      # noqa: F821

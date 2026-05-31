@@ -25,7 +25,7 @@ from app.repositories.audit_repo import VALID_ENTITY_TYPES
 from app.schemas.audit_log import AuditLogListItem, AuditLogResponse
 from app.schemas.auth import TokenPayload
 from app.schemas.common import PagedResponse
-from app.services.audit_service import AuditService
+from app.services.audit_service import AuditLogDAO
 
 router = APIRouter(prefix="/audit-logs", tags=["Audit Logs"])
 
@@ -69,8 +69,8 @@ def list_audit_logs(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> PagedResponse[AuditLogListItem]:
-    svc = AuditService(db)
-    items, total = svc.list_logs(
+    svc = AuditLogDAO(db)
+    items, total = svc.filterAuditLog(
         event_type=event_type,
         entity_type=entity_type,
         actor_user_id=actor_user_id,
@@ -107,7 +107,7 @@ def list_entity_audit_logs(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> PagedResponse[AuditLogResponse]:
-    svc = AuditService(db)
+    svc = AuditLogDAO(db)
     items, total = svc.list_by_entity(
         entity_type=entity_type,
         entity_id=entity_id,
@@ -136,6 +136,6 @@ def get_audit_log(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
 ) -> AuditLogResponse:
-    svc = AuditService(db)
+    svc = AuditLogDAO(db)
     log = svc.get_log(log_id)
     return AuditLogResponse.model_validate(log)

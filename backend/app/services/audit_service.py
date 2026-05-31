@@ -1,6 +1,6 @@
 from __future__ import annotations
 """
-Service: AuditService
+Service: AuditLogDAO
 Business logic cho audit log queries.
 Audit log là immutable — service này CHỈ đọc, không bao giờ write hay update.
 """
@@ -16,7 +16,7 @@ from app.models.scoring import AuditLog
 from app.repositories.audit_repo import AuditLogRepository, VALID_ENTITY_TYPES
 
 
-class AuditService:
+class AuditLogDAO:
     """Query audit log — read-only."""
 
     def __init__(self, db: Session) -> None:
@@ -35,7 +35,7 @@ class AuditService:
             raise NotFoundError("AuditLog")
         return log
 
-    def list_logs(
+    def filterAuditLog(
         self,
         event_type: Optional[str] = None,
         entity_type: Optional[str] = None,

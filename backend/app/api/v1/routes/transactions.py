@@ -19,7 +19,7 @@ from app.schemas.transaction import (
     TransactionSubmitRequest,
     TransactionSubmitResponse,
 )
-from app.services.transaction_service import TransactionService
+from app.services.transaction_service import TransactionLiveDAO
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -35,8 +35,8 @@ def submit_transaction(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("OPERATOR")),
 ) -> TransactionSubmitResponse:
-    svc = TransactionService(db)
-    return svc.submit(body, submitted_by_user_id=token.sub)
+    svc = TransactionLiveDAO(db)
+    return svc.addTransaction(body, submitted_by_user_id=token.sub)
 
 
 @router.get(
@@ -58,7 +58,7 @@ def list_transactions(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> PagedResponse[TransactionResponse]:
-    svc = TransactionService(db)
+    svc = TransactionLiveDAO(db)
 
     _period_days = {"D": 1, "W": 7, "M": 30}
     effective_from = (
@@ -66,7 +66,7 @@ def list_transactions(
         if period and period in _period_days else from_date
     )
 
-    items, total = svc.list_transactions(
+    items, total = svc.filterTransaction(
         status=status,
         customer_id=customer_id,
         merchant_id=merchant_id,
@@ -96,8 +96,8 @@ def get_transaction(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("OPERATOR", "ANALYST", "MANAGER")),
 ) -> TransactionResponse:
-    svc = TransactionService(db)
-    txn = svc.get_transaction(txn_id)
+    svc = TransactionLiveDAO(db)
+    txn = svc.viewTransactionDetail(txn_id)
 
     response = TransactionResponse.model_validate(txn)
     if txn.customer:

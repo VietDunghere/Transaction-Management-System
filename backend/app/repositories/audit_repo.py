@@ -13,7 +13,7 @@ from sqlalchemy import and_, desc
 from sqlalchemy.orm import Session
 
 from app.models.scoring import AuditLog
-from app.models.user import User
+from app.models.user import Users
 
 
 # Danh sách entity_type hợp lệ để validate đầu vào
@@ -32,7 +32,7 @@ def _hydrate_actor_name(db: Session, logs: list[AuditLog]) -> list[AuditLog]:
     if not missing:
         return logs
     user_ids = list({log.actor_user_id for log in missing})
-    rows = db.query(User.user_id, User.full_name).filter(User.user_id.in_(user_ids)).all()
+    rows = db.query(Users.user_id, Users.full_name).filter(Users.user_id.in_(user_ids)).all()
     name_map = {r.user_id: r.full_name for r in rows}
     for log in missing:
         log.actor_name = name_map.get(log.actor_user_id)

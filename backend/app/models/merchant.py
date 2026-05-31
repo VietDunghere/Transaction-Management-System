@@ -15,7 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Merchant(Base):
+class Merchants(Base):
     """Bảng merchants — nơi phát sinh giao dịch."""
 
     __tablename__ = "merchants"
@@ -44,12 +44,12 @@ class Merchant(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.current_timestamp(), nullable=False)
 
     # Relationships
-    transactions: Mapped[list["Transaction"]] = relationship(  # noqa: F821
-        "Transaction", back_populates="merchant"
+    transactions: Mapped[list["TransactionLive"]] = relationship(  # noqa: F821
+        "TransactionLive", back_populates="merchant"
     )
 
 
-class Channel(Base):
+class Channels(Base):
     """Kênh giao dịch: POS | ATM | ONLINE | MOBILE_APP."""
 
     __tablename__ = "channels"
@@ -59,6 +59,6 @@ class Channel(Base):
     channel_name: Mapped[str] = mapped_column(String(100), nullable=False)
 
     # Relationships
-    transactions: Mapped[list["Transaction"]] = relationship(  # noqa: F821
-        "Transaction", back_populates="channel"
+    transactions: Mapped[list["TransactionLive"]] = relationship(  # noqa: F821
+        "TransactionLive", back_populates="channel"
     )

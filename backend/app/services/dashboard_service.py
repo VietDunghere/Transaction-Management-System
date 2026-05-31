@@ -1,6 +1,6 @@
 from __future__ import annotations
 """
-Service: DashboardService
+Service: DashboardReport
 Tổng hợp dữ liệu analytics từ nhiều bảng.
 Tất cả methods là read-only — không có side effects.
 """
@@ -57,14 +57,14 @@ def _utc_week_start() -> datetime:
     return datetime(monday.year, monday.month, monday.day, tzinfo=timezone.utc)
 
 
-class DashboardService:
+class DashboardReport:
     """Analytics read-only service."""
 
     def __init__(self, db: Session) -> None:
         self._db = db
         self._repo = DashboardRepository(db)
 
-    def get_summary(self) -> DashboardSummary:
+    def getDashboardData(self) -> DashboardSummary:
         """
         Lấy toàn bộ dashboard summary trong 1 lần gọi.
         Thực hiện ~6 DB queries nhỏ — tất cả đều dùng index.

@@ -47,10 +47,10 @@ def test_get_thresholds_returns_service_payload(monkeypatch, db_stub: DbStub, to
         def __init__(self, db):
             self.db = db
 
-        def get_thresholds(self):
+        def getModelConfig(self):
             return expected
 
-    monkeypatch.setattr(analyst_routes, "AnalystService", FakeService)
+    monkeypatch.setattr(analyst_routes, "ModelConfigDAO", FakeService)
 
     result = analyst_routes.get_thresholds(db=db_stub, token=token_admin)
 
@@ -65,12 +65,12 @@ def test_update_thresholds_forwards_actor_context(monkeypatch, db_stub: DbStub, 
         def __init__(self, db):
             observed["db"] = db
 
-        def update_thresholds(self, body, actor_user_id):
+        def changeConfig(self, body, actor_user_id):
             observed["body"] = body
             observed["actor_user_id"] = actor_user_id
             return expected
 
-    monkeypatch.setattr(analyst_routes, "AnalystService", FakeService)
+    monkeypatch.setattr(analyst_routes, "ModelConfigDAO", FakeService)
 
     body = ThresholdUpdateRequest.model_validate(
         {
@@ -114,11 +114,11 @@ def test_fraud_model_performance_forwards_days(monkeypatch, db_stub: DbStub, tok
         def __init__(self, db):
             observed["db"] = db
 
-        def get_fraud_performance(self, days):
+        def reportFraudPerformance(self, days):
             observed["days"] = days
             return expected
 
-    monkeypatch.setattr(analyst_routes, "AnalystService", FakeService)
+    monkeypatch.setattr(analyst_routes, "ModelConfigDAO", FakeService)
 
     result = analyst_routes.fraud_model_performance(db=db_stub, token=token_admin, days=14)
 
@@ -150,11 +150,11 @@ def test_loan_model_performance_forwards_days(monkeypatch, db_stub: DbStub, toke
         def __init__(self, db):
             observed["db"] = db
 
-        def get_loan_performance(self, days):
+        def reportLoanPerformance(self, days):
             observed["days"] = days
             return expected
 
-    monkeypatch.setattr(analyst_routes, "AnalystService", FakeService)
+    monkeypatch.setattr(analyst_routes, "ModelConfigDAO", FakeService)
 
     result = analyst_routes.loan_model_performance(db=db_stub, token=token_admin, days=30)
 

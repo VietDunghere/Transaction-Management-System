@@ -20,7 +20,7 @@ from app.schemas.user import (
     UserRoleUpdateResponse,
     MessageResponse,
 )
-from app.services.user_service import UserService
+from app.services.user_service import UserDAO
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -38,7 +38,7 @@ def list_users(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100, alias="limit"),
 ) -> PagedResponse[UserListItem]:
-    svc = UserService(db)
+    svc = UserDAO(db)
     items, total = svc.list_users(role=role, status=status, page=page, page_size=limit)
 
     data = [
@@ -66,7 +66,7 @@ def get_user(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("MANAGER", "ADMIN")),
 ) -> UserResponse:
-    svc = UserService(db)
+    svc = UserDAO(db)
     user = svc.get_user(user_id)
     return UserResponse(
         user_id=user.user_id,
@@ -91,8 +91,8 @@ def create_user(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("ADMIN")),
 ) -> CreateUserResponse:
-    svc = UserService(db)
-    return svc.create_user(body, actor_user_id=token.sub)
+    svc = UserDAO(db)
+    return svc.createUser(body, actor_user_id=token.sub)
 
 
 @router.patch(
@@ -105,8 +105,8 @@ def disable_user(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("ADMIN")),
 ) -> MessageResponse:
-    svc = UserService(db)
-    svc.disable_user(user_id, actor_user_id=token.sub)
+    svc = UserDAO(db)
+    svc.disableUser(user_id, actor_user_id=token.sub)
     return MessageResponse(message=f"Tài khoản {user_id} đã bị vô hiệu hoá.")
 
 
@@ -120,8 +120,8 @@ def enable_user(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("ADMIN")),
 ) -> MessageResponse:
-    svc = UserService(db)
-    svc.enable_user(user_id, actor_user_id=token.sub)
+    svc = UserDAO(db)
+    svc.reactivateUser(user_id, actor_user_id=token.sub)
     return MessageResponse(message=f"Tài khoản {user_id} đã được kích hoạt lại.")
 
 
@@ -136,5 +136,5 @@ def update_role(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("ADMIN")),
 ) -> UserRoleUpdateResponse:
-    svc = UserService(db)
-    return svc.update_role(user_id, body, actor_user_id=token.sub)
+    svc = UserDAO(db)
+    return svc.changeUserRole(user_id, body, actor_user_id=token.sub)

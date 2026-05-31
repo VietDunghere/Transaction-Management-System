@@ -13,8 +13,8 @@ from sqlalchemy import func
 
 from app.api.v1.deps import require_roles
 from app.db.deps import DbSession
-from app.models.customer import Customer
-from app.models.merchant import Channel, Merchant
+from app.models.customer import Customers
+from app.models.merchant import Channels, Merchants
 from app.schemas.auth import TokenPayload
 from app.schemas.lookup import ChannelItem, CustomerSearchItem, MerchantSearchItem
 
@@ -35,10 +35,10 @@ def search_customers(
 ) -> List[CustomerSearchItem]:
     pattern = f"%{q.lower()}%"
     rows = (
-        db.query(Customer)
+        db.query(Customers)
         .filter(
-            (func.lower(Customer.full_name).like(pattern))
-            | (func.lower(Customer.customer_code).like(pattern))
+            (func.lower(Customers.full_name).like(pattern))
+            | (func.lower(Customers.customer_code).like(pattern))
         )
         .limit(limit)
         .all()
@@ -67,10 +67,10 @@ def search_merchants(
 ) -> List[MerchantSearchItem]:
     pattern = f"%{q.lower()}%"
     rows = (
-        db.query(Merchant)
+        db.query(Merchants)
         .filter(
-            (func.lower(Merchant.merchant_name).like(pattern))
-            | (func.lower(Merchant.merchant_code).like(pattern))
+            (func.lower(Merchants.merchant_name).like(pattern))
+            | (func.lower(Merchants.merchant_code).like(pattern))
         )
         .limit(limit)
         .all()
@@ -96,7 +96,7 @@ def list_channels(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER", "MANAGER", "ANALYST", "ADMIN")),
 ) -> List[ChannelItem]:
-    rows = db.query(Channel).all()
+    rows = db.query(Channels).all()
     return [
         ChannelItem(
             channel_id=ch.channel_id,

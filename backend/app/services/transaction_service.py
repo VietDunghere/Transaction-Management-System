@@ -1,6 +1,6 @@
 from __future__ import annotations
 """
-Service: TransactionService (ERD v2)
+Service: TransactionLiveDAO (ERD v2)
 Simplified: no RiskScoringResult, TxnState, TxnStateHistory, TxnIdempotency, SuppressionRule.
 fraud_score + model_version stored directly on Transaction.
 """
@@ -24,20 +24,20 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.models.scoring import AuditLog
-from app.models.transaction import Transaction
+from app.models.transaction import TransactionLive
 from app.repositories.analyst_repo import ModelConfigRepository
 from app.repositories.transaction_repo import TransactionRepository
 from app.repositories.velocity_repo import CustomerRepository, MerchantRepository, VelocityRepository
 from app.schemas.transaction import TransactionSubmitRequest, TransactionSubmitResponse
 from app.services.fraud_scoring_service import FraudScoringInput, FraudScoringService
-from app.models.user import User
+from app.models.user import Users
 from app.models.case import ReviewCase
 from app.utils.card import hash_card_number, mask_card_number
 
 logger = get_logger(__name__)
 
 
-class TransactionService:
+class TransactionLiveDAO:
 
     def __init__(self, db: Session) -> None:
         self._db = db
@@ -48,7 +48,7 @@ class TransactionService:
         self._config_repo = ModelConfigRepository(db)
         self._scoring_svc = FraudScoringService.get_instance()
 
-    def submit(
+    def addTransaction(
         self,
         request: TransactionSubmitRequest,
         submitted_by_user_id: str,
@@ -109,7 +109,7 @@ class TransactionService:
         )
 
         # ---- Save Transaction (fraud_score + model_version inline) ----
-        txn = Transaction(
+        txn = TransactionLive(
             txn_id=str(uuid.uuid4()),
             customer_id=request.customer_id,
             merchant_id=request.merchant_id,
@@ -129,7 +129,7 @@ class TransactionService:
         #      trigger TRG_AUTO_CREATE_CASE — no need to insert here ----
 
         # ---- Audit log ----
-        actor_user = self._db.query(User.full_name).filter(User.user_id == submitted_by_user_id).first()
+        actor_user = self._db.query(Users.full_name).filter(Users.user_id == submitted_by_user_id).first()
         audit = AuditLog(
             log_id=str(uuid.uuid4()),
             event_type="TRANSACTION_SUBMITTED",
@@ -169,13 +169,13 @@ class TransactionService:
             case_id=case_id,
         )
 
-    def get_transaction(self, txn_id: str) -> Transaction:
+    def viewTransactionDetail(self, txn_id: str) -> TransactionLive:
         txn = self._txn_repo.get_by_id(txn_id)
         if txn is None:
             raise NotFoundError("Transaction")
         return txn
 
-    def list_transactions(self, **kwargs) -> tuple[list[Transaction], int]:
+    def filterTransaction(self, **kwargs) -> tuple[list[TransactionLive], int]:
         return self._txn_repo.list_transactions(**kwargs)
 
     @staticmethod

@@ -14,7 +14,7 @@ from app.api.v1.deps import CurrentToken, CurrentUser, get_auth_service
 from app.db.deps import DbSession
 from app.schemas.auth import LoginRequest, RefreshRequest, TokenResponse
 from app.schemas.user import ChangePasswordRequest, MeResponse, MessageResponse
-from app.services.auth_service import AuthService
+from app.services.user_service import UserDAO
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -28,9 +28,9 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 def login(
     body: LoginRequest,
     db: DbSession,
-    auth_service: AuthService = Depends(get_auth_service),
+    auth_service: UserDAO = Depends(get_auth_service),
 ) -> TokenResponse:
-    result = auth_service.login(body.username, body.password)
+    result = auth_service.checkLogin(body.username, body.password)
     db.commit()
     return result
 
@@ -44,7 +44,7 @@ def login(
 def logout(
     token: CurrentToken,
     db: DbSession,
-    auth_service: AuthService = Depends(get_auth_service),
+    auth_service: UserDAO = Depends(get_auth_service),
 ) -> MessageResponse:
     auth_service.logout(user_id=token.sub)
     db.commit()
@@ -77,9 +77,9 @@ def change_password(
     body: ChangePasswordRequest,
     db: DbSession,
     token: CurrentToken,
-    auth_service: AuthService = Depends(get_auth_service),
+    auth_service: UserDAO = Depends(get_auth_service),
 ) -> MessageResponse:
-    auth_service.change_password(
+    auth_service.checkChangePassword(
         user_id=token.sub,
         current_password=body.current_password,
         new_password=body.new_password,
@@ -96,6 +96,6 @@ def change_password(
 )
 def refresh_token(
     body: RefreshRequest,
-    auth_service: AuthService = Depends(get_auth_service),
+    auth_service: UserDAO = Depends(get_auth_service),
 ) -> TokenResponse:
     return auth_service.refresh(body.refresh_token)

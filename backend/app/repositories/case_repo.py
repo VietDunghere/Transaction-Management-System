@@ -11,7 +11,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.case import ReviewCase
-from app.models.transaction import Transaction
+from app.models.transaction import TransactionLive
 from app.schemas.common import CaseStatus
 
 
@@ -24,8 +24,8 @@ class CaseRepository:
         return (
             self._db.query(ReviewCase)
             .options(
-                joinedload(ReviewCase.transaction).joinedload(Transaction.merchant),
-                joinedload(ReviewCase.transaction).joinedload(Transaction.customer),
+                joinedload(ReviewCase.transaction).joinedload(TransactionLive.merchant),
+                joinedload(ReviewCase.transaction).joinedload(TransactionLive.customer),
                 joinedload(ReviewCase.reviewer),
             )
             .filter(ReviewCase.case_id == case_id)

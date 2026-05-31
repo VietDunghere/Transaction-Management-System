@@ -14,10 +14,10 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import PermissionDeniedError
 from app.core.logging import get_logger
 from app.db.deps import get_db
-from app.models.user import User
+from app.models.user import Users
 from app.repositories.user_repo import UserRepository
 from app.schemas.auth import TokenPayload
-from app.services.auth_service import AuthService
+from app.services.user_service import UserDAO
 
 logger = get_logger(__name__)
 
@@ -25,14 +25,14 @@ logger = get_logger(__name__)
 _bearer_scheme = HTTPBearer(auto_error=True)
 
 
-def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
-    """Tạo AuthService với DB session hiện tại."""
-    return AuthService(UserRepository(db))
+def get_auth_service(db: Session = Depends(get_db)) -> UserDAO:
+    """Tạo UserDAO với DB session hiện tại."""
+    return UserDAO(UserRepository(db))
 
 
 def get_current_token(
     credentials: HTTPAuthorizationCredentials = Security(_bearer_scheme),
-    auth_service: AuthService = Depends(get_auth_service),
+    auth_service: UserDAO = Depends(get_auth_service),
 ) -> TokenPayload:
     """
     Dependency: Validate Bearer token và trả TokenPayload.
@@ -44,7 +44,7 @@ def get_current_token(
 def get_current_user(
     token: TokenPayload = Depends(get_current_token),
     db: Session = Depends(get_db),
-) -> User:
+) -> Users:
     """Dependency: Load full User object từ DB dựa vào token sub."""
     user = UserRepository(db).get_by_id(token.sub)
     if user is None:
@@ -69,4 +69,4 @@ def require_roles(*roles: str):
 
 # ---- Type aliases ----
 CurrentToken = Annotated[TokenPayload, Depends(get_current_token)]
-CurrentUser = Annotated[User, Depends(get_current_user)]
+CurrentUser = Annotated[Users, Depends(get_current_user)]

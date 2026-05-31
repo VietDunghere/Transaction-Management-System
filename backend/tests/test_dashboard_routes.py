@@ -46,10 +46,10 @@ def test_get_dashboard_summary_returns_service_payload(monkeypatch, db_stub: DbS
         def __init__(self, db):
             observed["db"] = db
 
-        def get_summary(self):
+        def getDashboardData(self):
             return expected
 
-    monkeypatch.setattr(dashboard_routes, "DashboardService", FakeService)
+    monkeypatch.setattr(dashboard_routes, "DashboardReport", FakeService)
 
     result = dashboard_routes.get_dashboard_summary(db=db_stub, token=token_admin)
 
@@ -86,7 +86,7 @@ def test_get_fraud_trend_forwards_days(monkeypatch, db_stub: DbStub, token_admin
             observed["lookback_days"] = lookback_days
             return expected
 
-    monkeypatch.setattr(dashboard_routes, "DashboardService", FakeService)
+    monkeypatch.setattr(dashboard_routes, "DashboardReport", FakeService)
 
     result = dashboard_routes.get_fraud_trend(db=db_stub, token=token_admin, days=14)
 

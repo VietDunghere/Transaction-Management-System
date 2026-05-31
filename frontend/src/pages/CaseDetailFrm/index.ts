@@ -1,0 +1,1 @@
+export { CaseDetailFrm } from './CaseDetailFrm';

@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { TransactionListPage } from '~/pages/TransactionListPage/TransactionListPage';
-import { TransactionDetailPage } from '~/pages/TransactionDetailPage/TransactionDetailPage';
-import { TransactionSubmitPage } from '~/pages/TransactionSubmitPage/TransactionSubmitPage';
+import { TransactionFRM } from '~/pages/TransactionFRM/TransactionFRM';
+import { TransactionDetailFrm } from '~/pages/TransactionDetailFrm/TransactionDetailFrm';
+import { AddTransactionFRM } from '~/pages/AddTransactionFRM/AddTransactionFRM';
 import { createMutationResult, createQueryResult, navigateMock, setRouteParams } from '~/test/testUtils';
 import {
     transactionDetail,
@@ -43,7 +43,7 @@ describe('transaction pages', () => {
         transactionHookMocks.useDemoRunning.mockReturnValue(false);
         transactionHookMocks.useTransactions.mockReturnValue(createQueryResult(transactionListResponse));
 
-        render(<TransactionListPage />);
+        render(<TransactionFRM />);
 
         expect(screen.getByRole('heading', { name: 'Transactions' })).toBeInTheDocument();
         expect(screen.getByText('1 total transactions')).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe('transaction pages', () => {
         transactionHookMocks.useTransaction.mockReturnValue(createQueryResult(transactionDetail));
         setRouteParams({ txnId: transactionDetail.txn_id });
 
-        render(<TransactionDetailPage />);
+        render(<TransactionDetailFrm />);
 
         expect(screen.getByRole('heading', { name: 'Transaction Detail' })).toBeInTheDocument();
         expect(screen.getByText('Transaction Details')).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('transaction pages', () => {
         const submitMutation = createMutationResult({ data: transactionSubmitResponse });
         transactionHookMocks.useSubmitTransaction.mockReturnValue(submitMutation);
 
-        render(<TransactionSubmitPage />);
+        render(<AddTransactionFRM />);
 
         expect(screen.getByRole('heading', { name: 'Submit Transaction' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Submit for Scoring' })).toBeInTheDocument();

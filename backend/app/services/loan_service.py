@@ -1,6 +1,6 @@
 from __future__ import annotations
 """
-Service: LoanService
+Service: LoanDAO
 Business logic cho loan application và approval workflow.
 
 Flow:
@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ConflictError, NotFoundError, OptimisticLockError, PermissionDeniedError
 from app.core.logging import get_logger
-from app.models.loan import Loan
+from app.models.loan import Loans
 from app.models.scoring import AuditLog
 from app.repositories.analyst_repo import ModelConfigRepository
 from app.repositories.loan_repo import LoanRepository
@@ -67,7 +67,7 @@ def _calculate_monthly_payment(
 
 
 def _try_score_loan(
-    loan: "Loan",  # noqa: F821
+    loan: "Loans",  # noqa: F821
     high_risk_threshold: float | None = None,
     medium_risk_threshold: float | None = None,
 ) -> None:
@@ -100,7 +100,7 @@ def _try_score_loan(
     loan.risk_level = result.risk_level
 
 
-class LoanService:
+class LoanDAO:
     """Orchestrator cho loan application và approval."""
 
     def __init__(self, db: Session) -> None:
@@ -113,7 +113,7 @@ class LoanService:
     # Public API
     # ============================================================
 
-    def apply(self, request: LoanApplyRequest, submitted_by_user_id: str) -> Loan:
+    def addLoan(self, request: LoanApplyRequest, submitted_by_user_id: str) -> Loans:
         """
         OPERATOR tạo đơn vay mới cho khách hàng.
 
@@ -124,7 +124,7 @@ class LoanService:
         if customer is None:
             raise NotFoundError("Customer")
 
-        loan = Loan(
+        loan = Loans(
             loan_id=str(uuid.uuid4()),
             customer_id=request.customer_id,
             submitted_by=submitted_by_user_id,
@@ -172,23 +172,23 @@ class LoanService:
         )
         return self._loan_repo.get_by_id(loan.loan_id)
 
-    def get_loan(self, loan_id: str) -> Loan:
+    def viewLoanDetail(self, loan_id: str) -> Loans:
         """Lấy chi tiết 1 khoản vay theo ID."""
         loan = self._loan_repo.get_by_id(loan_id)
         if loan is None:
             raise NotFoundError("Loan")
         return loan
 
-    def list_loans(self, **kwargs) -> tuple[list[Loan], int]:
+    def filterLoan(self, **kwargs) -> tuple[list[Loans], int]:
         """Danh sách khoản vay với filter và pagination."""
         return self._loan_repo.list_loans(**kwargs)
 
-    def decide(
+    def reviewLoan(
         self,
         loan_id: str,
         request: LoanDecisionRequest,
         actor_user_id: str,
-    ) -> Loan:
+    ) -> Loans:
         """
         REVIEWER phê duyệt hoặc từ chối khoản vay.
 
@@ -275,8 +275,8 @@ class LoanService:
         self, entity_id: str, actor: str, event_type: str, detail: dict
     ) -> None:
         """Ghi audit log — không commit, để service tự commit sau."""
-        from app.models.user import User
-        user = self._db.query(User.full_name).filter(User.user_id == actor).first()
+        from app.models.user import Users
+        user = self._db.query(Users.full_name).filter(Users.user_id == actor).first()
         audit = AuditLog(
             log_id=str(uuid.uuid4()),
             event_type=event_type,

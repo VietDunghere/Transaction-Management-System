@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LoanListPage } from '~/pages/LoanListPage/LoanListPage';
-import { LoanCreatePage } from '~/pages/LoanCreatePage/LoanCreatePage';
+import { LoanFrm } from '~/pages/LoanFrm/LoanFrm';
+import { AddLoanFrm } from '~/pages/AddLoanFrm/AddLoanFrm';
 import { LoanSimulatePage } from '~/pages/LoanSimulatePage/LoanSimulatePage';
-import { LoanDetailPage } from '~/pages/LoanDetailPage/LoanDetailPage';
+import { LoanDetailFrm } from '~/pages/LoanDetailFrm/LoanDetailFrm';
 import {
     loanCreateResponse,
     loanDetail,
@@ -54,7 +54,7 @@ describe('loan pages', () => {
         loanHookMocks.useLoans.mockReturnValue(createQueryResult(loanListResponse));
         setAuthUser(operatorUser);
 
-        render(<LoanListPage />);
+        render(<LoanFrm />);
 
         expect(screen.getByRole('heading', { name: 'Loans' })).toBeInTheDocument();
         expect(screen.getByText('1 total loans')).toBeInTheDocument();
@@ -74,7 +74,7 @@ describe('loan pages', () => {
         const createLoanMutation = createMutationResult({ data: loanCreateResponse });
         loanHookMocks.useCreateLoan.mockReturnValue(createLoanMutation);
 
-        render(<LoanCreatePage />);
+        render(<AddLoanFrm />);
 
         await user.type(screen.getByLabelText('Customer ID'), 'cust-900');
         await user.type(screen.getByLabelText('Principal Amount'), '300000');
@@ -159,7 +159,7 @@ describe('loan pages', () => {
         setAuthUser(reviewerUser);
         setRouteParams({ loanId: loanDetail.loan_id });
 
-        render(<LoanDetailPage />);
+        render(<LoanDetailFrm />);
 
         expect(screen.getByRole('heading', { name: 'Loan Detail' })).toBeInTheDocument();
         expect(screen.getByText('Loan Details')).toBeInTheDocument();

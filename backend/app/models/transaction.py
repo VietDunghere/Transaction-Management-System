@@ -17,7 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
-class Transaction(Base):
+class TransactionLive(Base):
     """Bảng transactions_live (ERD v2)."""
 
     __tablename__ = "transactions_live"
@@ -58,9 +58,9 @@ class Transaction(Base):
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, onupdate=func.now())
 
     # ---- Relationships ----
-    customer: Mapped["Customer"] = relationship("Customer", back_populates="transactions")       # noqa: F821
-    merchant: Mapped["Merchant"] = relationship("Merchant", back_populates="transactions")       # noqa: F821
-    channel: Mapped["Channel"] = relationship("Channel", back_populates="transactions")          # noqa: F821
+    customer: Mapped["Customers"] = relationship("Customers", back_populates="transactions")       # noqa: F821
+    merchant: Mapped["Merchants"] = relationship("Merchants", back_populates="transactions")       # noqa: F821
+    channel: Mapped["Channels"] = relationship("Channels", back_populates="transactions")          # noqa: F821
     review_case: Mapped[Optional["ReviewCase"]] = relationship(                                  # noqa: F821
         "ReviewCase", back_populates="transaction", uselist=False
     )

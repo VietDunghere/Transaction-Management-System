@@ -13,7 +13,7 @@ from app.api.v1.deps import require_roles
 from app.db.deps import DbSession
 from app.schemas.auth import TokenPayload
 from app.schemas.dashboard import DashboardSummary, FraudTrendResponse
-from app.services.dashboard_service import DashboardService
+from app.services.dashboard_service import DashboardReport
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -33,8 +33,8 @@ def get_dashboard_summary(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("ANALYST", "MANAGER")),
 ) -> DashboardSummary:
-    svc = DashboardService(db)
-    return svc.get_summary()
+    svc = DashboardReport(db)
+    return svc.getDashboardData()
 
 
 @router.get(
@@ -58,5 +58,5 @@ def get_fraud_trend(
         description="Số ngày nhìn lại (1–90). Mặc định 30 ngày.",
     ),
 ) -> FraudTrendResponse:
-    svc = DashboardService(db)
+    svc = DashboardReport(db)
     return svc.get_fraud_trend(lookback_days=days)

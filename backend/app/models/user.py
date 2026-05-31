@@ -14,7 +14,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
 
-class User(Base):
+class Users(Base):
     """Bảng users — tài khoản nhân viên ngân hàng (ERD v2: role + status inline)."""
 
     __tablename__ = "users"

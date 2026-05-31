@@ -36,7 +36,7 @@ def test_list_users_builds_paged_response(monkeypatch, db_stub: DbStub, token_ad
             observed["kwargs"] = kwargs
             return users, 1
 
-    monkeypatch.setattr(user_routes, "UserService", FakeService)
+    monkeypatch.setattr(user_routes, "UserDAO", FakeService)
 
     result = user_routes.list_users(
         db=db_stub,
@@ -82,7 +82,7 @@ def test_get_user_maps_domain_user(monkeypatch, db_stub: DbStub, token_admin, ma
             assert user_id == "user-1"
             return user_obj
 
-    monkeypatch.setattr(user_routes, "UserService", FakeService)
+    monkeypatch.setattr(user_routes, "UserDAO", FakeService)
 
     result = user_routes.get_user(user_id="user-1", db=db_stub, token=token_admin)
 
@@ -105,12 +105,12 @@ def test_create_user_forwards_actor_user_id(monkeypatch, db_stub: DbStub, token_
         def __init__(self, db):
             observed["db"] = db
 
-        def create_user(self, body, actor_user_id):
+        def createUser(self, body, actor_user_id):
             observed["body"] = body
             observed["actor_user_id"] = actor_user_id
             return expected
 
-    monkeypatch.setattr(user_routes, "UserService", FakeService)
+    monkeypatch.setattr(user_routes, "UserDAO", FakeService)
 
     body = CreateUserRequest(
         username="analyst01",
@@ -135,11 +135,11 @@ def test_disable_user_calls_service_and_returns_message(monkeypatch, db_stub: Db
         def __init__(self, db):
             observed["db"] = db
 
-        def disable_user(self, user_id, actor_user_id):
+        def disableUser(self, user_id, actor_user_id):
             observed["user_id"] = user_id
             observed["actor_user_id"] = actor_user_id
 
-    monkeypatch.setattr(user_routes, "UserService", FakeService)
+    monkeypatch.setattr(user_routes, "UserDAO", FakeService)
 
     result = user_routes.disable_user(user_id="user-3", db=db_stub, token=token_admin)
 
@@ -156,11 +156,11 @@ def test_enable_user_calls_service_and_returns_message(monkeypatch, db_stub: DbS
         def __init__(self, db):
             observed["db"] = db
 
-        def enable_user(self, user_id, actor_user_id):
+        def reactivateUser(self, user_id, actor_user_id):
             observed["user_id"] = user_id
             observed["actor_user_id"] = actor_user_id
 
-    monkeypatch.setattr(user_routes, "UserService", FakeService)
+    monkeypatch.setattr(user_routes, "UserDAO", FakeService)
 
     result = user_routes.enable_user(user_id="user-4", db=db_stub, token=token_admin)
 
@@ -178,13 +178,13 @@ def test_update_role_forwards_payload_and_actor(monkeypatch, db_stub: DbStub, to
         def __init__(self, db):
             observed["db"] = db
 
-        def update_role(self, user_id, body, actor_user_id):
+        def changeUserRole(self, user_id, body, actor_user_id):
             observed["user_id"] = user_id
             observed["body"] = body
             observed["actor_user_id"] = actor_user_id
             return expected
 
-    monkeypatch.setattr(user_routes, "UserService", FakeService)
+    monkeypatch.setattr(user_routes, "UserDAO", FakeService)
 
     body = UserRoleUpdateRequest(role="MANAGER")
 

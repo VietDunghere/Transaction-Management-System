@@ -11,9 +11,9 @@ from typing import Optional
 from sqlalchemy import and_, desc
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.loan import Loan
-from app.models.customer import Customer  # noqa: F401
-from app.models.user import User  # noqa: F401
+from app.models.loan import Loans
+from app.models.customer import Customers  # noqa: F401
+from app.models.user import Users  # noqa: F401
 from app.schemas.common import LoanStatus
 
 
@@ -23,19 +23,19 @@ class LoanRepository:
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def get_by_id(self, loan_id: str) -> Optional[Loan]:
+    def get_by_id(self, loan_id: str) -> Optional[Loans]:
         """
         Lấy khoản vay theo ID.
         Eager-load customer, submitter, reviewer để tránh N+1 khi serialize.
         """
         return (
-            self._db.query(Loan)
+            self._db.query(Loans)
             .options(
-                joinedload(Loan.customer),
-                joinedload(Loan.submitter),
-                joinedload(Loan.reviewer),
+                joinedload(Loans.customer),
+                joinedload(Loans.submitter),
+                joinedload(Loans.reviewer),
             )
-            .filter(Loan.loan_id == loan_id)
+            .filter(Loans.loan_id == loan_id)
             .first()
         )
 
@@ -47,38 +47,38 @@ class LoanRepository:
         created_from: Optional[datetime] = None,
         page: int = 1,
         page_size: int = 20,
-    ) -> tuple[list[Loan], int]:
+    ) -> tuple[list[Loans], int]:
         """
         Danh sách khoản vay với filter và pagination.
 
         Returns:
             (items, total_count)
         """
-        query = self._db.query(Loan).options(joinedload(Loan.customer))
+        query = self._db.query(Loans).options(joinedload(Loans.customer))
 
         filters = []
         if customer_id:
-            filters.append(Loan.customer_id == customer_id)
+            filters.append(Loans.customer_id == customer_id)
         if submitted_by:
-            filters.append(Loan.submitted_by == submitted_by)
+            filters.append(Loans.submitted_by == submitted_by)
         if status:
-            filters.append(Loan.status == status.value)
+            filters.append(Loans.status == status.value)
         if created_from:
-            filters.append(Loan.created_at >= created_from)
+            filters.append(Loans.created_at >= created_from)
 
         if filters:
             query = query.filter(and_(*filters))
 
         total = query.count()
         items = (
-            query.order_by(desc(Loan.created_at))
+            query.order_by(desc(Loans.created_at))
             .offset((page - 1) * page_size)
             .limit(page_size)
             .all()
         )
         return items, total
 
-    def create(self, loan: Loan) -> Loan:
+    def create(self, loan: Loans) -> Loans:
         """Insert khoản vay mới và flush để lấy generated fields."""
         self._db.add(loan)
         self._db.flush()

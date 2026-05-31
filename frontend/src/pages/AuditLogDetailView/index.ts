@@ -1,0 +1,1 @@
+export { AuditLogDetailView } from './AuditLogDetailView';

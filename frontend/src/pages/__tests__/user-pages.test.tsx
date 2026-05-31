@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { UserListPage } from '~/pages/UserListPage/UserListPage';
-import { UserCreatePage } from '~/pages/UserCreatePage/UserCreatePage';
+import { UserView } from '~/pages/UserView/UserView';
+import { AddUserView } from '~/pages/AddUserView/AddUserView';
 import { UserDetailPage } from '~/pages/UserDetailPage/UserDetailPage';
 import { adminUser, operatorUser, userListResponse } from '~/test/fixtures';
 import { createMutationResult, createQueryResult, navigateMock, setAuthUser, setRouteParams } from '~/test/testUtils';
@@ -42,7 +42,7 @@ describe('user pages', () => {
         userHookMocks.useUsers.mockReturnValue(createQueryResult(userListResponse));
         setAuthUser(adminUser);
 
-        render(<UserListPage />);
+        render(<UserView />);
 
         expect(screen.getByRole('heading', { name: 'Users' })).toBeInTheDocument();
         expect(screen.getByText('Create User')).toBeInTheDocument();
@@ -61,7 +61,7 @@ describe('user pages', () => {
         const createUserMutation = createMutationResult({ data: { user_id: 'user-new' } });
         userHookMocks.useCreateUser.mockReturnValue(createUserMutation);
 
-        render(<UserCreatePage />);
+        render(<AddUserView />);
 
         await user.type(screen.getByLabelText('Username'), 'new.user');
         await user.type(screen.getByLabelText('Full Name'), 'New User');

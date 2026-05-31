@@ -30,4 +30,4 @@ class ModelConfig(Base):
     )
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
-    updater: Mapped[Optional["User"]] = relationship("User", foreign_keys=[updated_by])  # type: ignore[name-defined]
+    updater: Mapped[Optional["Users"]] = relationship("Users", foreign_keys=[updated_by])  # type: ignore[name-defined]

@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuditLogListPage } from '~/pages/AuditLogListPage/AuditLogListPage';
-import { AuditLogDetailPage } from '~/pages/AuditLogDetailPage/AuditLogDetailPage';
+import { AuditLogView } from '~/pages/AuditLogView/AuditLogView';
+import { AuditLogDetailView } from '~/pages/AuditLogDetailView/AuditLogDetailView';
 import { auditLogDetail, auditLogListResponse } from '~/test/fixtures';
 import { createQueryResult, navigateMock, setRouteParams } from '~/test/testUtils';
 
@@ -27,7 +27,7 @@ describe('audit pages', () => {
         const user = userEvent.setup();
         auditHookMocks.useAuditLogs.mockReturnValue(createQueryResult(auditLogListResponse));
 
-        render(<AuditLogListPage />);
+        render(<AuditLogView />);
 
         expect(screen.getByRole('heading', { name: 'Audit Logs' })).toBeInTheDocument();
         expect(screen.getByText('1 total entries')).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('audit pages', () => {
         auditHookMocks.useAuditLog.mockReturnValue(createQueryResult(auditLogDetail));
         setRouteParams({ logId: auditLogDetail.log_id });
 
-        render(<AuditLogDetailPage />);
+        render(<AuditLogDetailView />);
 
         expect(screen.getByRole('heading', { name: 'Audit Log Detail' })).toBeInTheDocument();
         expect(screen.getByText('Event Details')).toBeInTheDocument();

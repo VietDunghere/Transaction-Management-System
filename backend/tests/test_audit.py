@@ -30,11 +30,11 @@ def test_list_audit_logs_returns_paged_items(monkeypatch, db_stub: DbStub, token
 		def __init__(self, db):
 			observed["db"] = db
 
-		def list_logs(self, **kwargs):
+		def filterAuditLog(self, **kwargs):
 			observed["kwargs"] = kwargs
 			return items, 1
 
-	monkeypatch.setattr(audit_routes, "AuditService", FakeService)
+	monkeypatch.setattr(audit_routes, "AuditLogDAO", FakeService)
 
 	result = audit_routes.list_audit_logs(
 		db=db_stub,
@@ -73,7 +73,7 @@ def test_list_entity_audit_logs_returns_paged_audit_trail(monkeypatch, db_stub: 
 			observed["page_size"] = page_size
 			return items, 1
 
-	monkeypatch.setattr(audit_routes, "AuditService", FakeService)
+	monkeypatch.setattr(audit_routes, "AuditLogDAO", FakeService)
 
 	result = audit_routes.list_entity_audit_logs(
 		entity_type="ReviewCase",
@@ -106,7 +106,7 @@ def test_get_audit_log_returns_detail_payload(monkeypatch, db_stub: DbStub, toke
 			observed["log_id"] = log_id
 			return item
 
-	monkeypatch.setattr(audit_routes, "AuditService", FakeService)
+	monkeypatch.setattr(audit_routes, "AuditLogDAO", FakeService)
 
 	result = audit_routes.get_audit_log(log_id="log-31", db=db_stub, token=token_admin)
 

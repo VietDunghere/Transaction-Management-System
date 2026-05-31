@@ -18,7 +18,7 @@ from app.schemas.analyst import (
     ThresholdUpdateRequest,
 )
 from app.schemas.auth import TokenPayload
-from app.services.analyst_service import AnalystService
+from app.services.analyst_service import ModelConfigDAO
 
 router = APIRouter(prefix="/analyst", tags=["Analyst"])
 
@@ -32,7 +32,7 @@ def get_thresholds(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("ANALYST")),
 ) -> ThresholdListResponse:
-    return AnalystService(db).get_thresholds()
+    return ModelConfigDAO(db).getModelConfig()
 
 
 @router.patch(
@@ -46,7 +46,7 @@ def update_thresholds(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("ANALYST")),
 ) -> ThresholdListResponse:
-    return AnalystService(db).update_thresholds(body, actor_user_id=token.sub)
+    return ModelConfigDAO(db).changeConfig(body, actor_user_id=token.sub)
 
 
 @router.get(
@@ -59,7 +59,7 @@ def fraud_model_performance(
     token: TokenPayload = Depends(require_roles("ANALYST")),
     days: int = Query(default=30, ge=1, le=365, description="Số ngày nhìn lại"),
 ) -> FraudModelPerformanceResponse:
-    return AnalystService(db).get_fraud_performance(days=days)
+    return ModelConfigDAO(db).reportFraudPerformance(days=days)
 
 
 @router.get(
@@ -72,4 +72,4 @@ def loan_model_performance(
     token: TokenPayload = Depends(require_roles("ANALYST")),
     days: int = Query(default=30, ge=1, le=365, description="Số ngày nhìn lại"),
 ) -> LoanModelPerformanceResponse:
-    return AnalystService(db).get_loan_performance(days=days)
+    return ModelConfigDAO(db).reportLoanPerformance(days=days)

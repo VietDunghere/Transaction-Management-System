@@ -18,7 +18,7 @@ from app.api.v1.deps import require_roles
 from app.db.deps import DbSession
 from app.schemas.auth import TokenPayload
 from app.schemas.common import LoanStatus, PagedResponse
-from app.models.loan import Loan
+from app.models.loan import Loans
 from app.schemas.loan import (
     CustomerLoanStats,
     LoanApplyRequest,
@@ -28,7 +28,7 @@ from app.schemas.loan import (
     LoanSimulationRequest,
     LoanSimulationResponse,
 )
-from app.services.loan_service import LoanService
+from app.services.loan_service import LoanDAO
 from app.services.loan_scoring_service import LoanScoringService, LoanSimulationInput
 
 router = APIRouter(prefix="/loans", tags=["Loans"])
@@ -50,8 +50,8 @@ def _build_loan_response(loan, db) -> LoanResponse:
 
     # Loan history for this customer (exclude current loan)
     all_loans = (
-        db.query(Loan.status)
-        .filter(Loan.customer_id == loan.customer_id, Loan.loan_id != loan.loan_id)
+        db.query(Loans.status)
+        .filter(Loans.customer_id == loan.customer_id, Loans.loan_id != loan.loan_id)
         .all()
     )
     stats = CustomerLoanStats(
@@ -81,8 +81,8 @@ def apply_loan(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("OPERATOR")),
 ) -> LoanResponse:
-    svc = LoanService(db)
-    loan = svc.apply(body, submitted_by_user_id=token.sub)
+    svc = LoanDAO(db)
+    loan = svc.addLoan(body, submitted_by_user_id=token.sub)
     return LoanResponse.model_validate(loan)
 
 
@@ -101,7 +101,7 @@ def list_loans(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100, alias="limit"),
 ) -> PagedResponse[LoanListItem]:
-    svc = LoanService(db)
+    svc = LoanDAO(db)
 
     _period_days = {"D": 1, "W": 7, "M": 30}
     created_from = (
@@ -109,7 +109,7 @@ def list_loans(
         if period and period in _period_days else None
     )
 
-    items, total = svc.list_loans(
+    items, total = svc.filterLoan(
         customer_id=customer_id,
         submitted_by=None,
         status=status,
@@ -182,8 +182,8 @@ def get_loan(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("OPERATOR", "REVIEWER")),
 ) -> LoanResponse:
-    svc = LoanService(db)
-    loan = svc.get_loan(loan_id)
+    svc = LoanDAO(db)
+    loan = svc.viewLoanDetail(loan_id)
 
     return _build_loan_response(loan, db)
 
@@ -204,6 +204,6 @@ def decide_loan(
     db: DbSession,
     token: TokenPayload = Depends(require_roles("REVIEWER")),
 ) -> LoanResponse:
-    svc = LoanService(db)
-    loan = svc.decide(loan_id, body, actor_user_id=token.sub)
+    svc = LoanDAO(db)
+    loan = svc.reviewLoan(loan_id, body, actor_user_id=token.sub)
     return _build_loan_response(loan, db)

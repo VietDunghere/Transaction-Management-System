@@ -92,12 +92,12 @@ def test_apply_loan_forwards_actor_context(monkeypatch, db_stub: DbStub, token_o
         def __init__(self, db):
             observed["db"] = db
 
-        def apply(self, body, submitted_by_user_id):
+        def addLoan(self, body, submitted_by_user_id):
             observed["body"] = body
             observed["submitted_by_user_id"] = submitted_by_user_id
             return loan_obj
 
-    monkeypatch.setattr(loan_routes, "LoanService", FakeService)
+    monkeypatch.setattr(loan_routes, "LoanDAO", FakeService)
 
     body = LoanApplyRequest(
         customer_id="cust-1",
@@ -132,11 +132,11 @@ def test_list_loans_adds_customer_name(monkeypatch, db_stub: DbStub, token_admin
         def __init__(self, db):
             observed["db"] = db
 
-        def list_loans(self, **kwargs):
+        def filterLoan(self, **kwargs):
             observed["kwargs"] = kwargs
             return loans, 1
 
-    monkeypatch.setattr(loan_routes, "LoanService", FakeService)
+    monkeypatch.setattr(loan_routes, "LoanDAO", FakeService)
 
     result = loan_routes.list_loans(
         db=db_stub,
@@ -214,7 +214,7 @@ def test_get_loan_delegates_to_builder(monkeypatch, db_stub: DbStub, token_admin
         def __init__(self, db):
             observed["db"] = db
 
-        def get_loan(self, loan_id):
+        def viewLoanDetail(self, loan_id):
             observed["loan_id"] = loan_id
             return loan_obj
 
@@ -222,7 +222,7 @@ def test_get_loan_delegates_to_builder(monkeypatch, db_stub: DbStub, token_admin
         observed["builder_input"] = (loan, db)
         return expected
 
-    monkeypatch.setattr(loan_routes, "LoanService", FakeService)
+    monkeypatch.setattr(loan_routes, "LoanDAO", FakeService)
     monkeypatch.setattr(loan_routes, "_build_loan_response", fake_builder)
 
     result = loan_routes.get_loan(loan_id="loan-4", db=db_stub, token=token_admin)
@@ -242,7 +242,7 @@ def test_decide_loan_forwards_actor_and_delegates_builder(monkeypatch, db_stub: 
         def __init__(self, db):
             observed["db"] = db
 
-        def decide(self, loan_id, body, actor_user_id):
+        def reviewLoan(self, loan_id, body, actor_user_id):
             observed["loan_id"] = loan_id
             observed["body"] = body
             observed["actor_user_id"] = actor_user_id
@@ -252,7 +252,7 @@ def test_decide_loan_forwards_actor_and_delegates_builder(monkeypatch, db_stub: 
         observed["builder_input"] = (loan, db)
         return expected
 
-    monkeypatch.setattr(loan_routes, "LoanService", FakeService)
+    monkeypatch.setattr(loan_routes, "LoanDAO", FakeService)
     monkeypatch.setattr(loan_routes, "_build_loan_response", fake_builder)
 
     body = LoanDecisionRequest(decision="APPROVE", review_note="Approved after checks", version=1)

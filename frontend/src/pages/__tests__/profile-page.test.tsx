@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProfilePage } from '~/pages/ProfilePage/ProfilePage';
+import { ChangePasswordFRM } from '~/pages/ChangePasswordFRM/ChangePasswordFRM';
 import { adminUser } from '~/test/fixtures';
 import { createMutationResult, setAuthUser } from '~/test/testUtils';
 
@@ -24,7 +24,7 @@ describe('profile page', () => {
         const changePasswordMutation = createMutationResult();
         authHookMocks.useChangePassword.mockReturnValue(changePasswordMutation);
 
-        render(<ProfilePage />);
+        render(<ChangePasswordFRM />);
 
         expect(screen.getByRole('heading', { name: 'Profile' })).toBeInTheDocument();
         expect(screen.getByText('Account Information')).toBeInTheDocument();

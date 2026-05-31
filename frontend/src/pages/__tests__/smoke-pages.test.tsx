@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LoginPage } from '~/pages/LoginPage/LoginPage';
-import { DashboardPage } from '~/pages/DashboardPage/DashboardPage';
+import { LoginFRM } from '~/pages/LoginFRM/LoginFRM';
+import { DashboardView } from '~/pages/DashboardView/DashboardView';
 import { ForbiddenPage } from '~/pages/ForbiddenPage/ForbiddenPage';
 import { NotFoundPage } from '~/pages/NotFoundPage/NotFoundPage';
 import { adminUser, dashboardSummary, fraudTrend, reviewerUser } from '~/test/fixtures';
@@ -45,7 +45,7 @@ describe('auth and shell pages', () => {
         authHookMocks.useLogin.mockReturnValue(loginMutation);
         setAuthUser(null);
 
-        render(<LoginPage />);
+        render(<LoginFRM />);
 
         expect(screen.getByRole('heading', { name: 'Login To Your Account' })).toBeInTheDocument();
         expect(screen.getByLabelText('Username')).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('auth and shell pages', () => {
         authHookMocks.useLogin.mockReturnValue(createMutationResult());
         setAuthUser(adminUser);
 
-        render(<LoginPage />);
+        render(<LoginFRM />);
 
         expect(screen.getAllByTestId('navigate').some((node) => node.getAttribute('data-to') === '/')).toBe(true);
     });
@@ -77,7 +77,7 @@ describe('auth and shell pages', () => {
         dashboardHookMocks.useFraudTrend.mockReturnValue(createQueryResult({ data: fraudTrend }));
         setAuthUser(null);
 
-        render(<DashboardPage />);
+        render(<DashboardView />);
 
         expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
         expect(screen.getByText('System overview and fraud monitoring')).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe('auth and shell pages', () => {
         dashboardHookMocks.useFraudTrend.mockReturnValue(createQueryResult({ data: fraudTrend }));
         setAuthUser(reviewerUser);
 
-        render(<DashboardPage />);
+        render(<DashboardView />);
 
         expect(screen.getAllByTestId('navigate').some((node) => node.getAttribute('data-to') === '/cases')).toBe(true);
     });

@@ -26,7 +26,7 @@ def test_login_commits_and_returns_token(db_stub: DbStub) -> None:
 	observed: dict[str, object] = {}
 
 	class FakeAuthService:
-		def login(self, username, password):
+		def checkLogin(self, username, password):
 			observed["username"] = username
 			observed["password"] = password
 			return expected
@@ -43,7 +43,7 @@ def test_login_commits_and_returns_token(db_stub: DbStub) -> None:
 
 def test_login_does_not_commit_on_service_error(db_stub: DbStub) -> None:
 	class FakeAuthService:
-		def login(self, username, password):
+		def checkLogin(self, username, password):
 			raise RuntimeError("auth backend unavailable")
 
 	body = LoginRequest(username="operator01", password="secret123")
@@ -90,7 +90,7 @@ def test_change_password_forwards_context_and_commits(db_stub: DbStub, token_adm
 	observed: dict[str, object] = {}
 
 	class FakeAuthService:
-		def change_password(self, user_id, current_password, new_password):
+		def checkChangePassword(self, user_id, current_password, new_password):
 			observed["user_id"] = user_id
 			observed["current_password"] = current_password
 			observed["new_password"] = new_password

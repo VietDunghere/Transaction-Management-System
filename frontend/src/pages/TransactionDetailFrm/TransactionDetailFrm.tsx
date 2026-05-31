@@ -1,0 +1,101 @@
+import { useParams, useNavigate } from '@tanstack/react-router';
+import { useTransaction } from '~/hooks/useTransactions';
+import type { TransactionStatus } from '~/types/api';
+import { PageHeader } from '~/components/templates/PageHeader/PageHeader';
+import { DetailPageTemplate } from '~/components/templates/DetailPageTemplate/DetailPageTemplate';
+import { Card } from '~/components/ui/Card/Card';
+import { KeyValueRow } from '~/components/ui/KeyValueRow/KeyValueRow';
+import { Badge } from '~/components/ui/Badge/Badge';
+import { SectionHeader } from '~/components/ui/SectionHeader/SectionHeader';
+import { Button } from '~/components/ui/Button/Button';
+import { LoadingSkeleton } from '~/components/ui/LoadingSkeleton/LoadingSkeleton';
+import { ErrorState } from '~/components/ui/ErrorState/ErrorState';
+
+const statusVariant: Record<TransactionStatus, 'success' | 'danger' | 'warning' | 'info'> = {
+    APPROVED: 'success',
+    REJECTED: 'danger',
+    MANUAL_REVIEW: 'warning',
+    PENDING: 'info',
+};
+
+export function TransactionDetailFrm() {
+    const { txnId } = useParams({ strict: false }) as { txnId: string };
+    const navigate = useNavigate();
+    const { data: txn, isLoading, isError, refetch } = useTransaction(txnId);
+
+    if (isLoading) return <LoadingSkeleton variant="card" />;
+    if (isError || !txn) return <ErrorState onRetry={refetch} />;
+
+    return (
+        <DetailPageTemplate
+            header={
+                <PageHeader
+                    title="Transaction Detail"
+                    subtitle={`Created ${new Date(txn.created_at).toLocaleString()}`}
+                    actions={
+                        <Button variant="ghost" onClick={() => navigate({ to: '/transactions' })}>
+                            Back to List
+                        </Button>
+                    }
+                />
+            }
+            statBar={
+                <>
+                    <div className="flex flex-col gap-2 rounded-xl bg-accent-purple p-6">
+                        <span className="text-sm text-text-on-accent">Amount</span>
+                        <span className="text-2xl font-semibold leading-8 text-text-on-accent">
+                            {txn.amount.toLocaleString()}
+                        </span>
+                    </div>
+                    <div className="flex flex-col gap-2 rounded-xl bg-accent-blue p-6">
+                        <span className="text-sm text-text-on-accent">Fraud Score</span>
+                        <span className="text-2xl font-semibold leading-8 text-text-on-accent">
+                            {txn.fraud_score != null ? `${(txn.fraud_score * 100).toFixed(1)}%` : '—'}
+                        </span>
+                    </div>
+                    <div className="flex flex-col items-start gap-2 rounded-xl bg-accent-purple p-6">
+                        <span className="text-sm text-text-on-accent">Status</span>
+                        <Badge variant={statusVariant[txn.status]}>{txn.status}</Badge>
+                    </div>
+                    <div className="flex flex-col gap-2 rounded-xl bg-accent-blue p-6">
+                        <span className="text-sm text-text-on-accent">Model</span>
+                        <span className="text-base font-semibold text-text-on-accent">{txn.model_version ?? '-'}</span>
+                    </div>
+                </>
+            }
+            main={
+                <Card>
+                    <SectionHeader title="Transaction Details" />
+                    <div className="flex flex-col gap-1 mt-4">
+                        <KeyValueRow
+                            label="Transaction ID"
+                            value={<span className="font-mono text-xs">{txn.txn_id}</span>}
+                        />
+                        <KeyValueRow
+                            label="Customer"
+                            value={txn.customer_name ?? <span className="font-mono text-xs">{txn.customer_id}</span>}
+                        />
+                        <KeyValueRow
+                            label="Merchant"
+                            value={txn.merchant_name ?? <span className="font-mono text-xs">{txn.merchant_id}</span>}
+                        />
+                        <KeyValueRow label="Card Number" value={txn.card_number_masked} />
+                        <KeyValueRow label="Amount" value={txn.amount.toLocaleString()} />
+                        <KeyValueRow
+                            label="Status"
+                            value={<Badge variant={statusVariant[txn.status]}>{txn.status}</Badge>}
+                        />
+                        <KeyValueRow label="Fraud Score" value={txn.fraud_score != null ? `${(txn.fraud_score * 100).toFixed(1)}%` : '—'} />
+                        <KeyValueRow label="Model Version" value={txn.model_version ?? '-'} />
+                        <KeyValueRow label="Transaction Time" value={new Date(txn.txn_time).toLocaleString()} />
+                        <KeyValueRow label="Created At" value={new Date(txn.created_at).toLocaleString()} />
+                        <KeyValueRow
+                            label="Updated At"
+                            value={txn.updated_at ? new Date(txn.updated_at).toLocaleString() : '-'}
+                        />
+                    </div>
+                </Card>
+            }
+        />
+    );
+}

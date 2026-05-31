@@ -38,7 +38,7 @@ class ReviewCase(Base):
     decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     # Relationships
-    transaction: Mapped["Transaction"] = relationship(  # noqa: F821
-        "Transaction", back_populates="review_case"
+    transaction: Mapped["TransactionLive"] = relationship(  # noqa: F821
+        "TransactionLive", back_populates="review_case"
     )
-    reviewer: Mapped[Optional["User"]] = relationship("User", foreign_keys=[assigned_to])  # noqa: F821
+    reviewer: Mapped[Optional["Users"]] = relationship("Users", foreign_keys=[assigned_to])  # noqa: F821

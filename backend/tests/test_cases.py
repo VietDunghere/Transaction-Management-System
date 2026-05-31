@@ -19,7 +19,7 @@ def test_list_cases_blocks_reviewer_filtering_other_assignee(monkeypatch, db_stu
 		def __init__(self, db):
 			self.db = db
 
-	monkeypatch.setattr(case_routes, "CaseService", FakeService)
+	monkeypatch.setattr(case_routes, "ReviewCaseDAO", FakeService)
 
 	with pytest.raises(PermissionDeniedError):
 		case_routes.list_cases(
@@ -57,11 +57,11 @@ def test_list_cases_maps_summary_with_assignee_name(monkeypatch, token_manager, 
 		def __init__(self, db_session):
 			observed["db"] = db_session
 
-		def list_cases(self, **kwargs):
+		def filterCase(self, **kwargs):
 			observed["kwargs"] = kwargs
 			return [case_obj], 1
 
-	monkeypatch.setattr(case_routes, "CaseService", FakeService)
+	monkeypatch.setattr(case_routes, "ReviewCaseDAO", FakeService)
 
 	result = case_routes.list_cases(
 		db=db,
@@ -102,11 +102,11 @@ def test_get_case_blocks_reviewer_on_other_assignment(monkeypatch, db_stub: DbSt
 		def __init__(self, db):
 			self.db = db
 
-		def get_case(self, case_id):
+		def viewCaseDetail(self, case_id):
 			assert case_id == "case-2"
 			return case_obj
 
-	monkeypatch.setattr(case_routes, "CaseService", FakeService)
+	monkeypatch.setattr(case_routes, "ReviewCaseDAO", FakeService)
 
 	with pytest.raises(PermissionDeniedError):
 		case_routes.get_case(case_id="case-2", db=db_stub, token=token_reviewer)
@@ -178,11 +178,11 @@ def test_get_case_enriches_transaction_details(monkeypatch, token_manager, make_
 		def __init__(self, db_session):
 			self.db = db_session
 
-		def get_case(self, case_id):
+		def viewCaseDetail(self, case_id):
 			assert case_id == "case-9"
 			return case_obj
 
-	monkeypatch.setattr(case_routes, "CaseService", FakeService)
+	monkeypatch.setattr(case_routes, "ReviewCaseDAO", FakeService)
 
 	result = case_routes.get_case(case_id="case-9", db=db, token=token_manager)
 
@@ -218,7 +218,7 @@ def test_assign_case_calls_self_assign_then_returns_case(monkeypatch, db_stub: D
 		def __init__(self, db):
 			observed["db"] = db
 
-		def self_assign(self, case_id, reviewer_user_id):
+		def assignCase(self, case_id, reviewer_user_id):
 			observed["case_id"] = case_id
 			observed["reviewer_user_id"] = reviewer_user_id
 
@@ -226,7 +226,7 @@ def test_assign_case_calls_self_assign_then_returns_case(monkeypatch, db_stub: D
 		observed["get_case_called_with"] = (case_id, db, token.sub)
 		return expected
 
-	monkeypatch.setattr(case_routes, "CaseService", FakeService)
+	monkeypatch.setattr(case_routes, "ReviewCaseDAO", FakeService)
 	monkeypatch.setattr(case_routes, "get_case", fake_get_case)
 
 	result = case_routes.assign_case(case_id="case-3", db=db_stub, token=token_reviewer)
@@ -260,7 +260,7 @@ def test_decide_case_calls_service_then_returns_updated_case(monkeypatch, db_stu
 		def __init__(self, db):
 			observed["db"] = db
 
-		def decide(self, case_id, body, actor_user_id, actor_roles):
+		def reviewCase(self, case_id, body, actor_user_id, actor_roles):
 			observed["case_id"] = case_id
 			observed["body"] = body
 			observed["actor_user_id"] = actor_user_id
@@ -270,7 +270,7 @@ def test_decide_case_calls_service_then_returns_updated_case(monkeypatch, db_stu
 		observed["get_case_called_with"] = (case_id, db, token.sub)
 		return expected
 
-	monkeypatch.setattr(case_routes, "CaseService", FakeService)
+	monkeypatch.setattr(case_routes, "ReviewCaseDAO", FakeService)
 	monkeypatch.setattr(case_routes, "get_case", fake_get_case)
 
 	body = CaseDecideRequest(

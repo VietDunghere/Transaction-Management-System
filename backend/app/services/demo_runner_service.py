@@ -21,13 +21,13 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.db.base import SessionLocal
-from app.models.customer import Customer
-from app.models.merchant import Channel, Merchant
+from app.models.customer import Customers
+from app.models.merchant import Channels, Merchants
 from app.schemas.demo import DemoEvent, DemoStartRequest, DemoStatusResponse
 from app.schemas.loan import LoanApplyRequest
 from app.schemas.transaction import TransactionSubmitRequest
-from app.services.loan_service import LoanService
-from app.services.transaction_service import TransactionService
+from app.services.loan_service import LoanDAO
+from app.services.transaction_service import TransactionLiveDAO
 
 logger = get_logger(__name__)
 
@@ -211,9 +211,9 @@ class DemoRunnerService:
 
     @staticmethod
     def _build_data_pool(db: Session) -> DemoDataPool:
-        customer_ids = [row[0] for row in db.query(Customer.customer_id).all()]
-        merchant_ids = [row[0] for row in db.query(Merchant.merchant_id).all()]
-        channel_ids = [row[0] for row in db.query(Channel.channel_id).all()]
+        customer_ids = [row[0] for row in db.query(Customers.customer_id).all()]
+        merchant_ids = [row[0] for row in db.query(Merchants.merchant_id).all()]
+        channel_ids = [row[0] for row in db.query(Channels.channel_id).all()]
 
         missing: list[str] = []
         if not customer_ids:
@@ -276,7 +276,7 @@ class DemoRunnerService:
         """Run one transaction — called in a thread to avoid blocking the loop."""
         db = SessionLocal()
         try:
-            svc = TransactionService(db)
+            svc = TransactionLiveDAO(db)
 
             # Retry 1 lần với data pool refresh nếu gặp NotFound do ID stale.
             result = None
@@ -285,7 +285,7 @@ class DemoRunnerService:
                     self._get_data_pool(db, force_refresh=(attempt == 1))
                 )
                 try:
-                    result = svc.submit(payload, submitted_by_user_id=user_id)
+                    result = svc.addTransaction(payload, submitted_by_user_id=user_id)
                     break
                 except NotFoundError:
                     db.rollback()
@@ -316,7 +316,7 @@ class DemoRunnerService:
         """Run one loan application — called in a thread."""
         db = SessionLocal()
         try:
-            svc = LoanService(db)
+            svc = LoanDAO(db)
 
             # Retry 1 lần với data pool refresh nếu gặp NotFound do ID stale.
             payload = None
@@ -326,7 +326,7 @@ class DemoRunnerService:
                     self._get_data_pool(db, force_refresh=(attempt == 1))
                 )
                 try:
-                    loan = svc.apply(payload, submitted_by_user_id=user_id)
+                    loan = svc.addLoan(payload, submitted_by_user_id=user_id)
                     break
                 except NotFoundError:
                     db.rollback()

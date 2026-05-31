@@ -10,7 +10,7 @@ from typing import Optional
 from sqlalchemy import and_, desc
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.transaction import Transaction
+from app.models.transaction import TransactionLive
 from app.schemas.common import TransactionStatus
 
 
@@ -19,15 +19,15 @@ class TransactionRepository:
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def get_by_id(self, txn_id: str) -> Optional[Transaction]:
+    def get_by_id(self, txn_id: str) -> Optional[TransactionLive]:
         return (
-            self._db.query(Transaction)
+            self._db.query(TransactionLive)
             .options(
-                joinedload(Transaction.customer),
-                joinedload(Transaction.merchant),
-                joinedload(Transaction.channel),
+                joinedload(TransactionLive.customer),
+                joinedload(TransactionLive.merchant),
+                joinedload(TransactionLive.channel),
             )
-            .filter(Transaction.txn_id == txn_id)
+            .filter(TransactionLive.txn_id == txn_id)
             .first()
         )
 
@@ -44,48 +44,48 @@ class TransactionRepository:
         created_after: Optional[datetime] = None,
         page: int = 1,
         page_size: int = 20,
-    ) -> tuple[list[Transaction], int]:
-        query = self._db.query(Transaction)
+    ) -> tuple[list[TransactionLive], int]:
+        query = self._db.query(TransactionLive)
 
         filters = []
         if status:
-            filters.append(Transaction.status == status.value)
+            filters.append(TransactionLive.status == status.value)
         if customer_id:
-            filters.append(Transaction.customer_id == customer_id)
+            filters.append(TransactionLive.customer_id == customer_id)
         if merchant_id:
-            filters.append(Transaction.merchant_id == merchant_id)
+            filters.append(TransactionLive.merchant_id == merchant_id)
         if submitted_by:
-            filters.append(Transaction.submitted_by == submitted_by)
+            filters.append(TransactionLive.submitted_by == submitted_by)
         if date_from:
-            filters.append(Transaction.txn_time >= date_from)
+            filters.append(TransactionLive.txn_time >= date_from)
         if date_to:
-            filters.append(Transaction.txn_time <= date_to)
+            filters.append(TransactionLive.txn_time <= date_to)
         if min_amount is not None:
-            filters.append(Transaction.amount >= min_amount)
+            filters.append(TransactionLive.amount >= min_amount)
         if max_amount is not None:
-            filters.append(Transaction.amount <= max_amount)
+            filters.append(TransactionLive.amount <= max_amount)
         if created_after is not None:
-            filters.append(Transaction.created_at >= created_after)
+            filters.append(TransactionLive.created_at >= created_after)
 
         if filters:
             query = query.filter(and_(*filters))
 
         total = query.count()
         items = (
-            query.order_by(desc(Transaction.txn_time))
+            query.order_by(desc(TransactionLive.txn_time))
             .offset((page - 1) * page_size)
             .limit(page_size)
             .all()
         )
         return items, total
 
-    def create(self, txn: Transaction) -> Transaction:
+    def create(self, txn: TransactionLive) -> TransactionLive:
         self._db.add(txn)
         self._db.flush()
         return txn
 
     def update_status(self, txn_id: str, status: str, fraud_score: Optional[float] = None) -> None:
-        self._db.query(Transaction).filter(Transaction.txn_id == txn_id).update({
+        self._db.query(TransactionLive).filter(TransactionLive.txn_id == txn_id).update({
             "status": status,
             "fraud_score": fraud_score,
         })
