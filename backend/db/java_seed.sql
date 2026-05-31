@@ -3,12 +3,14 @@
 -- Run AFTER db/schema.sql.
 --
 -- PASSWORD SCHEME:
---   util/PasswordUtil.hashPassword(plain) = SHA-256(UTF-8(plain)) as lowercase
---   hex (String.format("%02x")). No salt. verifyPassword compares hex strings.
+--   Python backend (app/core/security.py) hashes with bcrypt via passlib
+--   (CryptContext schemes=["bcrypt"]). verify_password() uses bcrypt verify.
 --
 --   Seed plaintext password for ALL users:  Password@123
---   SHA-256 hex hash:
---     ff7bd97b1a7789ddd2775122fd6817f3173672da9f802ceec57f284325bf589f
+--   bcrypt hash (cost 12) of Password@123:
+--     $2b$12$A6EjTAlbOmS.joSkgLGUWOnwY1EerJkgHJoPgbRnzH6r0HRDJmoGC
+--   (One fixed hash reused for every seed user — bcrypt verify is salt-embedded,
+--    so the same hash validates Password@123 for all accounts.)
 --
 -- Realistic Vietnam city coordinates used for customers/merchants.
 -- UUIDs are literal strings.
@@ -34,11 +36,11 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- users : one ACTIVE user per role. Password = Password@123
 -- ----------------------------------------------------------------------------
 INSERT INTO users (user_id, username, password_hash, full_name, email, role, status, is_first_login) VALUES
-('u0000001-0000-0000-0000-000000000001', 'admin',    'ff7bd97b1a7789ddd2775122fd6817f3173672da9f802ceec57f284325bf589f', 'System Admin',   'admin@tms.local',    'ADMIN',    'ACTIVE', 0),
-('u0000002-0000-0000-0000-000000000002', 'manager',  'ff7bd97b1a7789ddd2775122fd6817f3173672da9f802ceec57f284325bf589f', 'Risk Manager',   'manager@tms.local',  'MANAGER',  'ACTIVE', 0),
-('u0000003-0000-0000-0000-000000000003', 'analyst',  'ff7bd97b1a7789ddd2775122fd6817f3173672da9f802ceec57f284325bf589f', 'Fraud Analyst',  'analyst@tms.local',  'ANALYST',  'ACTIVE', 0),
-('u0000004-0000-0000-0000-000000000004', 'reviewer', 'ff7bd97b1a7789ddd2775122fd6817f3173672da9f802ceec57f284325bf589f', 'Case Reviewer',  'reviewer@tms.local', 'REVIEWER', 'ACTIVE', 0),
-('u0000005-0000-0000-0000-000000000005', 'operator', 'ff7bd97b1a7789ddd2775122fd6817f3173672da9f802ceec57f284325bf589f', 'Branch Operator','operator@tms.local', 'OPERATOR', 'ACTIVE', 0);
+('u0000001-0000-0000-0000-000000000001', 'admin',    '$2b$12$A6EjTAlbOmS.joSkgLGUWOnwY1EerJkgHJoPgbRnzH6r0HRDJmoGC', 'System Admin',   'admin@tms.local',    'ADMIN',    'ACTIVE', 0),
+('u0000002-0000-0000-0000-000000000002', 'manager',  '$2b$12$A6EjTAlbOmS.joSkgLGUWOnwY1EerJkgHJoPgbRnzH6r0HRDJmoGC', 'Risk Manager',   'manager@tms.local',  'MANAGER',  'ACTIVE', 0),
+('u0000003-0000-0000-0000-000000000003', 'analyst',  '$2b$12$A6EjTAlbOmS.joSkgLGUWOnwY1EerJkgHJoPgbRnzH6r0HRDJmoGC', 'Fraud Analyst',  'analyst@tms.local',  'ANALYST',  'ACTIVE', 0),
+('u0000004-0000-0000-0000-000000000004', 'reviewer', '$2b$12$A6EjTAlbOmS.joSkgLGUWOnwY1EerJkgHJoPgbRnzH6r0HRDJmoGC', 'Case Reviewer',  'reviewer@tms.local', 'REVIEWER', 'ACTIVE', 0),
+('u0000005-0000-0000-0000-000000000005', 'operator', '$2b$12$A6EjTAlbOmS.joSkgLGUWOnwY1EerJkgHJoPgbRnzH6r0HRDJmoGC', 'Branch Operator','operator@tms.local', 'OPERATOR', 'ACTIVE', 0);
 
 -- ----------------------------------------------------------------------------
 -- channels (4)
